@@ -85,3 +85,4 @@ window.toggleModalCol = toggleModalCol;
 
 window.enterTableInventory = enterTableInventory;
 window.handleMonthlyBack = handleMonthlyBack;
+window.refreshMonthlyData = refreshMonthlyData;
