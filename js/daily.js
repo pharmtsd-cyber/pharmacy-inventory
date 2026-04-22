@@ -15,8 +15,18 @@ export function loadDailyData(dateStr) {
   if(dateStr && dateStr.includes('-')) dateStr = dateStr.replace(/-/g, '/');
   toggleLoader(true);
   fetchBackend('getDailyInventoryByDate', { dateStr: dateStr }).then(data => {
-    toggleLoader(false); dailyItems = data.items || []; document.getElementById('header-date-select').value = data.selectedDate.replace(/\//g, '-'); renderDailyItems(); 
-  }).catch(err => { toggleLoader(false); document.getElementById('daily-list-area').innerHTML = '<div class="text-center p-5 text-muted fw-bold">讀取失敗</div>'; });
+    toggleLoader(false); 
+    dailyItems = data.items || []; 
+    if (data.selectedDate) {
+      document.getElementById('header-date-select').value = data.selectedDate.replace(/\//g, '-');
+    }
+    // 🌟 [新增] 讀取完資料後，立刻強制作業標籤更新數字！
+    updateTabUI(); 
+    renderDailyItems(); 
+  }).catch(err => { 
+    toggleLoader(false); 
+    document.getElementById('daily-list-area').innerHTML = '<div class="text-center p-5 text-muted fw-bold">無資料或讀取失敗</div>'; 
+  });
 }
 
 export function switchDailyTab(tabName) { if (currentDailyTab === tabName) return; currentDailyTab = tabName; updateTabUI(); renderDailyItems(); }
