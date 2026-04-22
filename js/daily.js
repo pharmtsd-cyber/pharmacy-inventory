@@ -139,26 +139,31 @@ export function openAdminSort() {
   fetchBackend('getAdminData').then(data => { 
     toggleLoader(false); 
     
-    // 🌟 新增防呆：攔截後端的詳細錯誤
+    // 🌟 防呆：精準顯示後端的錯誤
     if (data && data.success === false) {
-      alert('後端資料表異常: ' + data.message);
+      alert('⚠️ 後端資料異常: ' + data.message);
       return;
     }
 
     adminData = data; 
     
-    // 🌟 安全讀取陣列，避免 undefined 當機
+    // 🌟 安全讀取陣列，避免undefined
     adminCombinedList = (data.selectable || []).map(item => { 
       const savedItem = (data.saved || []).find(s => s.locCode === item.locCode);
       return { ...item, order: savedItem ? savedItem.order : '' }; 
     }); 
     
-    renderSortableList(); 
-    switchView('view-admin-sort'); 
+    try {
+      renderSortableList(); 
+      switchView('view-admin-sort'); 
+    } catch(e) {
+      alert('畫面渲染失敗：' + e.message);
+    }
     
   }).catch(err => { 
     toggleLoader(false); 
-    alert('網路異常，無法讀取資料'); 
+    // 🌟 顯示真正的系統連線錯誤原因，不再只顯示網路異常
+    alert('🚫 系統連線失敗：' + err.message); 
   }); 
 }
 export function toggleVisibility(locCode) { const item = adminCombinedList.find(i => i.locCode === locCode); if (item) { item.order = item.order === 0 ? '' : 0; renderSortableList(); } }
