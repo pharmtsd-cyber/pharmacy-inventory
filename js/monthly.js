@@ -10,7 +10,7 @@ export let html5QrCode = null;
 export let stockSelectedDrug = null; 
 export let onlineSelectedDrug = null;
 
-// ✨ 1. 修改初始化：預設進入進度看板
+// 🌟 修正問題 1 & 2：進入時立刻渲染進度看板
 export function initMonthlyMode() {
   switchView('view-monthly-app'); 
   switchMonthlyTab('tab-dashboard'); 
@@ -19,9 +19,12 @@ export function initMonthlyMode() {
   fetchBackend('getMonthlyInitData').then(res => {
     monthlyDrugMaster = res.drugMaster; 
     monthlyTables = res.tables;
-    // 預先塞入隱藏選單
-    document.getElementById('monthly-table-select').innerHTML = monthlyTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-    loadUserRecords(() => { toggleLoader(false); });
+    const select = document.getElementById('monthly-table-select');
+    if(select) select.innerHTML = monthlyTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    loadUserRecords(() => { 
+      renderMonthlyDashboard(); // <--- 就是補上了這一行
+      toggleLoader(false); 
+    });
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
 }
 
@@ -115,22 +118,16 @@ export function pushRecordLocally(recInfo) {
   renderAllRecordLists();
 }
 
-export function updateOnlineUI() {
+export function updateOnlineUI() { 
   const checkedInput = document.querySelector('input[name="actionType"]:checked');
-  if (!checkedInput) return; // 防呆：如果找不到單選框就不執行
-
+  if (!checkedInput) return;
   if (checkedInput.value === '手動') {
-    const areaManual = document.getElementById('area-manual');
-    const areaBarcode = document.getElementById('area-barcode');
-    if (areaManual) areaManual.classList.remove('d-none');
-    if (areaBarcode) areaBarcode.classList.add('d-none');
+    const areaManual = document.getElementById('area-manual'); const areaBarcode = document.getElementById('area-barcode');
+    if (areaManual) areaManual.classList.remove('d-none'); if (areaBarcode) areaBarcode.classList.add('d-none');
   } else {
-    const areaManual = document.getElementById('area-manual');
-    const areaBarcode = document.getElementById('area-barcode');
-    if (areaManual) areaManual.classList.add('d-none');
-    if (areaBarcode) areaBarcode.classList.remove('d-none');
-    const barcodeInput = document.getElementById('online-barcode');
-    if (barcodeInput) barcodeInput.focus();
+    const areaManual = document.getElementById('area-manual'); const areaBarcode = document.getElementById('area-barcode');
+    if (areaManual) areaManual.classList.add('d-none'); if (areaBarcode) areaBarcode.classList.remove('d-none');
+    const barcodeInput = document.getElementById('online-barcode'); if (barcodeInput) barcodeInput.focus();
   }
 }
 
@@ -141,14 +138,32 @@ export function switchMonthlyTab(tabId) {
   if (tabsContainer) { tabsContainer.querySelectorAll('.nav-link').forEach(btn => { btn.classList.remove('active', 'bg-academic', 'text-white'); btn.classList.add('bg-white', 'text-academic'); }); }
   const activeBtnId = tabId.replace('tab-', 'btn-tab-'); const activeBtn = document.getElementById(activeBtnId);
   if (activeBtn) { activeBtn.classList.remove('bg-white', 'text-academic'); activeBtn.classList.add('active', 'bg-academic', 'text-white'); }
-  
   if (tabId === 'tab-records') renderAllRecordLists();
   if (tabId === 'tab-dashboard') renderMonthlyDashboard();
 }
 
-export function switchStockSubTab(view) { const btnIn = document.getElementById('btn-stock-sub-input'), btnList = document.getElementById('btn-stock-sub-list'); btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2'; btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; if (view === 'input') { btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2'; document.getElementById('area-stock-input').classList.remove('d-none'); document.getElementById('area-stock-list').classList.add('d-none'); } else { btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2'; document.getElementById('area-stock-input').classList.add('d-none'); document.getElementById('area-stock-list').classList.remove('d-none'); renderAllRecordLists(); } }
-export function switchDeskSubTab(view) { const btnIn = document.getElementById('btn-desk-sub-input'), btnList = document.getElementById('btn-desk-sub-list'); btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2'; btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; if (view === 'input') { btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2'; document.getElementById('area-desk-input').classList.remove('d-none'); document.getElementById('area-desk-list').classList.add('d-none'); } else { btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2'; document.getElementById('area-desk-input').classList.add('d-none'); document.getElementById('area-desk-list').classList.remove('d-none'); renderAllRecordLists(); } }
-export function switchOnlineSubTab(view) { const btnIn = document.getElementById('btn-online-sub-input'), btnList = document.getElementById('btn-online-sub-list'); btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2'; btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; if (view === 'input') { btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2'; document.getElementById('area-online-input').classList.remove('d-none'); document.getElementById('area-online-list').classList.add('d-none'); } else { btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2'; document.getElementById('area-online-input').classList.add('d-none'); document.getElementById('area-online-list').classList.remove('d-none'); renderAllRecordLists(); } }
+// 🌟 修正問題 3：明確劃分切換標籤時的渲染邏輯
+export function switchDeskSubTab(view) { 
+  const btnIn = document.getElementById('btn-desk-sub-input');
+  const btnList = document.getElementById('btn-desk-sub-list'); 
+  if(btnIn) btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2'; 
+  if(btnList) btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; 
+  
+  if (view === 'input') { 
+    if(btnIn) btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2'; 
+    document.getElementById('area-desk-input').classList.remove('d-none'); 
+    document.getElementById('area-desk-list').classList.add('d-none'); 
+    renderMonthlyDesk(); // 確保每次切過來都強制更新未盤點清單
+  } else { 
+    if(btnList) btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2'; 
+    document.getElementById('area-desk-input').classList.add('d-none'); 
+    document.getElementById('area-desk-list').classList.remove('d-none'); 
+    renderAllRecordLists(); // 確保每次切過來都顯示最新的紀錄
+  } 
+}
+
+export function switchStockSubTab(view) { const btnIn = document.getElementById('btn-stock-sub-input'), btnList = document.getElementById('btn-stock-sub-list'); if(btnIn) btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2'; if(btnList) btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; if (view === 'input') { if(btnIn) btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2'; document.getElementById('area-stock-input').classList.remove('d-none'); document.getElementById('area-stock-list').classList.add('d-none'); } else { if(btnList) btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2'; document.getElementById('area-stock-input').classList.add('d-none'); document.getElementById('area-stock-list').classList.remove('d-none'); renderAllRecordLists(); } }
+export function switchOnlineSubTab(view) { const btnIn = document.getElementById('btn-online-sub-input'), btnList = document.getElementById('btn-online-sub-list'); if(btnIn) btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2'; if(btnList) btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; if (view === 'input') { if(btnIn) btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2'; document.getElementById('area-online-input').classList.remove('d-none'); document.getElementById('area-online-list').classList.add('d-none'); } else { if(btnList) btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2'; document.getElementById('area-online-input').classList.add('d-none'); document.getElementById('area-online-list').classList.remove('d-none'); renderAllRecordLists(); } }
 
 export function selectStockDrug(priceCode) { const drug = monthlyDrugMaster.find(d => d.priceCode === priceCode); if (!drug) return; stockSelectedDrug = drug; document.getElementById('stock-dropdown').style.display = 'none'; document.getElementById('stock-drug-search').value = ''; document.getElementById('stock-sel-name').innerText = drug.name; document.getElementById('stock-sel-inv').innerText = drug.invCode; document.getElementById('stock-sel-price').innerText = drug.priceCode; document.getElementById('stock-selected-card').classList.remove('d-none'); document.getElementById('stock-qty').focus(); }
 export function selectOnlineDrug(priceCode) { const drug = monthlyDrugMaster.find(d => d.priceCode === priceCode); if (!drug) return; onlineSelectedDrug = drug; document.getElementById('online-dropdown').style.display = 'none'; document.getElementById('online-drug-search').value = ''; document.getElementById('online-sel-name').innerText = drug.name; document.getElementById('online-sel-inv').innerText = drug.invCode; document.getElementById('online-selected-card').classList.remove('d-none'); document.getElementById('online-qty').focus(); }
@@ -158,18 +173,44 @@ export function handleOnlineSearch() { const kw = document.getElementById('onlin
 
 export function handleTableSelectChange() { renderMonthlyDesk(); renderAllRecordLists(); }
 
+// 🌟 修正問題 3 的核心：輸入區「永遠只」顯示未盤點的藥品，徹底解決重疊與錯亂
 export function renderMonthlyDesk() { 
-  const tableId = document.getElementById('monthly-table-select').value; const area = document.getElementById('monthly-desk-area'); if (!tableId) { area.innerHTML = ''; return; } const tableData = monthlyTables.find(t => t.id === tableId); if (!tableData) return; const countedItems = tableData.items.filter(i => i.hasCounted); const uncountedItems = tableData.items.filter(i => !i.hasCounted); document.getElementById('count-desk-counted').innerText = countedItems.length; document.getElementById('count-desk-uncounted').innerText = uncountedItems.length; const renderList = document.getElementById('btn-desk-sub-input').classList.contains('active') ? uncountedItems : countedItems; if(renderList.length === 0) return area.innerHTML = '<div class="text-center p-4 text-muted fw-bold">此區無資料</div>'; const uniqueDrugs = []; tableData.items.forEach(item => { if (!uniqueDrugs.includes(item.drugCode)) uniqueDrugs.push(item.drugCode); }); const getDrugColor = (code) => { const index = uniqueDrugs.indexOf(code); return index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd'; }; let html = ''; 
-  renderList.forEach(item => { 
-    const borderColor = getDrugColor(item.drugCode); const btnClass = item.hasCounted ? 'btn-success' : 'btn-academic'; const btnText = item.hasCounted ? '更新覆蓋' : '確認送出';
-    html += `<div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;"><div class="card-body p-3"><div class="fw-bold fs-5 text-dark mb-2">${item.drugName}</div><div class="d-flex flex-wrap gap-1 mb-2"><span class="badge bg-light text-dark border border-secondary">儲位: ${item.locCode}</span><span class="badge bg-light text-dark border border-secondary">代碼: ${item.drugCode}</span></div><div class="input-group shadow-sm"><input type="number" id="m-qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="數量" inputmode="numeric" pattern="[0-9]*" value="${item.countedQty}"><button class="btn ${btnClass} px-4 fw-bold fs-5" onclick="submitMonthlyDeskOne('${item.locCode}', '${item.drugCode}', '${item.drugName}', '${item.tableId}')">${btnText}</button></div></div></div>`; 
+  const tableId = document.getElementById('monthly-table-select').value; 
+  const area = document.getElementById('monthly-desk-area'); 
+  if (!tableId) { area.innerHTML = ''; return; } 
+  const tableData = monthlyTables.find(t => t.id === tableId); 
+  if (!tableData) return; 
+  
+  // 只撈取還沒盤點的藥品
+  const uncountedItems = tableData.items.filter(i => !i.hasCounted); 
+  
+  const uncountedBadge = document.getElementById('count-desk-uncounted');
+  if (uncountedBadge) uncountedBadge.innerText = uncountedItems.length; 
+  
+  if(uncountedItems.length === 0) {
+    area.innerHTML = '<div class="text-center p-4 text-muted fw-bold">所有藥品皆已盤點完成</div>';
+    return;
+  }
+  
+  const uniqueDrugs = []; 
+  tableData.items.forEach(item => { if (!uniqueDrugs.includes(item.drugCode)) uniqueDrugs.push(item.drugCode); }); 
+  const getDrugColor = (code) => { const index = uniqueDrugs.indexOf(code); return index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd'; }; 
+  
+  let html = ''; 
+  uncountedItems.forEach(item => { 
+    const borderColor = getDrugColor(item.drugCode); 
+    html += `<div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;"><div class="card-body p-3"><div class="fw-bold fs-5 text-dark mb-2">${item.drugName}</div><div class="d-flex flex-wrap gap-1 mb-2"><span class="badge bg-light text-dark border border-secondary">儲位: ${item.locCode}</span><span class="badge bg-light text-dark border border-secondary">代碼: ${item.drugCode}</span></div><div class="input-group shadow-sm"><input type="number" id="m-qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="數量" inputmode="numeric" pattern="[0-9]*" value=""><button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyDeskOne('${item.locCode}', '${item.drugCode}', '${item.drugName}', '${item.tableId}')">確認送出</button></div></div></div>`; 
   }); 
   area.innerHTML = html; 
 }
 
+// 🌟 配合上述修正，簡化送出後的畫面互動
 export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
-  const inputEl = document.getElementById(`m-qty-${loc}`); const qty = inputEl.value; if(qty === '' || qty < 0) return alert('請輸入有效數量'); 
-  const tableId = document.getElementById('monthly-table-select').value; const tableData = monthlyTables.find(t => t.id === tableId); if (!tableData) return; const item = tableData.items.find(i => i.locCode === loc); if (!item) return;
+  const inputEl = document.getElementById(`m-qty-${loc}`); const qty = inputEl.value; 
+  if(qty === '' || qty < 0) return alert('請輸入有效數量'); 
+  const tableId = document.getElementById('monthly-table-select').value; 
+  const tableData = monthlyTables.find(t => t.id === tableId); if (!tableData) return; 
+  const item = tableData.items.find(i => i.locCode === loc); if (!item) return;
   
   const originalStatus = item.hasCounted; const originalQty = item.countedQty; 
   const originalUser = item.countedUser; const originalTime = item.countedTime;
@@ -181,15 +222,21 @@ export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
   
   if (navigator.vibrate) navigator.vibrate(50);
   
-  const card = inputEl.closest('.drug-card'); const isUncountedTab = document.getElementById('btn-desk-sub-input').classList.contains('active');
-  const uncountedLength = tableData.items.filter(i => !i.hasCounted).length; document.getElementById('count-desk-counted').innerText = tableData.items.filter(i => i.hasCounted).length; document.getElementById('count-desk-uncounted').innerText = uncountedLength;
+  const uncountedLength = tableData.items.filter(i => !i.hasCounted).length; 
+  const uncountedBadge = document.getElementById('count-desk-uncounted');
+  if (uncountedBadge) uncountedBadge.innerText = uncountedLength;
   
-  if (card && isUncountedTab) { 
-    card.style.display = 'none'; setTimeout(() => card.remove(), 10); 
-    if (uncountedLength === 0) { document.getElementById('monthly-desk-area').innerHTML = '<div class="text-center p-4 text-muted fw-bold">此區無資料</div>'; } 
-  } else { 
-    const btn = inputEl.nextElementSibling; btn.innerText = "更新覆蓋"; btn.disabled = false; showToast('更新覆蓋成功！'); 
-  }
+  const card = inputEl.closest('.drug-card'); 
+  if (card) { 
+    card.style.display = 'none'; 
+    setTimeout(() => {
+      card.remove();
+      if (uncountedLength === 0) { 
+        const area = document.getElementById('monthly-desk-area');
+        if (area) area.innerHTML = '<div class="text-center p-4 text-muted fw-bold">所有藥品皆已盤點完成</div>'; 
+      } 
+    }, 10);
+  } 
   
   fetchBackend('submitInventory', { mode: '月盤點', userId: session.id, userName: session.name, type: '盤點調劑台', action: '', dispType: '', drugCode: dCode, drugName: dName, handQty: qty, tableId: tId, locCode: loc })
     .then((res) => { 
@@ -203,8 +250,7 @@ export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
 export function renderAllRecordLists() { 
   let stockRecords = myRecordsData.filter(r => r.type === '盤點庫存'); 
   const stockCount = document.getElementById('count-stock-counted');
-  if (stockCount) stockCount.innerText = stockRecords.length; // 防呆
-  
+  if (stockCount) stockCount.innerText = stockRecords.length; 
   if (activeRecordFilters['stock']) stockRecords = stockRecords.filter(r => r.code === activeRecordFilters['stock']); 
   const stockArea = document.getElementById('stock-records-area');
   if (stockArea) stockArea.innerHTML = generateRecordCards(stockRecords, '本月尚未輸入庫存盤點', true); 
@@ -214,7 +260,6 @@ export function renderAllRecordLists() {
   let deskRecords = myRecordsData.filter(r => r.type === '盤點調劑台' && r.tableId === tId); 
   const deskCount = document.getElementById('count-desk-counted');
   if (deskCount) deskCount.innerText = deskRecords.length; 
-  
   if (activeRecordFilters['desk']) deskRecords = deskRecords.filter(r => r.code === activeRecordFilters['desk']); 
   const deskArea = document.getElementById('desk-records-area');
   if (deskArea) deskArea.innerHTML = generateRecordCards(deskRecords, '本區本月尚無盤點紀錄', true); 
@@ -222,7 +267,6 @@ export function renderAllRecordLists() {
   let onlineRecords = myRecordsData.filter(r => r.type === '線上調劑'); 
   const onlineCount = document.getElementById('count-online-counted');
   if (onlineCount) onlineCount.innerText = onlineRecords.length; 
-  
   if (activeRecordFilters['online']) onlineRecords = onlineRecords.filter(r => r.code === activeRecordFilters['online']); 
   const onlineArea = document.getElementById('online-records-area');
   if (onlineArea) onlineArea.innerHTML = generateRecordCards(onlineRecords, '本月尚無線上調劑紀錄', true); 
@@ -230,13 +274,11 @@ export function renderAllRecordLists() {
   let allRecords = myRecordsData; 
   const totalCount = document.getElementById('user-records-count');
   if (totalCount) totalCount.innerText = myRecordsData.length; 
-  
   if (activeRecordFilters['records']) allRecords = allRecords.filter(r => r.code === activeRecordFilters['records']); 
   const userArea = document.getElementById('user-records-area');
   if (userArea) userArea.innerHTML = generateRecordCards(allRecords, '此區尚無紀錄', false); 
 }
 
-// ✨ UI 卡片邏輯
 export function generateRecordCards(recordsArray, emptyMsg, allowEdit) { 
   if (recordsArray.length === 0) return `<div class="text-center p-3 text-muted fw-bold">${emptyMsg}</div>`; 
   let html = ''; 
@@ -254,15 +296,12 @@ export function generateRecordCards(recordsArray, emptyMsg, allowEdit) {
       ? `<button class="btn btn-sm btn-outline-success py-0" onclick="toggleMonthlyRecordStatus('${record.sn}', '成立')">還原</button>`
       : `<button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editRecord('${record.sn}')">修改</button>
          <button class="btn btn-sm btn-outline-danger py-0" onclick="toggleMonthlyRecordStatus('${record.sn}', '作廢')">作廢</button>`;
-
     const editButtons = allowEdit ? `<div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top"><div class="fs-5 fw-bold ${isVoid ? 'text-muted text-decoration-line-through' : colorClass}">${qtyStr}</div><div>${actionHtml}</div></div>` : `<div class="fs-5 fw-bold ${isVoid ? 'text-muted text-decoration-line-through' : colorClass} mt-1 pt-1 border-top">${qtyStr}</div>`; 
-    
     html += `<div class="card mb-2 shadow-sm border-0 border-start border-4 border-info" style="${cardStyle}"><div class="card-body p-2"><div class="d-flex justify-content-between mb-1"><div class="fw-bold text-dark text-truncate" style="max-width: 70%;">${record.name}</div><div class="small text-muted" style="font-size:0.75rem;">${record.time}</div></div><div class="small text-secondary" style="font-size:0.8rem;"><span class="badge bg-secondary">${record.type}</span>${badgeHtml}<span class="ms-1">代碼: ${record.code}${locInfo}</span></div>${editButtons}</div></div>`; 
   }); 
   return html; 
 }
 
-// ✨ 補上剛剛遺漏的 Filter 搜尋功能
 export function handleRecordFilterSearch(tabKey) { const kw = document.getElementById(`filter-input-${tabKey}`).value.toLowerCase().trim(); const dropdown = document.getElementById(`filter-dropdown-${tabKey}`); let sourceData = []; if (tabKey === 'stock') sourceData = myRecordsData.filter(r => r.type === '盤點庫存'); else if (tabKey === 'desk') { const tId = document.getElementById('monthly-table-select').value; sourceData = myRecordsData.filter(r => r.type === '盤點調劑台' && r.tableId === tId); } else if (tabKey === 'online') sourceData = myRecordsData.filter(r => r.type === '線上調劑'); else if (tabKey === 'records') sourceData = myRecordsData; const uniqueDrugs = []; const seen = new Set(); sourceData.forEach(r => { if (!seen.has(r.code)) { seen.add(r.code); uniqueDrugs.push({ code: r.code, name: r.name }); } }); let filtered = kw ? uniqueDrugs.filter(d => d.code.toLowerCase().includes(kw) || d.name.toLowerCase().includes(kw)) : uniqueDrugs; if (kw && filtered.length > 0) { filtered.sort((a, b) => { const getScore = (d) => { let score = 999; if (d.code.toLowerCase().indexOf(kw) !== -1) score = Math.min(score, d.code.toLowerCase().indexOf(kw)); if (d.name.toLowerCase().indexOf(kw) !== -1) score = Math.min(score, d.name.toLowerCase().indexOf(kw)); return score; }; return getScore(a) - getScore(b); }); } if (filtered.length > 0) { dropdown.innerHTML = filtered.slice(0, 10).map(d => `<div class="search-dropdown-item" onclick="applyRecordFilter('${tabKey}', '${d.code}', '${d.name.replace(/'/g, "\\'")}')"><div class="fw-bold text-academic">${d.name}</div><div class="small text-muted">${d.code}</div></div>`).join(''); dropdown.style.display = 'block'; } else { dropdown.innerHTML = '<div class="p-2 text-muted small">清單中無相符藥品</div>'; dropdown.style.display = 'block'; } }
 export function applyRecordFilter(tabKey, code, name) { activeRecordFilters[tabKey] = code; document.getElementById(`filter-input-${tabKey}`).value = `${name} (${code})`; document.getElementById(`filter-dropdown-${tabKey}`).style.display = 'none'; renderAllRecordLists(); }
 export function clearRecordFilter(tabKey) { activeRecordFilters[tabKey] = null; document.getElementById(`filter-input-${tabKey}`).value = ''; document.getElementById(`filter-dropdown-${tabKey}`).style.display = 'none'; renderAllRecordLists(); }
@@ -278,7 +317,6 @@ export function editRecord(sn) {
   record.handQty = newQty; 
   renderAllRecordLists(); 
   
-  // 🌟 [新增] 瞬間同步月盤點主表的數量
   monthlyTables.forEach(t => t.items.forEach(i => {
     if (i.drugCode === record.code && i.locCode === record.loc) i.countedQty = newQty;
   }));
@@ -287,11 +325,10 @@ export function editRecord(sn) {
   fetchBackend('updateMonthlyRecord', { sn: sn, newQty: newQty, dispType: record.dispType, userId: session.id, userName: session.name })
     .then(res => {
       if (res.success) { showToast('修改成功'); refreshDashboardDataSilently(); } 
-      else { record.handQty = oldQty; renderAllRecordLists(); showToast('修改失敗: ' + res.message, 'delete'); }
-    }).catch(err => { record.handQty = oldQty; renderAllRecordLists(); showToast('網路連線異常，更新失敗', 'delete'); });
+      else { record.handQty = oldQty; renderAllRecordLists(); renderMonthlyDesk(); showToast('修改失敗: ' + res.message, 'delete'); }
+    }).catch(err => { record.handQty = oldQty; renderAllRecordLists(); renderMonthlyDesk(); showToast('網路連線異常，更新失敗', 'delete'); });
 }
 
-// 🌟 替換：作廢/還原 (同步將藥品退回未盤點)
 export function toggleMonthlyRecordStatus(sn, newStatus) {
   if (newStatus === '作廢' && !confirm('確定要作廢此筆紀錄嗎？')) return;
   const record = myRecordsData.find(r => r.sn === sn);
@@ -301,7 +338,6 @@ export function toggleMonthlyRecordStatus(sn, newStatus) {
   record.status = newStatus;
   renderAllRecordLists();
 
-  // 🌟 [新增] 瞬間同步月盤點主表，若作廢就退回「未盤點」區
   monthlyTables.forEach(t => t.items.forEach(i => {
     if (i.drugCode === record.code && i.locCode === record.loc) {
       i.hasCounted = (newStatus === '成立');
@@ -315,16 +351,15 @@ export function toggleMonthlyRecordStatus(sn, newStatus) {
         showToast(newStatus === '作廢' ? '紀錄已作廢' : '紀錄已還原', newStatus === '作廢' ? 'delete' : 'success');
         refreshDashboardDataSilently();
       } else {
-        record.status = oldStatus; renderAllRecordLists();
+        record.status = oldStatus; renderAllRecordLists(); renderMonthlyDesk();
         showToast('更新失敗: ' + res.message, 'delete');
       }
     }).catch(err => {
-      record.status = oldStatus; renderAllRecordLists();
+      record.status = oldStatus; renderAllRecordLists(); renderMonthlyDesk();
       showToast('網路連線異常，更新失敗', 'delete');
     });
 }
 
-// 🌟 [新增] 手動全局更新月盤點資料 (請加在 monthly.js 檔案最底部)
 export function refreshMonthlyData() {
   toggleLoader(true);
   fetchBackend('getMonthlyInitData').then(res => {
@@ -339,9 +374,6 @@ export function refreshMonthlyData() {
   }).catch(err => { toggleLoader(false); alert("更新失敗"); });
 }
 
-// ==========================================
-// ✨ 進度看板專屬功能
-// ==========================================
 export function refreshDashboardData() {
   toggleLoader(true);
   fetchBackend('getMonthlyInitData').then(res => {
@@ -359,13 +391,13 @@ export function refreshDashboardDataSilently() {
   }).catch(e => console.warn('背景更新進度失敗'));
 }
 
-// ✨ 2. 修改看板：將整張卡片變成點擊進入盤點
 export function renderMonthlyDashboard() {
   const unfinishedArea = document.getElementById('dashboard-unfinished');
   const finishedArea = document.getElementById('dashboard-finished');
   if(!unfinishedArea || !finishedArea) return;
 
   let unfinishedHtml = ''; let finishedHtml = '';
+
   monthlyTables.forEach(table => {
     const total = table.items.length;
     const counted = table.items.filter(i => i.hasCounted).length;
@@ -380,42 +412,42 @@ export function renderMonthlyDashboard() {
             <div class="fw-bold text-dark fs-5">${table.name}</div>
             <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
           </div>
-          <div class="progress mb-2" style="height: 12px;"><div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div></div>
+          <div class="progress mb-2" style="height: 12px;">
+            <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
+          </div>
           <div class="d-flex justify-content-between align-items-center">
-            <div class="small text-secondary">已盤: ${counted} / ${total}</div>
+            <div class="small text-secondary">總共 ${total} 品項 | 已盤: ${counted}</div>
             <div class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></div>
           </div>
         </div>
       </div>`;
+
     if (isComplete) finishedHtml += cardHtml; else unfinishedHtml += cardHtml;
   });
+
   unfinishedArea.innerHTML = unfinishedHtml || '<div class="text-center text-muted py-3">所有藥架皆已盤點完成</div>';
   finishedArea.innerHTML = finishedHtml || '<div class="text-center text-muted py-3">尚無完成的藥架</div>';
 }
 
-// ✨ 3. 新增入口功能：點選看板後跳轉
 export function enterTableInventory(tableId, tableName) {
   const select = document.getElementById('monthly-table-select');
-  if (select) {
-    select.value = tableId;
-    handleTableSelectChange(); 
-  }
-  document.getElementById('monthly-app-title').innerText = tableName;
-  document.getElementById('monthly-tabs').classList.add('d-none'); // 隱藏導覽列
-  document.getElementById('btn-monthly-back').classList.remove('d-none'); // 顯示返回鈕
+  if(select) { select.value = tableId; handleTableSelectChange(); }
 
+  document.getElementById('monthly-app-title').innerText = tableName; 
+  document.getElementById('monthly-tabs').classList.add('d-none');
+  document.getElementById('btn-monthly-back').classList.remove('d-none');
+  
   document.querySelectorAll('.monthly-content-section').forEach(s => s.classList.add('d-none'));
   document.getElementById('tab-dispense').classList.remove('d-none');
   window.scrollTo(0,0);
 }
 
-// ✨ 4. 新增返回功能：處理標題列的返回鈕
 export function handleMonthlyBack() {
   const tabs = document.getElementById('monthly-tabs');
   if (tabs.classList.contains('d-none')) {
     tabs.classList.remove('d-none');
     document.getElementById('btn-monthly-back').classList.add('d-none');
-    document.getElementById('monthly-app-title').innerHTML = '<i class="bi bi-calendar-month"></i> 月盤點作業';
+    document.getElementById('monthly-app-title').innerHTML = '<i class="bi bi-calendar-month"></i> 月盤點作業'; 
     switchMonthlyTab('tab-dashboard');
     refreshDashboardData(); 
   } else {
