@@ -134,7 +134,33 @@ export function toggleDailyStatus(locCode, newStatus) {
     }).catch(err => { item.status = oldStatus; updateTabUI(); renderDailyItems(); showToast('網路異常，更新失敗', 'delete'); });
 }
 
-export function openAdminSort() { switchView('view-admin-sort'); toggleLoader(true); fetchBackend('getAdminData').then(res => { toggleLoader(false); adminData = res; adminCombinedList = [...res.selectable]; const sortMap = new Map(); res.saved.forEach(s => sortMap.set(s.locCode, s.order)); adminCombinedList.forEach(item => { item.order = sortMap.has(item.locCode) ? sortMap.get(item.locCode) : ''; }); adminCombinedList.sort((a, b) => { const aVal = a.order === '' ? 9999 : a.order; const bVal = b.order === '' ? 9999 : b.order; return aVal - bVal; }); renderSortableList(); }).catch(err => { toggleLoader(false); alert('讀取失敗'); switchView('view-daily-app'); }); }
+export function openAdminSort() { 
+  toggleLoader(true); 
+  fetchBackend('getAdminData').then(data => { 
+    toggleLoader(false); 
+    
+    // 🌟 新增防呆：攔截後端的詳細錯誤
+    if (data && data.success === false) {
+      alert('後端資料表異常: ' + data.message);
+      return;
+    }
+
+    adminData = data; 
+    
+    // 🌟 安全讀取陣列，避免 undefined 當機
+    adminCombinedList = (data.selectable || []).map(item => { 
+      const savedItem = (data.saved || []).find(s => s.locCode === item.locCode);
+      return { ...item, order: savedItem ? savedItem.order : '' }; 
+    }); 
+    
+    renderSortableList(); 
+    switchView('view-admin-sort'); 
+    
+  }).catch(err => { 
+    toggleLoader(false); 
+    alert('網路異常，無法讀取資料'); 
+  }); 
+}
 export function toggleVisibility(locCode) { const item = adminCombinedList.find(i => i.locCode === locCode); if (item) { item.order = item.order === 0 ? '' : 0; renderSortableList(); } }
 export function highlightSearchItem() { const kw = document.getElementById('admin-search-input').value.toLowerCase(); let firstMatch = null; document.querySelectorAll('.sortable-item').forEach(card => { if (kw && (card.querySelector('.search-target').innerText.toLowerCase().includes(kw) || card.getAttribute('data-loc').toLowerCase().includes(kw))) { card.classList.add('bg-warning', 'bg-opacity-25'); if(!firstMatch) firstMatch = card; } else card.classList.remove('bg-warning', 'bg-opacity-25'); }); if (firstMatch) firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 export function rebuildAdminList() { if(confirm('確定要重建清單嗎？')) { adminCombinedList = adminData.selectable.map(i => ({ ...i, order: '' })); renderSortableList(); } }
