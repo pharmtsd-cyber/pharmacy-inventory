@@ -14,7 +14,7 @@ import {
   handleTableSelectChange, submitMonthlyDeskOne, submitMonthlyStock, submitMonthlyOnline, 
   updateOnlineUI, startLiveScanner, closeLiveScanner, parseBarcodeAndSubmit, 
   loadUserRecords, handleRecordFilterSearch, clearRecordFilter, applyRecordFilter, 
-  editRecord, toggleMonthlyRecordStatus, // 🌟 取代 deleteRecord
+  editRecord, toggleMonthlyRecordStatus, refreshMonthlyData, // 👈 補在這裡
   refreshDashboardData, renderMonthlyDashboard, showTableDetailModal
 } from './monthly.js';
 
@@ -33,6 +33,7 @@ window.selectMode = function(modeName) {
   else if (modeName === '月盤點') initMonthlyMode();
 };
 
+window.refreshMonthlyData = refreshMonthlyData;
 window.initDailyMode = initDailyMode;
 window.changeDailyDate = changeDailyDate;
 window.switchDailyTab = switchDailyTab;
