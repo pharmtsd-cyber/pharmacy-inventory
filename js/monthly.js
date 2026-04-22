@@ -13,13 +13,13 @@ export let onlineSelectedDrug = null;
 // ✨ 1. 修改初始化：預設進入進度看板
 export function initMonthlyMode() {
   switchView('view-monthly-app'); 
-  switchMonthlyTab('tab-dashboard'); // 🌟 改為進度看板
+  switchMonthlyTab('tab-dashboard'); 
   updateOnlineUI(); 
   toggleLoader(true);
   fetchBackend('getMonthlyInitData').then(res => {
     monthlyDrugMaster = res.drugMaster; 
     monthlyTables = res.tables;
-    // 雖然隱藏了，但還是要塞入選項讓 select.value 能運作
+    // 預先塞入隱藏選單
     document.getElementById('monthly-table-select').innerHTML = monthlyTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     loadUserRecords(() => { toggleLoader(false); });
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
@@ -315,14 +315,12 @@ export function renderMonthlyDashboard() {
   if(!unfinishedArea || !finishedArea) return;
 
   let unfinishedHtml = ''; let finishedHtml = '';
-
   monthlyTables.forEach(table => {
     const total = table.items.length;
     const counted = table.items.filter(i => i.hasCounted).length;
     const percent = total > 0 ? Math.round((counted / total) * 100) : 0;
     const isComplete = percent === 100;
     
-    // 🌟 卡片增加 onclick 事件，指向我們的新入口
     const cardHtml = `
       <div class="card mb-3 shadow-sm border-0 border-start border-4 ${isComplete ? 'border-success' : 'border-warning'}" 
            onclick="enterTableInventory('${table.id}', '${table.name}')" style="cursor: pointer;">
@@ -331,54 +329,45 @@ export function renderMonthlyDashboard() {
             <div class="fw-bold text-dark fs-5">${table.name}</div>
             <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
           </div>
-          <div class="progress mb-2" style="height: 12px;">
-            <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
-          </div>
+          <div class="progress mb-2" style="height: 12px;"><div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div></div>
           <div class="d-flex justify-content-between align-items-center">
-            <div class="small text-secondary">總共 ${total} 品項 | 已盤: ${counted}</div>
+            <div class="small text-secondary">已盤: ${counted} / ${total}</div>
             <div class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></div>
           </div>
         </div>
       </div>`;
-
     if (isComplete) finishedHtml += cardHtml; else unfinishedHtml += cardHtml;
   });
-
   unfinishedArea.innerHTML = unfinishedHtml || '<div class="text-center text-muted py-3">所有藥架皆已盤點完成</div>';
   finishedArea.innerHTML = finishedHtml || '<div class="text-center text-muted py-3">尚無完成的藥架</div>';
 }
 
 // ✨ 3. 新增入口功能：點選看板後跳轉
 export function enterTableInventory(tableId, tableName) {
-  // 設定隱藏的選單值並觸發渲染
   const select = document.getElementById('monthly-table-select');
-  select.value = tableId;
-  handleTableSelectChange(); // 此功能會自動刷出未盤/已盤清單 [cite: 222]
+  if (select) {
+    select.value = tableId;
+    handleTableSelectChange(); 
+  }
+  document.getElementById('monthly-app-title').innerText = tableName;
+  document.getElementById('monthly-tabs').classList.add('d-none'); // 隱藏導覽列
+  document.getElementById('btn-monthly-back').classList.remove('d-none'); // 顯示返回鈕
 
-  // UI 切換
-  document.getElementById('monthly-app-title').innerText = tableName; // 標題變更為藥架名稱
-  document.getElementById('monthly-tabs').classList.add('d-none'); // 隱藏 Tabs 導覽列
-  
-  // 顯示盤點頁，隱藏其他
   document.querySelectorAll('.monthly-content-section').forEach(s => s.classList.add('d-none'));
   document.getElementById('tab-dispense').classList.remove('d-none');
-  
-  // 捲動到頂部
   window.scrollTo(0,0);
 }
 
 // ✨ 4. 新增返回功能：處理標題列的返回鈕
 export function handleMonthlyBack() {
   const tabs = document.getElementById('monthly-tabs');
-  
-  // 如果導覽列目前是隱藏的，代表正在藥架「盤點中」
   if (tabs.classList.contains('d-none')) {
-    tabs.classList.remove('d-none'); // 顯示導覽列
-    document.getElementById('monthly-app-title').innerHTML = '<i class="bi bi-calendar-month"></i> 月盤點作業'; // 還原標題
-    switchMonthlyTab('tab-dashboard'); // 回到看板分頁
-    refreshDashboardData(); // 同步刷新進度數字 
+    tabs.classList.remove('d-none');
+    document.getElementById('btn-monthly-back').classList.add('d-none');
+    document.getElementById('monthly-app-title').innerHTML = '<i class="bi bi-calendar-month"></i> 月盤點作業';
+    switchMonthlyTab('tab-dashboard');
+    refreshDashboardData(); 
   } else {
-    // 如果本來就在主分頁，那就回模式選擇頁
     switchView('view-mode-select');
   }
 }
