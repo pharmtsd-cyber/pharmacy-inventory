@@ -269,26 +269,38 @@ export function showTableDetailModal(tableId, tableName) {
   new window.bootstrap.Modal(document.getElementById('detailsModal')).show();
 }
 
-export function editRecord(sn) {
-  const record = myRecordsData.find(r => r.sn === sn);
-  if (!record) return;
-  const newQty = prompt(`修改 [${record.name}] 數量:`, record.handQty);
-  if (newQty === null || newQty === "") return;
+// 已盤點分頁 - 修改紀錄 
+export function editRecord(sn, currentQty, dispType, locCode) { 
+  const newQty = prompt("請輸入修正後的數量 (需為正整數)：", currentQty); 
+  if (newQty === null) return; 
+  if (!newQty || isNaN(newQty) || newQty <= 0) return alert("數量無效"); 
   
-  toggleLoader(true);
-  fetchBackend('updateMonthlyRecord', { sn: sn, newQty: newQty }).then(res => {
-      toggleLoader(false);
-      if (res.success) { showToast('修改成功'); loadUserRecords(); refreshDashboardData(); } 
-      else { alert('失敗：' + res.message); }
-  });
+  toggleLoader(true); 
+  // ✨ 補上 userId 與 userName 讓後端可以寫入 S 欄
+  fetchBackend('updateMonthlyRecord', { sn: sn, newQty: newQty, dispType: dispType, userId: session.id, userName: session.name }).then(res => { 
+    if (res.success) { 
+      showToast("修改成功！"); 
+      if(locCode) monthlyTables.forEach(t => t.items.forEach(i => { if(i.locCode === locCode) i.countedQty = newQty; })); 
+      loadUserRecords(() => { renderMonthlyDesk(); toggleLoader(false); }); 
+    } else { 
+      toggleLoader(false); alert(res.message); 
+    } 
+  }).catch(err => { toggleLoader(false); alert("連線失敗"); }); 
 }
 
-export function deleteRecord(sn) {
-  if (!confirm('確定要作廢此筆紀錄嗎？')) return;
-  toggleLoader(true);
-  fetchBackend('deleteMonthlyRecord', { sn: sn }).then(res => {
-      toggleLoader(false);
-      if (res.success) { showToast('已作廢', 'delete'); loadUserRecords(); refreshDashboardData(); } 
-      else { alert('失敗：' + res.message); }
-  });
+// 已盤點分頁 - 作廢紀錄
+export function deleteRecord(sn, locCode) { 
+  if (!confirm("確定要作廢這筆紀錄嗎？(狀態將變更為作廢)")) return; 
+  
+  toggleLoader(true); 
+  // ✨ 補上 userId 與 userName 讓後端可以寫入 S 欄
+  fetchBackend('deleteMonthlyRecord', { sn: sn, userId: session.id, userName: session.name }).then(res => { 
+    if (res.success) { 
+      showToast("作廢成功！", "delete"); 
+      if(locCode) monthlyTables.forEach(t => t.items.forEach(i => { if(i.locCode === locCode) { i.hasCounted = false; i.countedQty = ''; } })); 
+      loadUserRecords(() => { renderMonthlyDesk(); refreshDashboardData(); toggleLoader(false); }); 
+    } else { 
+      toggleLoader(false); alert(res.message); 
+    } 
+  }).catch(err => { toggleLoader(false); alert("連線失敗"); }); 
 }
