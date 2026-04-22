@@ -225,6 +225,12 @@ export function editRecord(sn) {
   record.handQty = newQty; 
   renderAllRecordLists(); 
   
+  // 🌟 [新增] 瞬間同步月盤點主表的數量
+  monthlyTables.forEach(t => t.items.forEach(i => {
+    if (i.drugCode === record.code && i.locCode === record.loc) i.countedQty = newQty;
+  }));
+  renderMonthlyDesk();
+
   fetchBackend('updateMonthlyRecord', { sn: sn, newQty: newQty, dispType: record.dispType, userId: session.id, userName: session.name })
     .then(res => {
       if (res.success) { showToast('修改成功'); refreshDashboardDataSilently(); } 
@@ -232,6 +238,7 @@ export function editRecord(sn) {
     }).catch(err => { record.handQty = oldQty; renderAllRecordLists(); showToast('網路連線異常，更新失敗', 'delete'); });
 }
 
+// 🌟 替換：作廢/還原 (同步將藥品退回未盤點)
 export function toggleMonthlyRecordStatus(sn, newStatus) {
   if (newStatus === '作廢' && !confirm('確定要作廢此筆紀錄嗎？')) return;
   const record = myRecordsData.find(r => r.sn === sn);
@@ -240,6 +247,14 @@ export function toggleMonthlyRecordStatus(sn, newStatus) {
   const oldStatus = record.status;
   record.status = newStatus;
   renderAllRecordLists();
+
+  // 🌟 [新增] 瞬間同步月盤點主表，若作廢就退回「未盤點」區
+  monthlyTables.forEach(t => t.items.forEach(i => {
+    if (i.drugCode === record.code && i.locCode === record.loc) {
+      i.hasCounted = (newStatus === '成立');
+    }
+  }));
+  renderMonthlyDesk();
 
   fetchBackend('modifyMonthlyRecordStatus', { sn: sn, newStatus: newStatus, userId: session.id, userName: session.name })
     .then(res => {
@@ -254,6 +269,21 @@ export function toggleMonthlyRecordStatus(sn, newStatus) {
       record.status = oldStatus; renderAllRecordLists();
       showToast('網路連線異常，更新失敗', 'delete');
     });
+}
+
+// 🌟 [新增] 手動全局更新月盤點資料 (請加在 monthly.js 檔案最底部)
+export function refreshMonthlyData() {
+  toggleLoader(true);
+  fetchBackend('getMonthlyInitData').then(res => {
+    monthlyDrugMaster = res.drugMaster;
+    monthlyTables = res.tables;
+    loadUserRecords(() => {
+      renderMonthlyDesk();
+      renderMonthlyDashboard();
+      toggleLoader(false);
+      showToast('資料已同步至最新');
+    });
+  }).catch(err => { toggleLoader(false); alert("更新失敗"); });
 }
 
 // ==========================================
