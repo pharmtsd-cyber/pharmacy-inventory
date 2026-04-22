@@ -20,7 +20,6 @@ export function loadDailyData(dateStr) {
     if (data.selectedDate) {
       document.getElementById('header-date-select').value = data.selectedDate.replace(/\//g, '-');
     }
-    // 🌟 [新增] 讀取完資料後，立刻強制作業標籤更新數字！
     updateTabUI(); 
     renderDailyItems(); 
   }).catch(err => { 
@@ -36,15 +35,12 @@ export function updateTabUI() {
   btnUn.className = currentDailyTab === '未盤' ? 'nav-link active fw-bold border bg-academic shadow-sm text-white py-2' : 'nav-link fw-bold border text-academic shadow-sm bg-white py-2';
   btnCo.className = currentDailyTab === '已盤' ? 'nav-link active fw-bold border bg-success shadow-sm text-white py-2' : 'nav-link fw-bold border text-success shadow-sm bg-white py-2';
   
-  // 顯示數量統計
   document.getElementById('count-uncounted').innerText = dailyItems.filter(i => !i.hasRecord || i.status === '作廢').length;
   document.getElementById('count-counted').innerText = dailyItems.filter(i => i.hasRecord).length;
 }
 
 export function renderDailyItems() {
   const area = document.getElementById('daily-list-area');
-  // 未盤清單：沒有紀錄的，或是有紀錄但被作廢的，讓使用者可以重盤
-  // 已盤清單：只要有紀錄就顯示，讓使用者可以操作修改或作廢還原
   const renderList = currentDailyTab === '未盤' ? dailyItems.filter(i => !i.hasRecord || i.status === '作廢') : dailyItems.filter(i => i.hasRecord);
   
   if (renderList.length === 0) { area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">此區無資料</div>'; return; }
@@ -92,7 +88,6 @@ export function submitDailyOne(loc, dCode, dName, tId) {
   const item = dailyItems.find(i => i.locCode === loc);
   if (!item) return;
 
-  // 樂觀 UI
   item.hasRecord = true; item.status = '成立'; item.countedQty = qty;
   updateTabUI(); renderDailyItems(); if (navigator.vibrate) navigator.vibrate(50); showToast('盤點成功');
 
@@ -100,7 +95,6 @@ export function submitDailyOne(loc, dCode, dName, tId) {
     .catch(err => { showToast('網路連線錯誤，請重新盤點', 'delete'); loadDailyData(dStr); });
 }
 
-// 🌟 修改每日盤點數量 (樂觀 UI，不轉圈圈)
 export function editDailyQty(locCode, currentQty) {
   const newQty = prompt("請輸入修改數量:", currentQty);
   if (newQty === null || newQty === "") return;
@@ -118,7 +112,6 @@ export function editDailyQty(locCode, currentQty) {
     }).catch(err => { item.countedQty = oldQty; renderDailyItems(); showToast('網路異常，更新失敗', 'delete'); });
 }
 
-// 🌟 作廢或還原每日盤點 (樂觀 UI，不轉圈圈)
 export function toggleDailyStatus(locCode, newStatus) {
   if (newStatus === '作廢' && !confirm('確定要作廢這筆紀錄嗎？')) return;
   const dateStr = document.getElementById('header-date-select').value;
@@ -134,20 +127,18 @@ export function toggleDailyStatus(locCode, newStatus) {
     }).catch(err => { item.status = oldStatus; updateTabUI(); renderDailyItems(); showToast('網路異常，更新失敗', 'delete'); });
 }
 
+// ==========================================
+// ✨ 管理排序功能區
+// ==========================================
+
 export function openAdminSort() { 
   toggleLoader(true); 
   fetchBackend('getAdminData').then(data => { 
     toggleLoader(false); 
     
-    // 🌟 防呆：精準顯示後端的錯誤
-    if (data && data.success === false) {
-      alert('⚠️ 後端資料異常: ' + data.message);
-      return;
-    }
-
-    adminData = data; 
+    if (data && data.success === false) { alert('⚠️ 後端資料異常: ' + data.message); return; }
     
-    // 🌟 安全讀取陣列，避免undefined
+    adminData = data; 
     adminCombinedList = (data.selectable || []).map(item => { 
       const savedItem = (data.saved || []).find(s => s.locCode === item.locCode);
       return { ...item, order: savedItem ? savedItem.order : '' }; 
@@ -159,15 +150,61 @@ export function openAdminSort() {
     } catch(e) {
       alert('畫面渲染失敗：' + e.message);
     }
-    
   }).catch(err => { 
     toggleLoader(false); 
-    // 🌟 顯示真正的系統連線錯誤原因，不再只顯示網路異常
     alert('🚫 系統連線失敗：' + err.message); 
   }); 
 }
-export function toggleVisibility(locCode) { const item = adminCombinedList.find(i => i.locCode === locCode); if (item) { item.order = item.order === 0 ? '' : 0; renderSortableList(); } }
+
+export function renderSortableList() {
+  const container = document.getElementById('admin-sortable-list');
+  if (!container) return; 
+
+  adminCombinedList.sort((a, b) => { const aV = a.order !== 0, bV = b.order !== 0; if (aV && !bV) return -1; if (!aV && bV) return 1; if (aV && bV) { if (a.order !== '' && b.order !== '') return a.order - b.order; if (a.order !== '' && b.order === '') return -1; if (a.order === '' && b.order !== '') return 1; } return a.locCode.localeCompare(b.locCode); });
+  
+  let html = '';
+  adminCombinedList.forEach(item => {
+    const isHidden = item.order === 0; 
+    const cardStyle = isHidden ? 'opacity: 0.6; border-left: 5px solid #dc3545;' : 'border-left: 5px solid var(--academic-primary);'; 
+    const eyeIcon = isHidden ? 'bi-eye-slash-fill text-danger' : 'bi-eye-fill text-success';
+    
+    html += `<div class="card border-0 shadow-sm mb-2 sortable-item bg-white" style="${cardStyle}" data-loc="${item.locCode}" data-table="${item.tableId}" data-drug="${item.drugCode}" data-name="${item.drugName}" data-hidden="${isHidden}">
+      <div class="card-body p-2 d-flex align-items-center">
+        <div class="drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="flex-grow-1 px-2 text-truncate">
+          <div class="fw-bold text-dark search-target">${item.drugName}</div>
+          <div class="small text-muted"><span class="badge bg-academic me-1">${item.tableName}</span>${item.locCode}</div>
+        </div>
+        <div>
+          <button class="btn btn-light border p-2" onclick="toggleVisibility(this, '${item.locCode}')"><i id="eye-${item.locCode}" class="${eyeIcon} fs-5"></i></button>
+        </div>
+      </div>
+    </div>`;
+  });
+  
+  container.innerHTML = html; 
+  if(sortableInstance) sortableInstance.destroy(); 
+  sortableInstance = new window.Sortable(container, { handle: '.drag-handle', animation: 150, ghostClass: 'sortable-ghost' });
+}
+
+export function toggleVisibility(btn, locCode) { 
+  const card = btn.closest('.sortable-item'); 
+  const icon = document.getElementById(`eye-${locCode}`); 
+  if (card.getAttribute('data-hidden') === 'true') { 
+    card.setAttribute('data-hidden', 'false'); 
+    card.style.opacity = '1'; 
+    card.style.borderLeftColor = 'var(--academic-primary)'; 
+    icon.className = 'bi bi-eye-fill text-success fs-5'; 
+  } else { 
+    card.setAttribute('data-hidden', 'true'); 
+    card.style.opacity = '0.6'; 
+    card.style.borderLeftColor = '#dc3545'; 
+    icon.className = 'bi bi-eye-slash-fill text-danger fs-5'; 
+  } 
+}
+
 export function highlightSearchItem() { const kw = document.getElementById('admin-search-input').value.toLowerCase(); let firstMatch = null; document.querySelectorAll('.sortable-item').forEach(card => { if (kw && (card.querySelector('.search-target').innerText.toLowerCase().includes(kw) || card.getAttribute('data-loc').toLowerCase().includes(kw))) { card.classList.add('bg-warning', 'bg-opacity-25'); if(!firstMatch) firstMatch = card; } else card.classList.remove('bg-warning', 'bg-opacity-25'); }); if (firstMatch) firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
 export function rebuildAdminList() { if(confirm('確定要重建清單嗎？')) { adminCombinedList = adminData.selectable.map(i => ({ ...i, order: '' })); renderSortableList(); } }
-function renderSortableList() { const container = document.getElementById('admin-sort-list'); container.innerHTML = adminCombinedList.map(item => ` <div class="card sortable-item mb-2 shadow-sm border-0" data-table="${item.tableId}" data-loc="${item.locCode}" data-drug="${item.drugCode}" data-name="${item.drugName}" data-hidden="${item.order === 0 ? 'true' : 'false'}" style="border-left: 6px solid ${item.order === 0 ? '#dc3545' : 'var(--academic-primary)'}; ${item.order === 0 ? 'opacity:0.6' : ''}"> <div class="card-body p-2 d-flex align-items-center"> <div class="me-3 fs-4 text-muted"><i class="bi bi-grip-vertical"></i></div> <div class="flex-grow-1"> <div class="fw-bold search-target">${item.drugName}</div> <div class="small text-secondary">${item.locCode} | ${item.drugCode}</div> </div> <div class="ms-2 p-2" onclick="toggleVisibility('${item.locCode}')"> <i class="visibility-icon ${item.order === 0 ? 'bi bi-eye-slash-fill text-danger' : 'bi bi-eye-fill text-academic'} fs-5"></i> </div> </div> </div> `).join(''); if(sortableInstance) sortableInstance.destroy(); sortableInstance = new window.Sortable(container, { animation: 150, handle: '.bi-grip-vertical', ghostClass: 'sortable-ghost' }); }
+
 export function saveAdminDataToServer() { const payload = []; let currentOrder = 1; document.querySelectorAll('.sortable-item').forEach(el => { payload.push({ tableId: el.getAttribute('data-table'), locCode: el.getAttribute('data-loc'), drugCode: el.getAttribute('data-drug'), drugName: el.getAttribute('data-name'), order: el.getAttribute('data-hidden') === 'true' ? 0 : currentOrder++ }); }); toggleLoader(true); fetchBackend('saveAdminSortData', { payloadArray: payload }).then(() => { toggleLoader(false); showToast('排序已儲存！'); switchView('view-daily-app'); changeDailyDate(); }).catch(err => { toggleLoader(false); alert('儲存失敗'); }); }
