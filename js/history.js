@@ -14,8 +14,16 @@ export let detailModalInstance = null;
 export function initHistoryMode() {
   switchView('view-history-app'); 
   const today = new Date();
-  document.getElementById('history-start-date').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()-7).padStart(2,'0')}`;
-  document.getElementById('history-end-date').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  
+  // 🌟 將日期格式化為 YYYY-MM-DD
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  
+  // 🌟 將開始與結束日期都預設為「今天」
+  document.getElementById('history-start-date').value = todayStr;
+  document.getElementById('history-end-date').value = todayStr;
 }
 
 export function loadHistoryData() {
