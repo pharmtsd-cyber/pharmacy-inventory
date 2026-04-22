@@ -41,7 +41,12 @@ export function updateTabUI() {
 
 export function renderDailyItems() {
   const area = document.getElementById('daily-list-area');
-  const renderList = currentDailyTab === '未盤' ? dailyItems.filter(i => !i.hasRecord || i.status === '作廢') : dailyItems.filter(i => i.hasRecord);
+  let renderList = currentDailyTab === '未盤' ? dailyItems.filter(i => !i.hasRecord || i.status === '作廢') : dailyItems.filter(i => i.hasRecord);
+  
+  // 🌟 新功能：如果是「已盤點」清單，依照時間 (tStamp) 由新到舊排序
+  if (currentDailyTab === '已盤') {
+    renderList.sort((a, b) => (b.tStamp || 0) - (a.tStamp || 0));
+  }
   
   if (renderList.length === 0) { area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">此區無資料</div>'; return; }
   
@@ -50,6 +55,9 @@ export function renderDailyItems() {
     const isVoid = item.status === '作廢';
     const cardStyle = isVoid ? "opacity: 0.7; filter: grayscale(100%);" : "";
     const badgeHtml = isVoid ? `<span class="badge bg-secondary ms-2">已作廢</span>` : (item.hasRecord ? `<span class="badge bg-success ms-2">已盤點</span>` : '');
+    
+    // 🌟 在畫面上順便顯示盤點時間，看起來更專業
+    const timeDisplay = item.timeStr ? `<span class="small text-secondary fw-bold ms-2"><i class="bi bi-clock"></i> ${item.timeStr}</span>` : '';
 
     if (currentDailyTab === '已盤') {
       const actionHtml = isVoid 
@@ -60,7 +68,8 @@ export function renderDailyItems() {
       html += `
         <div class="card mb-3 shadow-sm border-0 drug-card" style="border-left: 6px solid var(--academic-primary); ${cardStyle}">
           <div class="card-body p-3">
-            <div class="fw-bold fs-5 text-dark mb-2">${item.drugName} ${badgeHtml}</div>
+            <div class="fw-bold fs-5 text-dark mb-1">${item.drugName}</div>
+            <div class="mb-2">${badgeHtml} ${timeDisplay}</div>
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div class="text-secondary small">儲位: ${item.locCode} | 代碼: ${item.drugCode}</div>
               <div class="fw-bold fs-4 ${isVoid ? 'text-muted text-decoration-line-through' : 'text-academic'}">${item.countedQty}</div>
@@ -88,7 +97,14 @@ export function submitDailyOne(loc, dCode, dName, tId) {
   const item = dailyItems.find(i => i.locCode === loc);
   if (!item) return;
 
-  item.hasRecord = true; item.status = '成立'; item.countedQty = qty;
+  // 🌟 樂觀 UI：瞬間補上當下時間，讓它立刻排到最上面
+  const now = new Date();
+  item.hasRecord = true; 
+  item.status = '成立'; 
+  item.countedQty = qty;
+  item.tStamp = now.getTime();
+  item.timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
   updateTabUI(); renderDailyItems(); if (navigator.vibrate) navigator.vibrate(50); showToast('盤點成功');
 
   fetchBackend('submitInventory', { mode: '每日盤點', userId: session.id, userName: session.name, type: '盤點調劑台', drugCode: dCode, drugName: dName, handQty: qty, tableId: tId, locCode: loc, inventoryDate: dStr })
