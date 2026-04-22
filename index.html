@@ -82,7 +82,7 @@
     <div class="card card-academic p-2 shadow-sm mb-2 border-0 bg-white flex-shrink-0">
       <div class="d-flex justify-content-between align-items-center mb-1">
         <h6 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2">
-          <button id="btn-monthly-back" class="btn btn-outline-secondary fw-bold py-2" onclick="handleMonthlyBack()">
+          <button id="btn-monthly-back" class="btn btn-outline-secondary fw-bold py-2 d-none" onclick="handleMonthlyBack()">
             <i class="bi bi-chevron-left"></i> 返回
           </button>
           <span id="monthly-app-title"><i class="bi bi-calendar-month"></i> 月盤點作業</span>
@@ -93,7 +93,7 @@
       </div>
       
       <ul class="nav nav-pills nav-fill gap-1 mt-1" id="monthly-tabs">
-        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm active bg-academic text-white py-2" id="btn-tab-dashboard" onclick="switchMonthlyTab('tab-dashboard')">盤點表</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm active bg-academic text-white py-2" id="btn-tab-dashboard" onclick="switchMonthlyTab('tab-dashboard')">進度看板</button></li>
         <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-stock" onclick="switchMonthlyTab('tab-stock')">庫存</button></li>
         <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-online" onclick="switchMonthlyTab('tab-online')">線上</button></li>
         <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-records" onclick="switchMonthlyTab('tab-records')">紀錄</button></li>
@@ -124,33 +124,39 @@
     </div>
 
     <div id="tab-stock" class="monthly-content-section flex-grow-1 overflow-auto px-1 d-none">
-      <ul class="nav nav-pills nav-fill gap-2 mb-2 px-1">
-        <li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-stock-sub-input" onclick="switchStockSubTab('input')">盤點輸入</button></li>
-        <li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-stock-sub-list" onclick="switchStockSubTab('list')">已盤點 (<span id="count-stock-counted">0</span>)</button></li>
-      </ul>
+      <ul class="nav nav-pills nav-fill gap-2 mb-2 px-1"><li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-stock-sub-input" onclick="switchStockSubTab('input')">盤點輸入</button></li><li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-stock-sub-list" onclick="switchStockSubTab('list')">已盤點 (<span id="count-stock-counted">0</span>)</button></li></ul>
       <div id="area-stock-input" class="card p-2 border-0 shadow-sm mb-2 bg-white">
-        <div class="position-relative mb-2">
-          <input type="text" id="stock-drug-search" class="form-control form-control-lg bg-light border-secondary fw-bold" placeholder="🔍 搜尋藥名或代碼..." onkeyup="handleStockSearch()" autocomplete="off">
-          <div id="stock-dropdown" class="search-dropdown text-start shadow"></div>
-        </div>
-        <div id="stock-selected-card" class="d-none p-2 mb-2 border border-success rounded bg-light">
-          <div class="fw-bold text-dark fs-5 mb-1" id="stock-sel-name"></div>
-          <div class="d-flex gap-2 small"><span class="badge bg-academic">加P: <span id="stock-sel-inv"></span></span><span class="badge bg-secondary">批價: <span id="stock-sel-price"></span></span></div>
-        </div>
-        <div class="input-group shadow-sm">
-          <input type="number" id="stock-qty" class="form-control form-control-lg border-secondary fw-bold text-center" placeholder="數量" inputmode="numeric" pattern="[0-9]*">
-          <button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyStock()">確認寫入</button>
-        </div>
+        <div class="position-relative mb-2"><input type="text" id="stock-drug-search" class="form-control form-control-lg bg-light border-secondary fw-bold" placeholder="🔍 搜尋藥名或代碼..." onkeyup="handleStockSearch()" autocomplete="off"><div id="stock-dropdown" class="search-dropdown text-start shadow"></div></div>
+        <div id="stock-selected-card" class="d-none p-2 mb-2 border border-success rounded bg-light"><div class="fw-bold text-dark fs-5 mb-1" id="stock-sel-name"></div><div class="d-flex gap-2 small"><span class="badge bg-academic">加P: <span id="stock-sel-inv"></span></span><span class="badge bg-secondary">批價: <span id="stock-sel-price"></span></span></div></div>
+        <div class="input-group shadow-sm"><input type="number" id="stock-qty" class="form-control form-control-lg border-secondary fw-bold text-center" placeholder="數量" inputmode="numeric" pattern="[0-9]*"><button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyStock()">確認寫入</button></div>
         <div id="stock-success-card" class="d-none"></div>
       </div>
       <div id="area-stock-list" class="d-none"><div id="stock-records-area"></div></div>
     </div>
 
     <div id="tab-online" class="monthly-content-section flex-grow-1 overflow-auto px-1 d-none">
+      <ul class="nav nav-pills nav-fill gap-2 mb-2 px-1"><li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-online-sub-input" onclick="switchOnlineSubTab('input')">線上作業</button></li><li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-online-sub-list" onclick="switchOnlineSubTab('list')">已作業 (<span id="count-online-counted">0</span>)</button></li></ul>
+      <div id="area-online-input" class="card p-2 border-0 shadow-sm mb-2 bg-white">
+        <div class="d-flex gap-2 mb-2"><input type="radio" class="btn-check" name="dispType" id="disp-minus" value="調劑" checked><label class="btn btn-outline-academic flex-grow-1 fw-bold py-2 shadow-sm fs-6" for="disp-minus">調劑 (-)</label><input type="radio" class="btn-check" name="dispType" id="disp-plus" value="退藥"><label class="btn btn-outline-academic flex-grow-1 fw-bold py-2 shadow-sm fs-6" for="disp-plus">退藥 (+)</label></div>
+        <div class="d-flex gap-2 mb-2 border-bottom pb-2"><input type="radio" class="btn-check" name="actionType" id="action-manual" value="手動" checked onchange="updateOnlineUI()"><label class="btn btn-outline-academic flex-grow-1 fw-bold py-2 shadow-sm fs-6" for="action-manual">手動搜尋</label><input type="radio" class="btn-check" name="actionType" id="action-barcode" value="條碼" onchange="updateOnlineUI()"><label class="btn btn-outline-academic flex-grow-1 fw-bold py-2 shadow-sm fs-6" for="action-barcode">條碼掃描</label></div>
+        <div id="area-manual">
+          <div class="position-relative mb-2"><input type="text" id="online-drug-search" class="form-control form-control-lg bg-light border-secondary fw-bold" placeholder="🔍 搜尋..." onkeyup="handleOnlineSearch()" autocomplete="off"><div id="online-dropdown" class="search-dropdown text-start shadow"></div></div>
+          <div id="online-selected-card" class="d-none p-2 mb-2 border border-academic rounded bg-light small fw-bold">選定: <span id="online-sel-name" class="text-dark fs-6"></span><br>代碼: <span id="online-sel-inv" class="text-academic"></span></div>
+          <div class="input-group shadow-sm"><input type="number" id="online-qty" class="form-control form-control-lg border-secondary fw-bold text-center" placeholder="數量" inputmode="numeric" pattern="[0-9]*"><button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyOnline('手動')">確認寫入</button></div>
+        </div>
+        <div id="area-barcode" class="d-none">
+          <div class="input-group shadow-sm"><input type="text" id="online-barcode" class="form-control form-control-lg bg-light border-secondary fw-bold text-academic" placeholder="掃描槍請點此..." onchange="parseBarcodeAndSubmit()"><button class="btn btn-academic px-3 fw-bold fs-5" type="button" id="btn-start-camera" onclick="startLiveScanner()"><i class="bi bi-camera-video"></i> 開啟相機</button></div>
+          <div id="scanner-wrapper" class="d-none mb-2 mt-2 border border-secondary rounded p-2 bg-light shadow-sm text-center"><div class="d-flex justify-content-between align-items-center mb-2 px-2"><span class="fw-bold text-academic small"><i class="bi bi-upc-scan"></i> 對準條碼...</span><button class="btn btn-sm btn-outline-danger fw-bold" onclick="closeLiveScanner()">❌ 關閉</button></div><div id="scanner-container" style="width: 100%; max-width: 400px; margin: 0 auto; background: #000; overflow: hidden; border-radius: 8px;"><div id="reader" style="width: 100%;"></div></div></div>
+        </div>
+        <div id="online-success-card" class="d-none"></div>
       </div>
+      <div id="area-online-list" class="d-none"><div id="online-records-area" class="pb-5"></div></div>
+    </div>
 
     <div id="tab-records" class="monthly-content-section flex-grow-1 overflow-auto px-1 d-none">
-      </div>
+      <div class="card p-2 border-0 shadow-sm mb-2 bg-white text-center flex-shrink-0"><div class="text-academic fw-bold mb-1">總筆數 (<span id="user-records-count">0</span>)</div><button class="btn btn-outline-academic btn-sm fw-bold w-100 py-2" onclick="loadUserRecords()"><i class="bi bi-arrow-clockwise"></i> 重新下載雲端紀錄</button></div>
+      <div id="user-records-area" class="pb-5"></div>
+    </div>
   </div>
 
   <div id="view-history-app" class="container-fluid view-section">
