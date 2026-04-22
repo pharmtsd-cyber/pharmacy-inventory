@@ -115,7 +115,24 @@ export function pushRecordLocally(recInfo) {
   renderAllRecordLists();
 }
 
-export function updateOnlineUI() { document.querySelector('input[name="actionType"]:checked').value === '手動' ? (document.getElementById('area-manual').classList.remove('d-none'), document.getElementById('area-barcode').classList.add('d-none')) : (document.getElementById('area-manual').classList.add('d-none'), document.getElementById('area-barcode').classList.remove('d-none'), document.getElementById('online-barcode').focus()); }
+export function updateOnlineUI() {
+  const checkedInput = document.querySelector('input[name="actionType"]:checked');
+  if (!checkedInput) return; // 防呆：如果找不到單選框就不執行
+
+  if (checkedInput.value === '手動') {
+    const areaManual = document.getElementById('area-manual');
+    const areaBarcode = document.getElementById('area-barcode');
+    if (areaManual) areaManual.classList.remove('d-none');
+    if (areaBarcode) areaBarcode.classList.add('d-none');
+  } else {
+    const areaManual = document.getElementById('area-manual');
+    const areaBarcode = document.getElementById('area-barcode');
+    if (areaManual) areaManual.classList.add('d-none');
+    if (areaBarcode) areaBarcode.classList.remove('d-none');
+    const barcodeInput = document.getElementById('online-barcode');
+    if (barcodeInput) barcodeInput.focus();
+  }
+}
 
 export function switchMonthlyTab(tabId) {
   document.querySelectorAll('.monthly-content-section').forEach(s => s.classList.add('d-none'));
@@ -183,7 +200,41 @@ export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
     }); 
 }
 
-export function renderAllRecordLists() { let stockRecords = myRecordsData.filter(r => r.type === '盤點庫存'); document.getElementById('count-stock-counted').innerText = stockRecords.length; if (activeRecordFilters['stock']) stockRecords = stockRecords.filter(r => r.code === activeRecordFilters['stock']); document.getElementById('stock-records-area').innerHTML = generateRecordCards(stockRecords, '本月尚未輸入庫存盤點', true); const tId = document.getElementById('monthly-table-select').value; let deskRecords = myRecordsData.filter(r => r.type === '盤點調劑台' && r.tableId === tId); document.getElementById('count-desk-counted').innerText = deskRecords.length; if (activeRecordFilters['desk']) deskRecords = deskRecords.filter(r => r.code === activeRecordFilters['desk']); document.getElementById('desk-records-area').innerHTML = generateRecordCards(deskRecords, '本區本月尚無盤點紀錄', true); let onlineRecords = myRecordsData.filter(r => r.type === '線上調劑'); document.getElementById('count-online-counted').innerText = onlineRecords.length; if (activeRecordFilters['online']) onlineRecords = onlineRecords.filter(r => r.code === activeRecordFilters['online']); document.getElementById('online-records-area').innerHTML = generateRecordCards(onlineRecords, '本月尚無線上調劑紀錄', true); let allRecords = myRecordsData; document.getElementById('user-records-count').innerText = myRecordsData.length; if (activeRecordFilters['records']) allRecords = allRecords.filter(r => r.code === activeRecordFilters['records']); document.getElementById('user-records-area').innerHTML = generateRecordCards(allRecords, '此區尚無紀錄', false); }
+export function renderAllRecordLists() { 
+  let stockRecords = myRecordsData.filter(r => r.type === '盤點庫存'); 
+  const stockCount = document.getElementById('count-stock-counted');
+  if (stockCount) stockCount.innerText = stockRecords.length; // 防呆
+  
+  if (activeRecordFilters['stock']) stockRecords = stockRecords.filter(r => r.code === activeRecordFilters['stock']); 
+  const stockArea = document.getElementById('stock-records-area');
+  if (stockArea) stockArea.innerHTML = generateRecordCards(stockRecords, '本月尚未輸入庫存盤點', true); 
+
+  const tIdSelect = document.getElementById('monthly-table-select');
+  const tId = tIdSelect ? tIdSelect.value : ''; 
+  let deskRecords = myRecordsData.filter(r => r.type === '盤點調劑台' && r.tableId === tId); 
+  const deskCount = document.getElementById('count-desk-counted');
+  if (deskCount) deskCount.innerText = deskRecords.length; 
+  
+  if (activeRecordFilters['desk']) deskRecords = deskRecords.filter(r => r.code === activeRecordFilters['desk']); 
+  const deskArea = document.getElementById('desk-records-area');
+  if (deskArea) deskArea.innerHTML = generateRecordCards(deskRecords, '本區本月尚無盤點紀錄', true); 
+
+  let onlineRecords = myRecordsData.filter(r => r.type === '線上調劑'); 
+  const onlineCount = document.getElementById('count-online-counted');
+  if (onlineCount) onlineCount.innerText = onlineRecords.length; 
+  
+  if (activeRecordFilters['online']) onlineRecords = onlineRecords.filter(r => r.code === activeRecordFilters['online']); 
+  const onlineArea = document.getElementById('online-records-area');
+  if (onlineArea) onlineArea.innerHTML = generateRecordCards(onlineRecords, '本月尚無線上調劑紀錄', true); 
+
+  let allRecords = myRecordsData; 
+  const totalCount = document.getElementById('user-records-count');
+  if (totalCount) totalCount.innerText = myRecordsData.length; 
+  
+  if (activeRecordFilters['records']) allRecords = allRecords.filter(r => r.code === activeRecordFilters['records']); 
+  const userArea = document.getElementById('user-records-area');
+  if (userArea) userArea.innerHTML = generateRecordCards(allRecords, '此區尚無紀錄', false); 
+}
 
 // ✨ UI 卡片邏輯
 export function generateRecordCards(recordsArray, emptyMsg, allowEdit) { 
