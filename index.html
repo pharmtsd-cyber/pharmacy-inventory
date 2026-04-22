@@ -79,45 +79,52 @@
   </div>
 
 <div id="view-monthly-app" class="container-fluid view-section">
-    <div class="card card-academic p-2 shadow-sm mb-2 border-0 bg-white flex-shrink-0">
-      
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <h6 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2">
-          <button class="btn btn-outline-secondary fw-bold py-2" onclick="switchView('view-mode-select')"><i class="bi bi-chevron-left"></i> 返回</button>
-          <span><i class="bi bi-calendar-month"></i> 月盤點作業</span>
-        </h6>
-        <button class="btn btn-academic btn-sm shadow-sm py-2 px-3 fw-bold" onclick="refreshMonthlyData()">
-          <i class="bi bi-arrow-clockwise"></i> 更新
+  <div class="card card-academic p-2 shadow-sm mb-2 border-0 bg-white flex-shrink-0">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <h6 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2">
+        <button id="btn-monthly-back" class="btn btn-outline-secondary fw-bold py-2" onclick="handleMonthlyBack()">
+          <i class="bi bi-chevron-left"></i> 返回
         </button>
-      </div>
-      <ul class="nav nav-pills nav-fill gap-1 mt-1" id="monthly-tabs">
-        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm active bg-academic text-white py-2" id="btn-tab-stock" onclick="switchMonthlyTab('tab-stock')">庫存</button></li>
-        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-dispense" onclick="switchMonthlyTab('tab-dispense')">調劑台</button></li>
-        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-online" onclick="switchMonthlyTab('tab-online')">線上</button></li>
-        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-dashboard" onclick="switchMonthlyTab('tab-dashboard')">進度</button></li>
-        <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-records" onclick="switchMonthlyTab('tab-records')">紀錄</button></li>
+        <span id="monthly-app-title"><i class="bi bi-calendar-month"></i> 月盤點作業</span>
+      </h6>
+      <button class="btn btn-academic btn-sm shadow-sm py-2 px-3 fw-bold" onclick="refreshMonthlyData()">
+        <i class="bi bi-arrow-clockwise"></i> 更新
+      </button>
+    </div>
+    
+    <ul class="nav nav-pills nav-fill gap-1 mt-1" id="monthly-tabs">
+      <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm active bg-academic text-white py-2" id="btn-tab-dashboard" onclick="switchMonthlyTab('tab-dashboard')">盤點表</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-stock" onclick="switchMonthlyTab('tab-stock')">庫存</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-online" onclick="switchMonthlyTab('tab-online')">線上</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-tab-records" onclick="switchMonthlyTab('tab-records')">紀錄</button></li>
+    </ul>
+  </div>
+
+  <div id="tab-dashboard" class="monthly-content-section flex-grow-1 overflow-auto px-1">
+    <div class="dashboard-group mb-4 mt-2">
+      <h6 class="fw-bold text-danger border-start border-4 border-danger ps-2 mb-3">🕒 未完成 (點擊進入盤點)</h6>
+      <div id="dashboard-unfinished"></div>
+    </div>
+    <div class="dashboard-group mb-5">
+      <h6 class="fw-bold text-success border-start border-4 border-success ps-2 mb-3">✅ 已完成</h6>
+      <div id="dashboard-finished"></div>
+    </div>
+  </div>
+
+  <div id="tab-dispense" class="monthly-content-section flex-grow-1 overflow-auto px-1 d-none">
+    <select id="monthly-table-select" class="d-none" onchange="handleTableSelectChange()"></select>
+    
+    <div class="card p-2 border-0 shadow-sm mb-2 bg-white sticky-top" style="top:0; z-index:10;">
+      <ul class="nav nav-pills nav-fill gap-2">
+        <li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-desk-sub-input" onclick="switchDeskSubTab('input')">未盤點 (<span id="count-desk-uncounted">0</span>)</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-desk-sub-list" onclick="switchDeskSubTab('list')">已盤點 (<span id="count-desk-counted">0</span>)</button></li>
       </ul>
     </div>
+    <div id="area-desk-input"><div id="monthly-desk-area" class="pb-5"></div></div>
+    <div id="area-desk-list" class="d-none"><div id="desk-records-area" class="pb-5"></div></div>
+  </div>
 
-    <div id="tab-stock" class="monthly-content-section flex-grow-1 overflow-auto px-1 active">
-      <ul class="nav nav-pills nav-fill gap-2 mb-2 px-1"><li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-stock-sub-input" onclick="switchStockSubTab('input')">盤點輸入</button></li><li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-stock-sub-list" onclick="switchStockSubTab('list')">已盤點 (<span id="count-stock-counted">0</span>)</button></li></ul>
-      <div id="area-stock-input" class="card p-2 border-0 shadow-sm mb-2 bg-white">
-        <div class="position-relative mb-2"><input type="text" id="stock-drug-search" class="form-control form-control-lg bg-light border-secondary fw-bold" placeholder="🔍 搜尋藥名或代碼..." onkeyup="handleStockSearch()" autocomplete="off"><div id="stock-dropdown" class="search-dropdown text-start shadow"></div></div>
-        <div id="stock-selected-card" class="d-none p-2 mb-2 border border-success rounded bg-light"><div class="fw-bold text-dark fs-5 mb-1" id="stock-sel-name"></div><div class="d-flex gap-2 small"><span class="badge bg-academic">加P: <span id="stock-sel-inv"></span></span><span class="badge bg-secondary">批價: <span id="stock-sel-price"></span></span></div></div>
-        <div class="input-group shadow-sm"><input type="number" id="stock-qty" class="form-control form-control-lg border-secondary fw-bold text-center" placeholder="數量" inputmode="numeric" pattern="[0-9]*"><button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyStock()">確認寫入</button></div>
-        <div id="stock-success-card" class="d-none"></div>
-      </div>
-      <div id="area-stock-list" class="d-none"><div id="stock-records-area"></div></div>
-    </div>
-
-    <div id="tab-dispense" class="monthly-content-section flex-grow-1 overflow-auto px-1 d-none">
-      <div class="card p-2 border-0 shadow-sm mb-2 bg-white">
-        <select id="monthly-table-select" class="form-select form-select-lg border-secondary fw-bold text-academic shadow-sm mb-2" onchange="handleTableSelectChange()"></select>
-        <ul class="nav nav-pills nav-fill gap-2"><li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-desk-sub-input" onclick="switchDeskSubTab('input')">未盤點 (<span id="count-desk-uncounted">0</span>)</button></li><li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-desk-sub-list" onclick="switchDeskSubTab('list')">已盤點 (<span id="count-desk-counted">0</span>)</button></li></ul>
-      </div>
-      <div id="area-desk-input"><div id="monthly-desk-area" class="pb-5"></div></div>
-      <div id="area-desk-list" class="d-none"><div id="desk-records-area" class="pb-5"></div></div>
-    </div>
+  </div>
 
     <div id="tab-online" class="monthly-content-section flex-grow-1 overflow-auto px-1 d-none">
       <ul class="nav nav-pills nav-fill gap-2 mb-2 px-1"><li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white shadow-sm py-2" id="btn-online-sub-input" onclick="switchOnlineSubTab('input')">線上作業</button></li><li class="nav-item"><button class="nav-link fw-bold border text-success bg-white shadow-sm py-2" id="btn-online-sub-list" onclick="switchOnlineSubTab('list')">已作業 (<span id="count-online-counted">0</span>)</button></li></ul>
