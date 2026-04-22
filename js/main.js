@@ -14,8 +14,8 @@ import {
   handleTableSelectChange, submitMonthlyDeskOne, submitMonthlyStock, submitMonthlyOnline, 
   updateOnlineUI, startLiveScanner, closeLiveScanner, parseBarcodeAndSubmit, 
   loadUserRecords, handleRecordFilterSearch, clearRecordFilter, applyRecordFilter, 
-  editRecord, toggleMonthlyRecordStatus, refreshMonthlyData, // 👈 補在這裡
-  refreshDashboardData, renderMonthlyDashboard, showTableDetailModal
+  editRecord, toggleMonthlyRecordStatus, refreshMonthlyData,
+  refreshDashboardData, renderMonthlyDashboard, showTableDetailModal, enterTableInventory, handleMonthlyBack
 } from './monthly.js';
 
 import { 
@@ -82,3 +82,6 @@ window.clearDrugFilter = clearDrugFilter;
 window.renderHistoryTable = renderHistoryTable;
 window.openDetailsModal = openDetailsModal;
 window.toggleModalCol = toggleModalCol;
+
+window.enterTableInventory = enterTableInventory;
+window.handleMonthlyBack = handleMonthlyBack;
