@@ -4,6 +4,7 @@ import { handleLogin, handleLogout } from './auth.js';
 
 import { 
   initDailyMode, changeDailyDate, switchDailyTab, submitDailyOne, 
+  editDailyQty, toggleDailyStatus, // 🌟 新增這兩個
   openAdminSort, toggleVisibility, highlightSearchItem, rebuildAdminList, saveAdminDataToServer 
 } from './daily.js';
 
@@ -13,7 +14,7 @@ import {
   handleTableSelectChange, submitMonthlyDeskOne, submitMonthlyStock, submitMonthlyOnline, 
   updateOnlineUI, startLiveScanner, closeLiveScanner, parseBarcodeAndSubmit, 
   loadUserRecords, handleRecordFilterSearch, clearRecordFilter, applyRecordFilter, 
-  editRecord, deleteRecord,
+  editRecord, toggleMonthlyRecordStatus, // 🌟 取代 deleteRecord
   refreshDashboardData, renderMonthlyDashboard, showTableDetailModal
 } from './monthly.js';
 
@@ -64,7 +65,9 @@ window.handleRecordFilterSearch = handleRecordFilterSearch;
 window.clearRecordFilter = clearRecordFilter;
 window.applyRecordFilter = applyRecordFilter;
 window.editRecord = editRecord;
-window.deleteRecord = deleteRecord;
+window.editDailyQty = editDailyQty;
+window.toggleDailyStatus = toggleDailyStatus;
+window.toggleMonthlyRecordStatus = toggleMonthlyRecordStatus;
 
 window.refreshDashboardData = refreshDashboardData;
 window.renderMonthlyDashboard = renderMonthlyDashboard;
