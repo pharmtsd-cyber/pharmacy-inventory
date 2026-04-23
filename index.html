@@ -150,19 +150,24 @@
             <button class="btn btn-academic px-3 fw-bold fs-5" type="button" id="btn-start-camera" onclick="startLiveScanner()"><i class="bi bi-camera-video"></i> 開啟相機</button>
           </div>
           
-          <div id="scanner-wrapper" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; justify-content: center; align-items: center;">
+          <div id="scanner-wrapper" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.98); z-index: 10000; flex-direction: column; justify-content: center; align-items: center;">
             <div style="position: absolute; top: 0; left: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); z-index: 10001;">
               <span class="text-white fw-bold fs-5"><i class="bi bi-upc-scan"></i> 對準條碼掃描</span>
               <button class="btn btn-danger fw-bold" onclick="closeLiveScanner()">❌ 關閉相機</button>
             </div>
             
-            <div id="scanner-container" style="position: relative; width: 100%; max-width: 500px; overflow: hidden; border: 2px solid rgba(255,255,255,0.2);">
-              <div id="reader" style="width: 100%;"></div>
-              
-              <div style="position: absolute; top: 0; left: 0; width: 100%; height: 3px; background-color: #ff3b30; box-shadow: 0 0 10px 2px rgba(255,59,48,0.8); animation: scan-laser 2s infinite linear; z-index: 10002; pointer-events: none;"></div>
+            <div id="scanner-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10003; display: flex; flex-direction: column; align-items: center;">
+              <div class="spinner-border text-white mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+              <div class="text-white fw-bold fs-5 tracking-wider">相機啟動與對焦中...</div>
             </div>
             
-            <div class="text-white mt-4 opacity-75 small"><i class="bi bi-info-circle"></i> 若對焦模糊，請點擊畫面強制對焦</div>
+            <div id="scanner-container" style="position: relative; width: 100%; max-width: 500px; overflow: hidden; border: 2px solid rgba(255,255,255,0.2); opacity: 0; transition: opacity 0.3s ease-in-out;">
+              <div id="reader" style="width: 100%;"></div>
+              
+              <div id="scanner-laser" style="position: absolute; top: 0; left: 0; width: 100%; height: 3px; background-color: #ff3b30; box-shadow: 0 0 10px 2px rgba(255,59,48,0.8); animation: scan-laser 2s infinite linear; z-index: 10002; pointer-events: none; display: none;"></div>
+            </div>
+            
+            <div id="scanner-hint" class="text-white mt-4 opacity-75 small" style="display: none;"><i class="bi bi-info-circle"></i> 若對焦模糊，請點擊畫面強制對焦</div>
           </div>
           
           <style>
