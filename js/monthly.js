@@ -35,30 +35,105 @@ export function initMonthlyMode() {
 }
 
 export function startLiveScanner() {
-  const scannerWrapper = document.getElementById('scanner-wrapper'); scannerWrapper.classList.remove('d-none'); document.getElementById('btn-start-camera').classList.add('disabled');
+  const scannerWrapper = document.getElementById('scanner-wrapper'); 
+  scannerWrapper.style.display = 'flex'; // 顯示全螢幕
+  document.getElementById('btn-start-camera').classList.add('disabled');
+  
   requestWakeLock();
   if (!html5QrCode) html5QrCode = new window.Html5Qrcode("reader");
-  const config = { fps: 10, qrbox: { width: 250, height: 150 }, formatsToSupport: [ window.Html5QrcodeSupportedFormats.DATA_MATRIX, window.Html5QrcodeSupportedFormats.QR_CODE, window.Html5QrcodeSupportedFormats.CODE_128 ] };
+  
+  // 🌟 提升 2D 條碼靈敏度：fps 提高，讀取框改為完美正方形 (適合 QR/Data Matrix)，並移除格式限制讓它自動偵測
+  const config = { 
+    fps: 15, 
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1.0
+  };
+  
   html5QrCode.start({ facingMode: "environment" }, config,
-    (decodedText) => { if (navigator.vibrate) navigator.vibrate(100); playBeep(); document.getElementById('online-barcode').value = decodedText; closeLiveScanner().then(() => parseBarcodeAndSubmit()); },
-    (errorMessage) => {}
-  ).catch((err) => { closeLiveScanner(); alert("❌ 無法啟動相機！請確認已允許相機權限。"); });
+    (decodedText) => { 
+      if (navigator.vibrate) navigator.vibrate(100); 
+      playBeep(); 
+      document.getElementById('online-barcode').value = decodedText; 
+      
+      // 掃描成功後，立刻關閉全螢幕相機，再進行解析
+      closeLiveScanner().then(() => parseBarcodeAndSubmit()); 
+    },
+    (errorMessage) => {} // 忽略掃描過程中的雜訊錯誤
+  ).catch((err) => { 
+    closeLiveScanner(); 
+    alert("❌ 無法啟動相機！請確認已允許瀏覽器使用相機。"); 
+  });
 }
 
 export function closeLiveScanner() {
   return new Promise((resolve) => {
     releaseWakeLock();
-    if (html5QrCode && html5QrCode.isScanning) { html5QrCode.stop().then(() => { document.getElementById('scanner-wrapper').classList.add('d-none'); document.getElementById('btn-start-camera').classList.remove('disabled'); resolve(); }).catch(err => resolve()); } 
-    else { document.getElementById('scanner-wrapper').classList.add('d-none'); document.getElementById('btn-start-camera').classList.remove('disabled'); resolve(); }
+    const wrapper = document.getElementById('scanner-wrapper');
+    const btn = document.getElementById('btn-start-camera');
+    
+    if (html5QrCode && html5QrCode.isScanning) { 
+      html5QrCode.stop().then(() => { 
+        wrapper.style.display = 'none'; 
+        btn.classList.remove('disabled'); 
+        resolve(); 
+      }).catch(err => resolve()); 
+    } else { 
+      wrapper.style.display = 'none'; 
+      btn.classList.remove('disabled'); 
+      resolve(); 
+    }
   });
 }
 
 export function parseBarcodeAndSubmit() {
-  const bcInput = document.getElementById('online-barcode'); const bcStr = bcInput.value.trim(); if (!bcStr) return;
-  let qty = 1; let parsedDrug = null;
-  if (bcStr.includes(';')) { const parts = bcStr.split(';'); if (parts.length >= 4) { const bcPrice = parts[1].toUpperCase().trim(); qty = parseInt(parts[3], 10); parsedDrug = monthlyDrugMaster.find(d => d.priceCode.toUpperCase() === bcPrice); } } 
-  else { parsedDrug = monthlyDrugMaster.find(d => d.priceCode.toUpperCase() === bcStr.toUpperCase() || d.invCode.toUpperCase() === bcStr.toUpperCase() || d.name.includes(bcStr)); }
-  if (!parsedDrug) { alert('解析失敗：主檔查無此藥品！'); bcInput.value = ''; return; }
+  const bcInput = document.getElementById('online-barcode'); 
+  const bcStr = bcInput.value.trim(); 
+  if (!bcStr) return;
+  
+  let qty = 1; 
+  let parsedDrug = null;
+  let searchKey = bcStr;
+
+  if (bcStr.includes(';')) { 
+    const parts = bcStr.split(';'); 
+    
+    // 如果是用分號隔開的格式 (至少有 3 段以上)
+    if (parts.length >= 3) {
+      // 抓取第二段作為批價代碼 (例如：OMGO50)
+      searchKey = parts[1].toUpperCase().trim();
+      parsedDrug = monthlyDrugMaster.find(d => (d.priceCode || '').toUpperCase() === searchKey);
+      
+      if (parsedDrug) {
+        if (parts.length >= 4 && parts[3].trim() !== '') {
+          // 舊格式：有帶數量
+          qty = parseInt(parts[3], 10) || 1;
+        } else {
+          // 🌟 新格式：沒有帶數量，跳出提示框請藥師輸入
+          const userQty = prompt(`✅ 掃描成功！\n藥品：${parsedDrug.name}\n\n請輸入實際數量：`, "1");
+          
+          // 如果藥師按取消、沒輸入、或輸入負數，則中斷寫入
+          if (userQty === null || userQty.trim() === "" || isNaN(userQty) || parseInt(userQty, 10) <= 0) {
+            bcInput.value = ''; 
+            return;
+          }
+          qty = parseInt(userQty, 10);
+        }
+      }
+    } 
+  } else { 
+    // 一般單純的條碼/文字
+    searchKey = bcStr.toUpperCase();
+    parsedDrug = monthlyDrugMaster.find(d => (d.priceCode || '').toUpperCase() === searchKey || (d.invCode || '').toUpperCase() === searchKey || (d.name || '').includes(bcStr)); 
+  }
+  
+  // 🌟 找不到藥品的防呆機制
+  if (!parsedDrug) { 
+    alert(`❌ 系統查無此藥品！\n請確認主檔是否包含此代碼：${searchKey}`); 
+    bcInput.value = ''; 
+    return; 
+  }
+  
+  // 全部確認無誤，送出給後端
   submitMonthlyOnline('條碼', { priceCode: parsedDrug.priceCode, invCode: parsedDrug.invCode, name: parsedDrug.name, qty: qty, barcode: bcStr }, '');
 }
 
