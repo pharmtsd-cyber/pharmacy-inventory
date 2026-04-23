@@ -140,7 +140,7 @@ export function parseBarcodeAndSubmit() {
           qty = parseInt(parts[3], 10) || 1;
         } else {
           // 🌟 新格式：沒有帶數量，跳出提示框請藥師輸入
-          const userQty = prompt(`✅ 掃描成功！\n藥品：${parsedDrug.name}\n\n請輸入實際數量：`, "1");
+          const userQty = prompt(`✅ 掃描成功！\n藥品：${parsedDrug.name}\n\n請輸入實際數量：`, "");
           
           // 如果藥師按取消、沒輸入、或輸入負數，則中斷寫入
           if (userQty === null || userQty.trim() === "" || isNaN(userQty) || parseInt(userQty, 10) <= 0) {
