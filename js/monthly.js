@@ -433,9 +433,14 @@ export function renderMonthlyDashboard() {
           <div class="progress mb-2" style="height: 12px;">
             <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
           </div>
-          <div class="d-flex justify-content-between align-items-center">
-            <div class="small text-secondary">總共 ${total} 品項 | 已盤: ${counted}</div>
-            <div class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="small text-secondary">已盤: ${counted} / ${total}</div>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary me-2 fw-bold" onclick="event.stopPropagation(); showTableDetailModal('${table.id}', '${table.name}')">
+                <i class="bi bi-list-ul"></i> 明細
+              </button>
+              <span class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></span>
+            </div>
           </div>
         </div>
       </div>`;
@@ -477,15 +482,15 @@ export function showTableDetailModal(tableId, tableName) {
   const table = monthlyTables.find(t => t.id === tableId);
   if (!table) return;
 
-  document.getElementById('modal-drug-name').innerText = `【${tableName}】儲位明細`;
+  document.getElementById('modal-drug-name').innerText = `【${tableName}】儲位明細 (全域紀錄)`;
   const headers = ["儲位碼", "代碼", "藥名", "數量", "人員", "時間", "狀態"];
   document.getElementById('modal-thead').innerHTML = `<tr>${headers.map(h => `<th class="py-2 text-nowrap">${h}</th>`).join('')}</tr>`;
 
   const tbodyHtml = table.items.map(item => {
-    const record = myRecordsData.find(r => r.code === item.drugCode && r.loc === item.locCode);
-    const userName = item.hasCounted ? (item.countedUser || (record ? record.user : '系統')) : '-';
-    const timeStr = item.hasCounted ? (item.countedTime || (record ? record.time : '-')) : '-';
-    const qtyStr = item.hasCounted ? (record ? record.handQty : (item.countedQty || '已盤')) : '-';
+    // 這裡直接使用 item 裡面的資料 (來自 getMonthlyInitData，包含所有人的最新紀錄)
+    const userName = item.hasCounted ? (item.countedUser || '系統') : '-';
+    const timeStr = item.hasCounted ? (item.countedTime || '-') : '-';
+    const qtyStr = item.hasCounted ? (item.countedQty || '已盤') : '-';
 
     return `
       <tr class="${item.hasCounted ? 'table-success-light' : ''}">
