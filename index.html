@@ -241,6 +241,29 @@
     </div>
   </div>
 
+  <div class="modal fade" id="barcodeQtyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-academic text-white border-0">
+          <h6 class="modal-title fw-bold"><i class="bi bi-upc-scan"></i> 掃描成功：輸入數量</h6>
+        </div>
+        <div class="modal-body p-4">
+          <div class="text-center mb-3">
+            <div id="barcode-qty-drug-name" class="fw-bold fs-5 text-dark">藥品名稱</div>
+            <div id="barcode-qty-drug-info" class="small text-secondary">代碼訊息</div>
+          </div>
+          <input type="number" id="barcode-qty-input" 
+                 class="form-control form-control-lg text-center fw-bold fs-2 border-academic" 
+                 inputmode="numeric" pattern="[0-9]*" placeholder="請輸入數量">
+        </div>
+        <div class="modal-footer border-0 p-3">
+          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelBarcodeQty()">取消</button>
+          <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmBarcodeQty()">確認</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
