@@ -34,7 +34,7 @@ export function initMonthlyMode() {
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
 }
 
-// 🌟 啟動相機：點擊強制對焦與放大鏡強化版
+// 🌟 啟動相機：二維條碼專屬高畫質對焦版
 export function startLiveScanner() {
   const scannerWrapper = document.getElementById('scanner-wrapper'); 
   scannerWrapper.style.display = 'flex'; 
@@ -43,7 +43,7 @@ export function startLiveScanner() {
   requestWakeLock();
   if (!html5QrCode) html5QrCode = new window.Html5Qrcode("reader");
   
-  // 維持高畫質與連續對焦為基礎
+  // 🪄 魔法 1：強制要求鏡頭使用 1080p 高畫質，並開啟「連續自動對焦 (continuous)」
   const cameraConfig = {
     facingMode: "environment",
     width: { ideal: 1920 },
@@ -51,6 +51,9 @@ export function startLiveScanner() {
     advanced: [{ focusMode: "continuous" }] 
   };
   
+  // 🪄 魔法 2：專為「二維條碼」打造的設定
+  // - fps 提高到 20，讓偵測頻率變快
+  // - qrbox 改回正方形 (250x250)，確保 Data Matrix 能被完整包覆
   const config = { 
     fps: 20, 
     qrbox: { width: 250, height: 250 },
@@ -65,32 +68,10 @@ export function startLiveScanner() {
       document.getElementById('online-barcode').value = decodedText; 
       closeLiveScanner().then(() => parseBarcodeAndSubmit()); 
     },
-    (errorMessage) => {} 
-  ).then(() => {
-    // 🌟 【新增秘密武器】監聽點擊事件，強制喚醒對焦與切換放大鏡
-    setTimeout(() => {
-      const videoEl = document.querySelector("#reader video");
-      if (videoEl) {
-        let isZoomed = false;
-        videoEl.addEventListener("click", () => {
-          try {
-            // 1. 強制發送「單次對焦」指令，打醒偷懶的鏡頭
-            html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "single-shot" }] }).catch(()=>{});
-            
-            // 2. 切換 2 倍變焦 (Zoom)。對付小條碼的神器，而且縮放瞬間鏡頭必定會重新抓取焦距！
-            isZoomed = !isZoomed;
-            const zoomVal = isZoomed ? 2.0 : 1.0;
-            html5QrCode.applyVideoConstraints({ advanced: [{ zoom: zoomVal }] }).catch(()=>{});
-            
-            // 給予手指點擊的微震動回饋
-            if (navigator.vibrate) navigator.vibrate(30); 
-          } catch(e) {
-            console.warn("此裝置不支援手動鏡頭控制");
-          }
-        });
-      }
-    }, 500); // 延遲半秒確保影片元素已經在畫面上生成
-  }).catch((err) => { 
+    (errorMessage) => {
+      // 故意留空，不要讓雜訊錯誤干擾畫面
+    } 
+  ).catch((err) => { 
     closeLiveScanner(); 
     alert("❌ 無法啟動相機！請確認已允許瀏覽器使用相機。"); 
   });
@@ -116,35 +97,29 @@ export function closeLiveScanner() {
   });
 }
 
+// 🌟 1. 條碼解析與防呆 (加入強制拉回焦點)
 export function parseBarcodeAndSubmit() {
   const bcInput = document.getElementById('online-barcode'); 
   const bcStr = bcInput.value.trim(); 
   if (!bcStr) return;
   
-  let qty = 1; 
-  let parsedDrug = null;
-  let searchKey = bcStr;
+  let qty = 1; let parsedDrug = null; let searchKey = bcStr;
 
   if (bcStr.includes(';')) { 
     const parts = bcStr.split(';'); 
-    
-    // 如果是用分號隔開的格式 (至少有 3 段以上)
     if (parts.length >= 3) {
-      // 抓取第二段作為批價代碼 (例如：OMGO50)
       searchKey = parts[1].toUpperCase().trim();
       parsedDrug = monthlyDrugMaster.find(d => (d.priceCode || '').toUpperCase() === searchKey);
       
       if (parsedDrug) {
         if (parts.length >= 4 && parts[3].trim() !== '') {
-          // 舊格式：有帶數量
           qty = parseInt(parts[3], 10) || 1;
         } else {
-          // 🌟 新格式：沒有帶數量，跳出提示框請藥師輸入
           const userQty = prompt(`✅ 掃描成功！\n藥品：${parsedDrug.name}\n\n請輸入實際數量：`, "");
           
-          // 如果藥師按取消、沒輸入、或輸入負數，則中斷寫入
           if (userQty === null || userQty.trim() === "" || isNaN(userQty) || parseInt(userQty, 10) <= 0) {
             bcInput.value = ''; 
+            setTimeout(() => bcInput.focus(), 10); // 🌟 取消輸入後，0.01秒強制拉回焦點
             return;
           }
           qty = parseInt(userQty, 10);
@@ -152,19 +127,17 @@ export function parseBarcodeAndSubmit() {
       }
     } 
   } else { 
-    // 一般單純的條碼/文字
     searchKey = bcStr.toUpperCase();
     parsedDrug = monthlyDrugMaster.find(d => (d.priceCode || '').toUpperCase() === searchKey || (d.invCode || '').toUpperCase() === searchKey || (d.name || '').includes(bcStr)); 
   }
   
-  // 🌟 找不到藥品的防呆機制
   if (!parsedDrug) { 
     alert(`❌ 系統查無此藥品！\n請確認主檔是否包含此代碼：${searchKey}`); 
     bcInput.value = ''; 
+    setTimeout(() => bcInput.focus(), 10); // 🌟 警告結束後，強制拉回焦點
     return; 
   }
   
-  // 全部確認無誤，送出給後端
   submitMonthlyOnline('條碼', { priceCode: parsedDrug.priceCode, invCode: parsedDrug.invCode, name: parsedDrug.name, qty: qty, barcode: bcStr }, '');
 }
 
@@ -207,6 +180,7 @@ export function submitMonthlyStock() {
     .catch(err => { showToast('網路連線錯誤，資料未寫入', 'delete'); });
 }
 
+// 🌟 2. 送出寫入 (破解 DOM 渲染導致的焦點遺失)
 export function submitMonthlyOnline(actionSrc, parsedData = null, writePriceCode = '') {
   const type = '線上調劑'; const dispType = document.querySelector('input[name="dispType"]:checked').value;
   let payloadDrug = null; let qty = 0; let barcodeStr = '';
@@ -218,15 +192,21 @@ export function submitMonthlyOnline(actionSrc, parsedData = null, writePriceCode
   } else { payloadDrug = parsedData; qty = parsedData.qty; barcodeStr = parsedData.barcode; writePriceCode = ''; }
   
   const actionTag = dispType === '調劑' ? '調劑(-)' : '退藥(+)'; 
-  showSuccessCard('online-success-card', payloadDrug.name, qty, actionTag, 'success'); // 樂觀UI立刻彈出綠卡
+  showSuccessCard('online-success-card', payloadDrug.name, qty, actionTag, 'success'); 
   
-  if (actionSrc === '手動') { document.getElementById('online-qty').value = ''; onlineSelectedDrug = null; document.getElementById('online-selected-card').classList.add('d-none'); document.getElementById('online-drug-search').value=''; } 
-  else { document.getElementById('online-barcode').value = ''; document.getElementById('online-barcode').focus(); }
+  if (actionSrc === '手動') { 
+    document.getElementById('online-qty').value = ''; onlineSelectedDrug = null; document.getElementById('online-selected-card').classList.add('d-none'); document.getElementById('online-drug-search').value=''; 
+  } else { 
+    const bcInput = document.getElementById('online-barcode');
+    bcInput.value = ''; 
+    // 🌟 延遲 10 毫秒對焦：等綠色卡片畫完之後，才把游標搶回來
+    setTimeout(() => bcInput.focus(), 10); 
+  }
 
   fetchBackend('submitInventory', { mode: '月盤點', userId: session.id, userName: session.name, type: type, action: actionSrc, dispType: dispType, drugCode: payloadDrug.invCode, drugName: payloadDrug.name, priceCodeSelect: writePriceCode, handQty: qty, tableId: 'BFZZZ', locCode: '', barcode: barcodeStr })
     .then((res) => { 
         if(res && res.success) pushRecordLocally(res.resultRecord); 
-        else showToast('寫入異常: '+res.message, 'delete'); // 異常改用上方紅色 Toast
+        else showToast('寫入異常: '+res.message, 'delete'); 
     })
     .catch(err => { showToast('網路連線錯誤，資料未寫入', 'delete'); });
 }
@@ -456,7 +436,23 @@ export function generateRecordCards(recordsArray, emptyMsg, allowEdit) {
 export function handleRecordFilterSearch(tabKey) { const kw = document.getElementById(`filter-input-${tabKey}`).value.toLowerCase().trim(); const dropdown = document.getElementById(`filter-dropdown-${tabKey}`); let sourceData = []; if (tabKey === 'stock') sourceData = myRecordsData.filter(r => r.type === '盤點庫存'); else if (tabKey === 'desk') { const tId = document.getElementById('monthly-table-select').value; sourceData = myRecordsData.filter(r => r.type === '盤點調劑台' && r.tableId === tId); } else if (tabKey === 'online') sourceData = myRecordsData.filter(r => r.type === '線上調劑'); else if (tabKey === 'records') sourceData = myRecordsData; const uniqueDrugs = []; const seen = new Set(); sourceData.forEach(r => { if (!seen.has(r.code)) { seen.add(r.code); uniqueDrugs.push({ code: r.code, name: r.name }); } }); let filtered = kw ? uniqueDrugs.filter(d => d.code.toLowerCase().includes(kw) || d.name.toLowerCase().includes(kw)) : uniqueDrugs; if (kw && filtered.length > 0) { filtered.sort((a, b) => { const getScore = (d) => { let score = 999; if (d.code.toLowerCase().indexOf(kw) !== -1) score = Math.min(score, d.code.toLowerCase().indexOf(kw)); if (d.name.toLowerCase().indexOf(kw) !== -1) score = Math.min(score, d.name.toLowerCase().indexOf(kw)); return score; }; return getScore(a) - getScore(b); }); } if (filtered.length > 0) { dropdown.innerHTML = filtered.slice(0, 10).map(d => `<div class="search-dropdown-item" onclick="applyRecordFilter('${tabKey}', '${d.code}', '${d.name.replace(/'/g, "\\'")}')"><div class="fw-bold text-academic">${d.name}</div><div class="small text-muted">${d.code}</div></div>`).join(''); dropdown.style.display = 'block'; } else { dropdown.innerHTML = '<div class="p-2 text-muted small">清單中無相符藥品</div>'; dropdown.style.display = 'block'; } }
 export function applyRecordFilter(tabKey, code, name) { activeRecordFilters[tabKey] = code; document.getElementById(`filter-input-${tabKey}`).value = `${name} (${code})`; document.getElementById(`filter-dropdown-${tabKey}`).style.display = 'none'; renderAllRecordLists(); }
 export function clearRecordFilter(tabKey) { activeRecordFilters[tabKey] = null; document.getElementById(`filter-input-${tabKey}`).value = ''; document.getElementById(`filter-dropdown-${tabKey}`).style.display = 'none'; renderAllRecordLists(); }
-document.addEventListener('click', function(e) { if (!e.target.closest('.position-relative')) { document.querySelectorAll('.search-dropdown').forEach(d => d.style.display = 'none'); } });
+// 🌟 3. 全域點擊監聽 (賦予條碼框「焦點霸體」)
+document.addEventListener('click', function(e) { 
+  // 處理搜尋下拉選單的關閉
+  if (!e.target.closest('.position-relative')) { 
+    document.querySelectorAll('.search-dropdown').forEach(d => d.style.display = 'none'); 
+  } 
+
+  // 🌟 實體條碼機友善設計：只要在條碼模式下，點擊畫面空白處就強制鎖定焦點
+  const barcodeArea = document.getElementById('area-barcode');
+  if (barcodeArea && !barcodeArea.classList.contains('d-none')) {
+    // 確保點擊的不是別的按鈕或輸入框 (例如切換手動/條碼的按鈕)
+    if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
+      const bcInput = document.getElementById('online-barcode');
+      if (bcInput) setTimeout(() => bcInput.focus(), 10);
+    }
+  }
+});
 
 export function editRecord(sn) {
   const record = myRecordsData.find(r => r.sn === sn);
