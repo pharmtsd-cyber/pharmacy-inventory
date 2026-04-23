@@ -97,7 +97,6 @@ export function submitDailyOne(loc, dCode, dName, tId) {
   const item = dailyItems.find(i => i.locCode === loc);
   if (!item) return;
 
-  // 🌟 樂觀 UI：瞬間補上當下時間，讓它立刻排到最上面
   const now = new Date();
   item.hasRecord = true; 
   item.status = '成立'; 
@@ -105,7 +104,11 @@ export function submitDailyOne(loc, dCode, dName, tId) {
   item.tStamp = now.getTime();
   item.timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-  updateTabUI(); renderDailyItems(); if (navigator.vibrate) navigator.vibrate(50); showToast('盤點成功');
+  updateTabUI(); 
+  renderDailyItems(); 
+  if (navigator.vibrate) navigator.vibrate(50); 
+  
+  // 刪除了原本寫在這裡的 showToast('盤點成功')
 
   fetchBackend('submitInventory', { mode: '每日盤點', userId: session.id, userName: session.name, type: '盤點調劑台', drugCode: dCode, drugName: dName, handQty: qty, tableId: tId, locCode: loc, inventoryDate: dStr })
     .catch(err => { showToast('網路連線錯誤，請重新盤點', 'delete'); loadDailyData(dStr); });
