@@ -179,19 +179,38 @@ export function renderSortableList() {
   const container = document.getElementById('admin-sortable-list');
   if (!container) return; 
 
-  adminCombinedList.sort((a, b) => { const aV = a.order !== 0, bV = b.order !== 0; if (aV && !bV) return -1; if (!aV && bV) return 1; if (aV && bV) { if (a.order !== '' && b.order !== '') return a.order - b.order; if (a.order !== '' && b.order === '') return -1; if (a.order === '' && b.order !== '') return 1; } return a.locCode.localeCompare(b.locCode); });
+  // 排序邏輯：有排序的在上面，被隱藏的在中間，新進藥品 (order === '') 排在最下面
+  adminCombinedList.sort((a, b) => { 
+    const aV = a.order !== 0, bV = b.order !== 0; 
+    if (aV && !bV) return -1; 
+    if (!aV && bV) return 1; 
+    if (aV && bV) { 
+      if (a.order !== '' && b.order !== '') return a.order - b.order; 
+      if (a.order !== '' && b.order === '') return -1; // 舊藥品優先
+      if (a.order === '' && b.order !== '') return 1;  // 新藥品沉底
+    } 
+    return a.locCode.localeCompare(b.locCode); 
+  });
   
   let html = '';
   adminCombinedList.forEach(item => {
     const isHidden = item.order === 0; 
-    const cardStyle = isHidden ? 'opacity: 0.6; border-left: 5px solid #dc3545;' : 'border-left: 5px solid var(--academic-primary);'; 
+    const isNew = item.order === ''; // 🌟 判斷是否為新進入 SAP 的藥品
+    
+    // 🌟 如果是新藥品，給它一個顯眼的黃色背景，如果被隱藏則是紅色
+    const cardStyle = isHidden ? 'opacity: 0.6; border-left: 5px solid #dc3545;' : 
+                     (isNew ? 'border-left: 5px solid #ffc107; background-color: #fffbeb;' : 'border-left: 5px solid var(--academic-primary);'); 
+    
     const eyeIcon = isHidden ? 'bi-eye-slash-fill text-danger' : 'bi-eye-fill text-success';
     
-    html += `<div class="card border-0 shadow-sm mb-2 sortable-item bg-white" style="${cardStyle}" data-loc="${item.locCode}" data-table="${item.tableId}" data-drug="${item.drugCode}" data-name="${item.drugName}" data-hidden="${isHidden}">
+    // 🌟 新藥品的超亮眼標籤
+    const newBadge = isNew ? '<span class="badge bg-warning text-dark ms-2 shadow-sm">🆕 新進藥品</span>' : '';
+    
+    html += `<div class="card border-0 shadow-sm mb-2 sortable-item" style="${cardStyle}" data-loc="${item.locCode}" data-table="${item.tableId}" data-drug="${item.drugCode}" data-name="${item.drugName}" data-hidden="${isHidden}">
       <div class="card-body p-2 d-flex align-items-center">
         <div class="drag-handle"><i class="bi bi-grip-vertical"></i></div>
         <div class="flex-grow-1 px-2 text-truncate">
-          <div class="fw-bold text-dark search-target">${item.drugName}</div>
+          <div class="fw-bold text-dark search-target">${item.drugName} ${newBadge}</div>
           <div class="small text-muted"><span class="badge bg-academic me-1">${item.tableName}</span>${item.locCode}</div>
         </div>
         <div>
