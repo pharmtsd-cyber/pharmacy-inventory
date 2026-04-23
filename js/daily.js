@@ -39,7 +39,7 @@ export function updateTabUI() {
   document.getElementById('count-counted').innerText = dailyItems.filter(i => i.hasRecord).length;
 }
 
-// 🌟 渲染每日盤點清單 (加入盤點表名稱與前次大數字顯示)
+// 🌟 渲染每日盤點清單 (實作顏色交錯設計)
 export function renderDailyItems() {
   const area = document.getElementById('daily-list-area');
   if (!area) return;
@@ -70,12 +70,14 @@ export function renderDailyItems() {
   }
 
   let html = '';
-  filtered.forEach(item => {
-    // 解決藥名有單引號會讓 onclick 壞掉的問題
+  // 🌟 關鍵修改：傳入 index 以便計算交錯顏色
+  filtered.forEach((item, index) => {
     const safeName = item.drugName.replace(/'/g, "\\'"); 
+    
+    // 🌟 顏色分流邏輯：偶數用藥局綠 (Default)，奇數用灰色 (Gray)
+    const borderColor = index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd';
 
     if (currentDailyTab === '未盤') {
-      // 🌟 判斷是否有前次紀錄，如果有就畫出特別放大的區塊
       const lastRecordHtml = item.lastQty !== '無'
         ? `<div class="bg-light border rounded p-2 mb-2 d-flex justify-content-between align-items-center shadow-sm">
              <span class="text-secondary small fw-bold"><i class="bi bi-clock-history"></i> 前次紀錄 (${item.lastTime}):</span>
@@ -84,7 +86,7 @@ export function renderDailyItems() {
         : `<div class="bg-light border rounded p-2 mb-2 text-center text-muted small shadow-sm">尚無歷史盤點紀錄</div>`;
 
       html += `
-        <div class="card drug-card mb-3 shadow-sm border-0 border-start border-4 border-warning" id="card-${item.locCode}">
+        <div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;" id="card-${item.locCode}">
           <div class="card-body p-3">
             <div class="fw-bold fs-5 text-dark mb-1">${item.drugName}</div>
             
@@ -103,9 +105,9 @@ export function renderDailyItems() {
         </div>`;
         
     } else {
-       // 已盤點介面 (維持原樣)
+       // 已盤點清單同樣套用交錯色，維持視覺統一
        html += `
-        <div class="card drug-card mb-2 shadow-sm border-0 border-start border-4 border-success">
+        <div class="card drug-card mb-2 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;">
           <div class="card-body p-2">
             <div class="d-flex justify-content-between mb-1">
               <div class="fw-bold text-dark text-truncate" style="max-width: 70%;">${item.drugName}</div>
