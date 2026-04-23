@@ -10,11 +10,17 @@ export let html5QrCode = null;
 export let stockSelectedDrug = null; 
 export let onlineSelectedDrug = null;
 
-// 🌟 修正問題 1 & 2：進入時立刻渲染進度看板
 export function initMonthlyMode() {
   switchView('view-monthly-app'); 
   switchMonthlyTab('tab-dashboard'); 
   updateOnlineUI(); 
+  
+  // 🌟 這裡就是幫您補上的「日期預設為今天」邏輯
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const dateInput = document.getElementById('filter-date-records');
+  if (dateInput) dateInput.value = todayStr;
+
   toggleLoader(true);
   fetchBackend('getMonthlyInitData').then(res => {
     monthlyDrugMaster = res.drugMaster; 
@@ -22,7 +28,7 @@ export function initMonthlyMode() {
     const select = document.getElementById('monthly-table-select');
     if(select) select.innerHTML = monthlyTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     loadUserRecords(() => { 
-      renderMonthlyDashboard(); // <--- 就是補上了這一行
+      renderMonthlyDashboard(); 
       toggleLoader(false); 
     });
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
@@ -266,6 +272,7 @@ export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
 }
 
 export function renderAllRecordLists() { 
+  // 1. 庫存分頁紀錄
   let stockRecords = myRecordsData.filter(r => r.type === '盤點庫存'); 
   const stockCount = document.getElementById('count-stock-counted');
   if (stockCount) stockCount.innerText = stockRecords.length; 
@@ -273,6 +280,7 @@ export function renderAllRecordLists() {
   const stockArea = document.getElementById('stock-records-area');
   if (stockArea) stockArea.innerHTML = generateRecordCards(stockRecords, '本月尚未輸入庫存盤點', true); 
 
+  // 2. 調劑台(藥架)分頁紀錄
   const tIdSelect = document.getElementById('monthly-table-select');
   const tId = tIdSelect ? tIdSelect.value : ''; 
   let deskRecords = myRecordsData.filter(r => r.type === '盤點調劑台' && r.tableId === tId); 
@@ -282,6 +290,7 @@ export function renderAllRecordLists() {
   const deskArea = document.getElementById('desk-records-area');
   if (deskArea) deskArea.innerHTML = generateRecordCards(deskRecords, '本區本月尚無盤點紀錄', true); 
 
+  // 3. 線上區紀錄
   let onlineRecords = myRecordsData.filter(r => r.type === '線上調劑'); 
   const onlineCount = document.getElementById('count-online-counted');
   if (onlineCount) onlineCount.innerText = onlineRecords.length; 
@@ -289,12 +298,30 @@ export function renderAllRecordLists() {
   const onlineArea = document.getElementById('online-records-area');
   if (onlineArea) onlineArea.innerHTML = generateRecordCards(onlineRecords, '本月尚無線上調劑紀錄', true); 
 
-  let allRecords = myRecordsData; 
+  // 🌟 4. 「我的紀錄」分頁：加入日期過濾邏輯
+  let allRecords = [...myRecordsData]; 
+  const selectedDate = document.getElementById('filter-date-records') ? document.getElementById('filter-date-records').value : '';
+  
+  // 藥品代碼篩選
+  if (activeRecordFilters['records']) {
+    allRecords = allRecords.filter(r => r.code === activeRecordFilters['records']);
+  }
+  
+  // 日期篩選 (比較 YYYY-MM-DD)
+  if (selectedDate) {
+    allRecords = allRecords.filter(r => {
+      if (!r.tStamp) return false;
+      const d = new Date(r.tStamp);
+      const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return dStr === selectedDate;
+    });
+  }
+
   const totalCount = document.getElementById('user-records-count');
-  if (totalCount) totalCount.innerText = myRecordsData.length; 
-  if (activeRecordFilters['records']) allRecords = allRecords.filter(r => r.code === activeRecordFilters['records']); 
+  if (totalCount) totalCount.innerText = allRecords.length; 
+  
   const userArea = document.getElementById('user-records-area');
-  if (userArea) userArea.innerHTML = generateRecordCards(allRecords, '此區尚無紀錄', false); 
+  if (userArea) userArea.innerHTML = generateRecordCards(allRecords, '查無符合條件的紀錄', false); 
 }
 
 export function generateRecordCards(recordsArray, emptyMsg, allowEdit) { 
