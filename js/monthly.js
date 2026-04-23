@@ -35,12 +35,23 @@ export function initMonthlyMode() {
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
 }
 
-// 🌟 啟動相機：絕對安全高相容版 (防崩潰機制)
+// 🌟 啟動相機：完美出場機制 (先遮罩，等完全準備好再顯示畫面)
 export function startLiveScanner() {
   const scannerWrapper = document.getElementById('scanner-wrapper'); 
   scannerWrapper.style.display = 'flex'; 
   document.getElementById('btn-start-camera').classList.add('disabled');
   
+  // 1. 初始化 UI：顯示轉圈圈遮罩，隱藏相機畫面與雷射線
+  const loadingMask = document.getElementById('scanner-loading');
+  const scannerContainer = document.getElementById('scanner-container');
+  const scannerLaser = document.getElementById('scanner-laser');
+  const scannerHint = document.getElementById('scanner-hint');
+  
+  if(loadingMask) loadingMask.style.display = 'flex';
+  if(scannerContainer) scannerContainer.style.opacity = '0';
+  if(scannerLaser) scannerLaser.style.display = 'none';
+  if(scannerHint) scannerHint.style.display = 'none';
+
   requestWakeLock();
   if (!html5QrCode) html5QrCode = new window.Html5Qrcode("reader");
   
@@ -51,7 +62,6 @@ export function startLiveScanner() {
     disableFlip: false 
   };
   
-  // 🌟 使用最單純、100%不會報錯的後鏡頭啟動指令
   html5QrCode.start({ facingMode: "environment" }, config,
     (decodedText) => { 
       if (navigator.vibrate) navigator.vibrate(100); 
@@ -61,14 +71,21 @@ export function startLiveScanner() {
     },
     (errorMessage) => {} 
   ).then(() => {
-    // 🌟 相機成功啟動後，再把「點擊對焦」功能綁上去
+    // 🌟 2. 關鍵時機：相機硬體已連線！
+    // 但我們故意等 0.8 秒，讓底層鏡頭完成「測光」與「初次對焦」
     setTimeout(() => {
+      // 隱藏轉圈圈，淡入清晰的相機畫面，並啟動雷射線
+      if(loadingMask) loadingMask.style.display = 'none';
+      if(scannerContainer) scannerContainer.style.opacity = '1';
+      if(scannerLaser) scannerLaser.style.display = 'block';
+      if(scannerHint) scannerHint.style.display = 'block';
+
+      // 綁定點擊畫面強制對焦的功能
       const videoEl = document.querySelector("#reader video");
       if (videoEl) {
         let isZoomed = false;
         videoEl.addEventListener("click", () => {
           try {
-            // 如果手機硬體不支援變焦，這裡的 catch 會安靜地忽略錯誤，不會讓系統當機
             html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "single-shot" }] }).catch(()=>{});
             isZoomed = !isZoomed;
             html5QrCode.applyVideoConstraints({ advanced: [{ zoom: isZoomed ? 2.0 : 1.0 }] }).catch(()=>{});
@@ -76,11 +93,11 @@ export function startLiveScanner() {
           } catch(e) {}
         });
       }
-    }, 500);
+    }, 800); // 這裡的 800 毫秒是物理馬達對焦的黃金緩衝期
+    
   }).catch((err) => { 
     closeLiveScanner(); 
-    // 讓錯誤提示更明確
-    alert("❌ 相機啟動失敗！\n\n請確認以下三點：\n1. 網頁是否已允許【相機存取權限】\n2. 請用 Safari 或 Chrome 開啟 (勿用 Line 內建瀏覽器)\n3. 網址必須是安全的 https 連線"); 
+    alert("❌ 相機啟動失敗！\n\n請確認：\n1. 已允許相機權限\n2. 使用 Safari 或 Chrome 開啟\n3. 處於 https 安全連線狀態"); 
   });
 }
 
