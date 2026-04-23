@@ -34,7 +34,7 @@ export function initMonthlyMode() {
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
 }
 
-// 🌟 啟動相機：二維條碼專屬高畫質對焦版
+// 🌟 啟動相機：點擊強制對焦與放大鏡強化版
 export function startLiveScanner() {
   const scannerWrapper = document.getElementById('scanner-wrapper'); 
   scannerWrapper.style.display = 'flex'; 
@@ -43,7 +43,7 @@ export function startLiveScanner() {
   requestWakeLock();
   if (!html5QrCode) html5QrCode = new window.Html5Qrcode("reader");
   
-  // 🪄 魔法 1：強制要求鏡頭使用 1080p 高畫質，並開啟「連續自動對焦 (continuous)」
+  // 維持高畫質與連續對焦為基礎
   const cameraConfig = {
     facingMode: "environment",
     width: { ideal: 1920 },
@@ -51,9 +51,6 @@ export function startLiveScanner() {
     advanced: [{ focusMode: "continuous" }] 
   };
   
-  // 🪄 魔法 2：專為「二維條碼」打造的設定
-  // - fps 提高到 20，讓偵測頻率變快
-  // - qrbox 改回正方形 (250x250)，確保 Data Matrix 能被完整包覆
   const config = { 
     fps: 20, 
     qrbox: { width: 250, height: 250 },
@@ -68,10 +65,32 @@ export function startLiveScanner() {
       document.getElementById('online-barcode').value = decodedText; 
       closeLiveScanner().then(() => parseBarcodeAndSubmit()); 
     },
-    (errorMessage) => {
-      // 故意留空，不要讓雜訊錯誤干擾畫面
-    } 
-  ).catch((err) => { 
+    (errorMessage) => {} 
+  ).then(() => {
+    // 🌟 【新增秘密武器】監聽點擊事件，強制喚醒對焦與切換放大鏡
+    setTimeout(() => {
+      const videoEl = document.querySelector("#reader video");
+      if (videoEl) {
+        let isZoomed = false;
+        videoEl.addEventListener("click", () => {
+          try {
+            // 1. 強制發送「單次對焦」指令，打醒偷懶的鏡頭
+            html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "single-shot" }] }).catch(()=>{});
+            
+            // 2. 切換 2 倍變焦 (Zoom)。對付小條碼的神器，而且縮放瞬間鏡頭必定會重新抓取焦距！
+            isZoomed = !isZoomed;
+            const zoomVal = isZoomed ? 2.0 : 1.0;
+            html5QrCode.applyVideoConstraints({ advanced: [{ zoom: zoomVal }] }).catch(()=>{});
+            
+            // 給予手指點擊的微震動回饋
+            if (navigator.vibrate) navigator.vibrate(30); 
+          } catch(e) {
+            console.warn("此裝置不支援手動鏡頭控制");
+          }
+        });
+      }
+    }, 500); // 延遲半秒確保影片元素已經在畫面上生成
+  }).catch((err) => { 
     closeLiveScanner(); 
     alert("❌ 無法啟動相機！請確認已允許瀏覽器使用相機。"); 
   });
