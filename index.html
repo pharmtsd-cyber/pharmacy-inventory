@@ -145,8 +145,20 @@
           <div class="input-group shadow-sm"><input type="number" id="online-qty" class="form-control form-control-lg border-secondary fw-bold text-center" placeholder="數量" inputmode="numeric" pattern="[0-9]*"><button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyOnline('手動')">確認寫入</button></div>
         </div>
         <div id="area-barcode" class="d-none">
-          <div class="input-group shadow-sm"><input type="text" id="online-barcode" class="form-control form-control-lg bg-light border-secondary fw-bold text-academic" placeholder="掃描槍請點此..." onchange="parseBarcodeAndSubmit()"><button class="btn btn-academic px-3 fw-bold fs-5" type="button" id="btn-start-camera" onclick="startLiveScanner()"><i class="bi bi-camera-video"></i> 開啟相機</button></div>
-          <div id="scanner-wrapper" class="d-none mb-2 mt-2 border border-secondary rounded p-2 bg-light shadow-sm text-center"><div class="d-flex justify-content-between align-items-center mb-2 px-2"><span class="fw-bold text-academic small"><i class="bi bi-upc-scan"></i> 對準條碼...</span><button class="btn btn-sm btn-outline-danger fw-bold" onclick="closeLiveScanner()">❌ 關閉</button></div><div id="scanner-container" style="width: 100%; max-width: 400px; margin: 0 auto; background: #000; overflow: hidden; border-radius: 8px;"><div id="reader" style="width: 100%;"></div></div></div>
+          <div class="input-group shadow-sm">
+            <input type="text" id="online-barcode" class="form-control form-control-lg bg-light border-secondary fw-bold text-academic" placeholder="掃描槍請點此..." onchange="parseBarcodeAndSubmit()">
+            <button class="btn btn-academic px-3 fw-bold fs-5" type="button" id="btn-start-camera" onclick="startLiveScanner()"><i class="bi bi-camera-video"></i> 開啟相機</button>
+          </div>
+          
+          <div id="scanner-wrapper" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); z-index: 10001;">
+              <span class="text-white fw-bold fs-5"><i class="bi bi-upc-scan"></i> 對準條碼掃描</span>
+              <button class="btn btn-danger fw-bold" onclick="closeLiveScanner()">❌ 關閉相機</button>
+            </div>
+            <div id="scanner-container" style="width: 100%; max-width: 500px; overflow: hidden;">
+              <div id="reader" style="width: 100%;"></div>
+            </div>
+          </div>
         </div>
         <div id="online-success-card" class="d-none"></div>
       </div>
