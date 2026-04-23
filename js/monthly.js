@@ -34,31 +34,43 @@ export function initMonthlyMode() {
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
 }
 
+// 🌟 啟動相機：二維條碼專屬高畫質對焦版
 export function startLiveScanner() {
   const scannerWrapper = document.getElementById('scanner-wrapper'); 
-  scannerWrapper.style.display = 'flex'; // 顯示全螢幕
+  scannerWrapper.style.display = 'flex'; 
   document.getElementById('btn-start-camera').classList.add('disabled');
   
   requestWakeLock();
   if (!html5QrCode) html5QrCode = new window.Html5Qrcode("reader");
   
-  // 🌟 提升 2D 條碼靈敏度：fps 提高，讀取框改為完美正方形 (適合 QR/Data Matrix)，並移除格式限制讓它自動偵測
-  const config = { 
-    fps: 15, 
-    qrbox: { width: 250, height: 250 },
-    aspectRatio: 1.0
+  // 🪄 魔法 1：強制要求鏡頭使用 1080p 高畫質，並開啟「連續自動對焦 (continuous)」
+  const cameraConfig = {
+    facingMode: "environment",
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    advanced: [{ focusMode: "continuous" }] 
   };
   
-  html5QrCode.start({ facingMode: "environment" }, config,
+  // 🪄 魔法 2：專為「二維條碼」打造的設定
+  // - fps 提高到 20，讓偵測頻率變快
+  // - qrbox 改回正方形 (250x250)，確保 Data Matrix 能被完整包覆
+  const config = { 
+    fps: 20, 
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1.0,
+    disableFlip: false 
+  };
+  
+  html5QrCode.start(cameraConfig, config,
     (decodedText) => { 
       if (navigator.vibrate) navigator.vibrate(100); 
       playBeep(); 
       document.getElementById('online-barcode').value = decodedText; 
-      
-      // 掃描成功後，立刻關閉全螢幕相機，再進行解析
       closeLiveScanner().then(() => parseBarcodeAndSubmit()); 
     },
-    (errorMessage) => {} // 忽略掃描過程中的雜訊錯誤
+    (errorMessage) => {
+      // 故意留空，不要讓雜訊錯誤干擾畫面
+    } 
   ).catch((err) => { 
     closeLiveScanner(); 
     alert("❌ 無法啟動相機！請確認已允許瀏覽器使用相機。"); 
