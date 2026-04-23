@@ -57,32 +57,48 @@ export function parseBarcodeAndSubmit() {
 }
 
 export function showSuccessCard(cardId, drugName, qty, actionTag, colorType = 'success') {
-  const card = document.getElementById(cardId); const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const bgClass = colorType === 'danger' ? 'bg-danger' : (colorType === 'warning' ? 'bg-warning text-dark' : 'bg-success');
-  const textClass = colorType === 'warning' ? 'text-dark' : 'text-white';
-  const icon = colorType === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill';
-  const title = colorType === 'warning' ? '寫入異常' : '寫入成功';
-  card.className = `mt-2 p-3 rounded shadow-sm text-center success-card-bottom ${bgClass} ${textClass}`;
-  card.innerHTML = `<div class="fw-bold fs-5 mb-1"><i class="bi ${icon}"></i> ${title}</div><div class="fs-6">${actionTag} <span class="fw-bold">${drugName}</span> <span class="badge bg-white text-dark ms-1">數量: ${qty}</span></div><div class="small mt-2" style="opacity: 0.9;"><i class="bi bi-clock"></i> 處理時間: ${timeStr}</div>`;
+  const card = document.getElementById(cardId); 
+  const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  
+  card.classList.remove('success-card-bottom');
+  void card.offsetWidth; 
+  
+  card.className = `mt-3 p-3 rounded shadow-lg text-center success-card-bottom bg-success text-white`;
+  card.innerHTML = `
+    <div class="fw-bold mb-1 opacity-75"><i class="bi bi-check-circle-fill"></i> 寫入成功</div>
+    <div class="fw-bold text-warning mb-2" style="font-size: 1.8rem; line-height: 1.2;">${drugName}</div>
+    <div class="fw-bold mb-2" style="font-size: 2.2rem;">
+      <span class="fs-5 fw-normal opacity-75">${actionTag} 數量:</span> ${qty}
+    </div>
+    <div class="small mt-2 border-top border-light pt-2" style="opacity: 0.8;">
+      <i class="bi bi-clock"></i> 處理時間: ${timeStr}
+    </div>`;
+    
   card.classList.remove('d-none');
 }
 
 export function submitMonthlyStock() {
   if (!stockSelectedDrug) return alert('請先搜尋並選擇藥品！');
   const qty = document.getElementById('stock-qty').value; if (!qty || qty <= 0) return alert('請輸入正整數！');
-  showSuccessCard('stock-success-card', stockSelectedDrug.name, qty, '庫存盤點', 'success');
+  
   const currentDrug = stockSelectedDrug; 
+  showSuccessCard('stock-success-card', currentDrug.name, qty, '庫存盤點', 'success'); // 樂觀UI立刻彈出綠卡
+  
   document.getElementById('stock-qty').value = ''; stockSelectedDrug = null; 
   document.getElementById('stock-selected-card').classList.add('d-none'); document.getElementById('stock-drug-search').value = '';
   
   fetchBackend('submitInventory', { mode: '月盤點', userId: session.id, userName: session.name, type: '盤點庫存', action: '', dispType: '', drugCode: currentDrug.invCode, drugName: currentDrug.name, priceCodeSelect: currentDrug.priceCode, handQty: qty, tableId: 'BFYYY', locCode: '', barcode: '' })
-    .then((res) => { if (res && res.success) pushRecordLocally(res.resultRecord); else showSuccessCard('stock-success-card', currentDrug.name, qty, '異常: '+res.message, 'warning'); })
-    .catch(err => { showSuccessCard('stock-success-card', currentDrug.name, qty, '網路連線錯誤', 'warning'); });
+    .then((res) => { 
+        if (res && res.success) pushRecordLocally(res.resultRecord); 
+        else showToast('寫入異常: '+res.message, 'delete'); // 異常改用上方紅色 Toast
+    })
+    .catch(err => { showToast('網路連線錯誤，資料未寫入', 'delete'); });
 }
 
 export function submitMonthlyOnline(actionSrc, parsedData = null, writePriceCode = '') {
   const type = '線上調劑'; const dispType = document.querySelector('input[name="dispType"]:checked').value;
   let payloadDrug = null; let qty = 0; let barcodeStr = '';
+  
   if (actionSrc === '手動') {
     if (!onlineSelectedDrug) return alert('請先搜尋藥品！');
     qty = document.getElementById('online-qty').value; if (!qty || qty <= 0) return alert('請輸入正整數！');
@@ -90,15 +106,17 @@ export function submitMonthlyOnline(actionSrc, parsedData = null, writePriceCode
   } else { payloadDrug = parsedData; qty = parsedData.qty; barcodeStr = parsedData.barcode; writePriceCode = ''; }
   
   const actionTag = dispType === '調劑' ? '調劑(-)' : '退藥(+)'; 
-  const colorMode = dispType === '調劑' ? 'danger' : 'success';
-  showSuccessCard('online-success-card', payloadDrug.name, qty, actionTag, colorMode);
+  showSuccessCard('online-success-card', payloadDrug.name, qty, actionTag, 'success'); // 樂觀UI立刻彈出綠卡
   
   if (actionSrc === '手動') { document.getElementById('online-qty').value = ''; onlineSelectedDrug = null; document.getElementById('online-selected-card').classList.add('d-none'); document.getElementById('online-drug-search').value=''; } 
   else { document.getElementById('online-barcode').value = ''; document.getElementById('online-barcode').focus(); }
 
   fetchBackend('submitInventory', { mode: '月盤點', userId: session.id, userName: session.name, type: type, action: actionSrc, dispType: dispType, drugCode: payloadDrug.invCode, drugName: payloadDrug.name, priceCodeSelect: writePriceCode, handQty: qty, tableId: 'BFZZZ', locCode: '', barcode: barcodeStr })
-    .then((res) => { if(res && res.success) pushRecordLocally(res.resultRecord); else showSuccessCard('online-success-card', payloadDrug.name, qty, '異常: '+res.message, 'warning'); })
-    .catch(err => { showSuccessCard('online-success-card', payloadDrug.name, qty, '網路連線錯誤', 'warning'); });
+    .then((res) => { 
+        if(res && res.success) pushRecordLocally(res.resultRecord); 
+        else showToast('寫入異常: '+res.message, 'delete'); // 異常改用上方紅色 Toast
+    })
+    .catch(err => { showToast('網路連線錯誤，資料未寫入', 'delete'); });
 }
 
 export function loadUserRecords(callback) {
