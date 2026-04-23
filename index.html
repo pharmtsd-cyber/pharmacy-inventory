@@ -155,10 +155,24 @@
               <span class="text-white fw-bold fs-5"><i class="bi bi-upc-scan"></i> 對準條碼掃描</span>
               <button class="btn btn-danger fw-bold" onclick="closeLiveScanner()">❌ 關閉相機</button>
             </div>
-            <div id="scanner-container" style="width: 100%; max-width: 500px; overflow: hidden;">
+            
+            <div id="scanner-container" style="position: relative; width: 100%; max-width: 500px; overflow: hidden; border: 2px solid rgba(255,255,255,0.2);">
               <div id="reader" style="width: 100%;"></div>
+              
+              <div style="position: absolute; top: 0; left: 0; width: 100%; height: 3px; background-color: #ff3b30; box-shadow: 0 0 10px 2px rgba(255,59,48,0.8); animation: scan-laser 2s infinite linear; z-index: 10002; pointer-events: none;"></div>
             </div>
+            
+            <div class="text-white mt-4 opacity-75 small"><i class="bi bi-info-circle"></i> 若對焦模糊，請點擊畫面強制對焦</div>
           </div>
+          
+          <style>
+            @keyframes scan-laser {
+              0% { top: 10%; opacity: 0; }
+              10% { opacity: 1; }
+              90% { opacity: 1; }
+              100% { top: 90%; opacity: 0; }
+            }
+          </style>
         </div>
         <div id="online-success-card" class="d-none"></div>
       </div>
