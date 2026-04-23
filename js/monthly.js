@@ -9,6 +9,7 @@ export let activeRecordFilters = { stock: null, desk: null, online: null, record
 export let html5QrCode = null; 
 export let stockSelectedDrug = null; 
 export let onlineSelectedDrug = null;
+export let barcodeQtyResolve = null;
 
 export function initMonthlyMode() {
   switchView('view-monthly-app'); 
@@ -642,3 +643,37 @@ export function showTableDetailModal(tableId, tableName) {
   document.getElementById('modal-tbody').innerHTML = tbodyHtml;
   new window.bootstrap.Modal(document.getElementById('detailsModal')).show();
 }
+
+// 🌟 新增：開啟數量彈窗的功能
+export function openBarcodeQtyModal(drugName, drugInfo) {
+  return new Promise((resolve) => {
+    barcodeQtyResolve = resolve;
+    document.getElementById('barcode-qty-drug-name').innerText = drugName;
+    document.getElementById('barcode-qty-drug-info').innerText = drugInfo;
+    const input = document.getElementById('barcode-qty-input');
+    input.value = ''; // 清空上次輸入
+    
+    const modal = new window.bootstrap.Modal(document.getElementById('barcodeQtyModal'));
+    modal.show();
+
+    // 🌟 關鍵：當彈窗完全打開後，自動對焦並彈出鍵盤
+    document.getElementById('barcodeQtyModal').addEventListener('shown.bs.modal', () => {
+      input.focus();
+    }, { once: true });
+  });
+}
+
+// 🌟 綁定到 HTML 的按鈕功能
+window.confirmBarcodeQty = () => {
+  const qty = document.getElementById('barcode-qty-input').value;
+  if (qty === '' || qty <= 0) return alert('請輸入有效數量');
+  const modal = window.bootstrap.Modal.getInstance(document.getElementById('barcodeQtyModal'));
+  modal.hide();
+  if (barcodeQtyResolve) barcodeQtyResolve(qty);
+};
+
+window.cancelBarcodeQty = () => {
+  const modal = window.bootstrap.Modal.getInstance(document.getElementById('barcodeQtyModal'));
+  modal.hide();
+  if (barcodeQtyResolve) barcodeQtyResolve(null);
+};
