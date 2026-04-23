@@ -71,8 +71,7 @@ export function startLiveScanner() {
     },
     (errorMessage) => {} 
   ).then(() => {
-    // 🌟 2. 關鍵時機：相機硬體已連線！
-    // 但我們故意等 0.8 秒，讓底層鏡頭完成「測光」與「初次對焦」
+    // 🌟 2. 相機硬體已連線，等待 0.8 秒測光
     setTimeout(() => {
       // 隱藏轉圈圈，淡入清晰的相機畫面，並啟動雷射線
       if(loadingMask) loadingMask.style.display = 'none';
@@ -80,10 +79,19 @@ export function startLiveScanner() {
       if(scannerLaser) scannerLaser.style.display = 'block';
       if(scannerHint) scannerHint.style.display = 'block';
 
-      // 綁定點擊畫面強制對焦的功能
+      // 🌟 【新增魔法】：畫面出現的瞬間，系統「自動」幫您踹一次對焦馬達！
+      try {
+        // 發送單次強制對焦指令
+        html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "single-shot" }] }).catch(()=>{});
+        
+        // 選擇性加強：預設直接微幅放大 1.5 倍 (這會強迫鏡頭進入比較適合掃條碼的微距狀態)
+        html5QrCode.applyVideoConstraints({ advanced: [{ zoom: 1.5 }] }).catch(()=>{});
+      } catch(e) {}
+
+      // 依然保留點擊畫面可以再次強制對焦/放大的功能
       const videoEl = document.querySelector("#reader video");
       if (videoEl) {
-        let isZoomed = false;
+        let isZoomed = true; // 因為上面預設放大了，這裡起始狀態設為 true
         videoEl.addEventListener("click", () => {
           try {
             html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "single-shot" }] }).catch(()=>{});
@@ -93,9 +101,9 @@ export function startLiveScanner() {
           } catch(e) {}
         });
       }
-    }, 800); // 這裡的 800 毫秒是物理馬達對焦的黃金緩衝期
+    }, 800); 
     
-  }).catch((err) => { 
+  }).catch((err) => {
     closeLiveScanner(); 
     alert("❌ 相機啟動失敗！\n\n請確認：\n1. 已允許相機權限\n2. 使用 Safari 或 Chrome 開啟\n3. 處於 https 安全連線狀態"); 
   });
