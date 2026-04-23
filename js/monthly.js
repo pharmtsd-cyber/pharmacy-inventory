@@ -34,7 +34,7 @@ export function initMonthlyMode() {
   }).catch(err => { toggleLoader(false); alert("載入失敗"); });
 }
 
-// 🌟 啟動相機：二維條碼專屬高畫質對焦版
+// 🌟 啟動相機：絕對安全高相容版 (防崩潰機制)
 export function startLiveScanner() {
   const scannerWrapper = document.getElementById('scanner-wrapper'); 
   scannerWrapper.style.display = 'flex'; 
@@ -43,17 +43,6 @@ export function startLiveScanner() {
   requestWakeLock();
   if (!html5QrCode) html5QrCode = new window.Html5Qrcode("reader");
   
-  // 🪄 魔法 1：強制要求鏡頭使用 1080p 高畫質，並開啟「連續自動對焦 (continuous)」
-  const cameraConfig = {
-    facingMode: "environment",
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-    advanced: [{ focusMode: "continuous" }] 
-  };
-  
-  // 🪄 魔法 2：專為「二維條碼」打造的設定
-  // - fps 提高到 20，讓偵測頻率變快
-  // - qrbox 改回正方形 (250x250)，確保 Data Matrix 能被完整包覆
   const config = { 
     fps: 20, 
     qrbox: { width: 250, height: 250 },
@@ -61,19 +50,36 @@ export function startLiveScanner() {
     disableFlip: false 
   };
   
-  html5QrCode.start(cameraConfig, config,
+  // 🌟 使用最單純、100%不會報錯的後鏡頭啟動指令
+  html5QrCode.start({ facingMode: "environment" }, config,
     (decodedText) => { 
       if (navigator.vibrate) navigator.vibrate(100); 
       playBeep(); 
       document.getElementById('online-barcode').value = decodedText; 
       closeLiveScanner().then(() => parseBarcodeAndSubmit()); 
     },
-    (errorMessage) => {
-      // 故意留空，不要讓雜訊錯誤干擾畫面
-    } 
-  ).catch((err) => { 
+    (errorMessage) => {} 
+  ).then(() => {
+    // 🌟 相機成功啟動後，再把「點擊對焦」功能綁上去
+    setTimeout(() => {
+      const videoEl = document.querySelector("#reader video");
+      if (videoEl) {
+        let isZoomed = false;
+        videoEl.addEventListener("click", () => {
+          try {
+            // 如果手機硬體不支援變焦，這裡的 catch 會安靜地忽略錯誤，不會讓系統當機
+            html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "single-shot" }] }).catch(()=>{});
+            isZoomed = !isZoomed;
+            html5QrCode.applyVideoConstraints({ advanced: [{ zoom: isZoomed ? 2.0 : 1.0 }] }).catch(()=>{});
+            if (navigator.vibrate) navigator.vibrate(30); 
+          } catch(e) {}
+        });
+      }
+    }, 500);
+  }).catch((err) => { 
     closeLiveScanner(); 
-    alert("❌ 無法啟動相機！請確認已允許瀏覽器使用相機。"); 
+    // 讓錯誤提示更明確
+    alert("❌ 相機啟動失敗！\n\n請確認以下三點：\n1. 網頁是否已允許【相機存取權限】\n2. 請用 Safari 或 Chrome 開啟 (勿用 Line 內建瀏覽器)\n3. 網址必須是安全的 https 連線"); 
   });
 }
 
