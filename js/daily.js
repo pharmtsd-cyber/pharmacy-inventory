@@ -39,51 +39,89 @@ export function updateTabUI() {
   document.getElementById('count-counted').innerText = dailyItems.filter(i => i.hasRecord).length;
 }
 
+// 🌟 渲染每日盤點清單 (加入盤點表名稱與前次大數字顯示)
 export function renderDailyItems() {
   const area = document.getElementById('daily-list-area');
-  let renderList = currentDailyTab === '未盤' ? dailyItems.filter(i => !i.hasRecord || i.status === '作廢') : dailyItems.filter(i => i.hasRecord);
-  
-  // 🌟 新功能：如果是「已盤點」清單，依照時間 (tStamp) 由新到舊排序
-  if (currentDailyTab === '已盤') {
-    renderList.sort((a, b) => (b.tStamp || 0) - (a.tStamp || 0));
+  if (!area) return;
+  if (dailyItems.length === 0) {
+    area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">本區本日無待盤點項目</div>';
+    return;
   }
-  
-  if (renderList.length === 0) { area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">此區無資料</div>'; return; }
-  
-  let html = '';
-  renderList.forEach(item => {
-    const isVoid = item.status === '作廢';
-    const cardStyle = isVoid ? "opacity: 0.7; filter: grayscale(100%);" : "";
-    const badgeHtml = isVoid ? `<span class="badge bg-secondary ms-2">已作廢</span>` : (item.hasRecord ? `<span class="badge bg-success ms-2">已盤點</span>` : '');
-    
-    // 🌟 在畫面上順便顯示盤點時間，看起來更專業
-    const timeDisplay = item.timeStr ? `<span class="small text-secondary fw-bold ms-2"><i class="bi bi-clock"></i> ${item.timeStr}</span>` : '';
 
-    if (currentDailyTab === '已盤') {
-      const actionHtml = isVoid 
-        ? `<button class="btn btn-sm btn-outline-success fw-bold" onclick="toggleDailyStatus('${item.locCode}', '成立')">還原</button>`
-        : `<button class="btn btn-sm btn-outline-primary fw-bold me-2" onclick="editDailyQty('${item.locCode}', '${item.countedQty}')">修改</button>
-           <button class="btn btn-sm btn-outline-danger fw-bold" onclick="toggleDailyStatus('${item.locCode}', '作廢')">作廢</button>`;
-           
+  let filtered = dailyItems;
+  if (currentDailyTab === '未盤') filtered = dailyItems.filter(i => !i.hasRecord || i.status === '作廢');
+  else filtered = dailyItems.filter(i => i.hasRecord && i.status === '成立');
+
+  const kwInput = document.getElementById('daily-search-input');
+  const kw = kwInput ? kwInput.value.toLowerCase().trim() : '';
+  if (kw) {
+    filtered = filtered.filter(i => (i.drugCode||'').toLowerCase().includes(kw) || (i.drugName||'').toLowerCase().includes(kw) || (i.locCode||'').toLowerCase().includes(kw));
+  }
+
+  // 更新頁籤上的數字 Badge
+  const uCount = dailyItems.filter(i => !i.hasRecord || i.status === '作廢').length;
+  const cCount = dailyItems.filter(i => i.hasRecord && i.status === '成立').length;
+  const badgeU = document.getElementById('count-daily-uncounted'); if(badgeU) badgeU.innerText = uCount;
+  const badgeC = document.getElementById('count-daily-counted'); if(badgeC) badgeC.innerText = cCount;
+
+  if (filtered.length === 0) {
+    area.innerHTML = `<div class="text-center p-5 text-muted fw-bold">${kw ? '查無符合條件的藥品' : '此區皆已盤點完成'}</div>`;
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(item => {
+    // 解決藥名有單引號會讓 onclick 壞掉的問題
+    const safeName = item.drugName.replace(/'/g, "\\'"); 
+
+    if (currentDailyTab === '未盤') {
+      // 🌟 判斷是否有前次紀錄，如果有就畫出特別放大的區塊
+      const lastRecordHtml = item.lastQty !== '無'
+        ? `<div class="bg-light border rounded p-2 mb-2 d-flex justify-content-between align-items-center shadow-sm">
+             <span class="text-secondary small fw-bold"><i class="bi bi-clock-history"></i> 前次紀錄 (${item.lastTime}):</span>
+             <span class="text-academic fw-bold" style="font-size: 1.8rem; line-height: 1;">${item.lastQty}</span>
+           </div>`
+        : `<div class="bg-light border rounded p-2 mb-2 text-center text-muted small shadow-sm">尚無歷史盤點紀錄</div>`;
+
       html += `
-        <div class="card mb-3 shadow-sm border-0 drug-card" style="border-left: 6px solid var(--academic-primary); ${cardStyle}">
+        <div class="card drug-card mb-3 shadow-sm border-0 border-start border-4 border-warning" id="card-${item.locCode}">
           <div class="card-body p-3">
             <div class="fw-bold fs-5 text-dark mb-1">${item.drugName}</div>
-            <div class="mb-2">${badgeHtml} ${timeDisplay}</div>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="text-secondary small">儲位: ${item.locCode} | 代碼: ${item.drugCode}</div>
-              <div class="fw-bold fs-4 ${isVoid ? 'text-muted text-decoration-line-through' : 'text-academic'}">${item.countedQty}</div>
+            
+            <div class="d-flex flex-wrap gap-1 mb-2">
+              <span class="badge bg-academic shadow-sm">${item.tableName}</span>
+              <span class="badge bg-white text-dark border border-secondary shadow-sm">儲位: ${item.locCode}</span>
             </div>
-            <div class="d-flex justify-content-end border-top pt-2 mt-2">${actionHtml}</div>
+            
+            ${lastRecordHtml}
+            
+            <div class="input-group shadow-sm mt-2">
+              <input type="number" id="qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="本次數量" inputmode="numeric" pattern="[0-9]*">
+              <button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitDailyOne('${item.locCode}', '${item.drugCode}', '${safeName}', '${item.tableId}')">確認送出</button>
+            </div>
           </div>
         </div>`;
+        
     } else {
-      html += `
-        <div class="card mb-3 shadow-sm border-0 drug-card" style="border-left: 6px solid var(--academic-primary); ${cardStyle}">
-          <div class="card-body p-3">
-            <div class="d-flex justify-content-between mb-2"><div class="fw-bold fs-5 text-dark">${item.drugName} ${badgeHtml}</div></div>
-            <div class="d-flex flex-wrap gap-1 mb-2"><span class="badge bg-light text-dark border border-secondary">儲位: ${item.locCode}</span><span class="badge bg-light text-dark border border-secondary">代碼: ${item.drugCode}</span></div>
-            <div class="input-group shadow-sm"><input type="number" id="qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="數量" inputmode="numeric" pattern="[0-9]*"><button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitDailyOne('${item.locCode}', '${item.drugCode}', '${item.drugName}', '${item.tableId}')">確認送出</button></div>
+       // 已盤點介面 (維持原樣)
+       html += `
+        <div class="card drug-card mb-2 shadow-sm border-0 border-start border-4 border-success">
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between mb-1">
+              <div class="fw-bold text-dark text-truncate" style="max-width: 70%;">${item.drugName}</div>
+              <div class="small text-muted" style="font-size:0.75rem;">${item.timeStr}</div>
+            </div>
+            <div class="small text-secondary mb-2">
+              <span class="badge bg-success">已盤點</span>
+              <span class="ms-1">儲位: ${item.locCode}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
+              <div class="fs-4 fw-bold text-success">${item.countedQty}</div>
+              <div>
+                <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editDailyQty('${item.locCode}', '${item.drugCode}', '${safeName}', '${item.tableId}', '${item.countedQty}')">修改</button>
+                <button class="btn btn-sm btn-outline-danger py-0" onclick="toggleDailyStatus('${item.locCode}', '作廢')">作廢</button>
+              </div>
+            </div>
           </div>
         </div>`;
     }
