@@ -8,8 +8,8 @@ export function handleLogin() {
     if(res.success) {
       session.id = res.userId; session.name = res.userName; session.isAdmin = res.isAdmin;
       document.getElementById('nav-info').innerText = res.userName;
-      const btnAdmin = document.getElementById('btn-admin-sort');
-      if (btnAdmin) { if (res.isAdmin) btnAdmin.classList.remove('d-none'); else btnAdmin.classList.add('d-none'); }
+      //const btnAdmin = document.getElementById('btn-admin-sort');
+      //if (btnAdmin) { if (res.isAdmin) btnAdmin.classList.remove('d-none'); else btnAdmin.classList.add('d-none'); }
       switchView('view-mode-select'); 
     } else { alert("❌ 登入失敗：" + (res.message || "未知錯誤")); }
   }).catch(err => { toggleLoader(false); alert('⚠️ 無法連線到伺服器，請檢查網路狀態。'); });
