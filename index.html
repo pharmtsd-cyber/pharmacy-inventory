@@ -289,5 +289,28 @@
   </div>
 
   <script type="module" src="./js/main.js"></script>
+
+  <!-- 🌟 交班註記專用 Modal -->
+  <div class="modal fade" id="drugNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content bg-light shadow-lg border-0">
+        <div class="modal-header bg-warning text-dark border-0">
+          <h6 class="modal-title fw-bold"><i class="bi bi-journal-check"></i> 交班註記：<span id="note-modal-title-name"></span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <!-- 新增註記區 -->
+          <div class="mb-3 bg-white p-3 rounded shadow-sm border-start border-4 border-warning">
+            <label class="small fw-bold text-secondary mb-1">新增交班事項</label>
+            <textarea id="new-note-text" class="form-control border-secondary mb-2" rows="2" placeholder="請輸入需要交班的內容..."></textarea>
+            <button class="btn btn-warning fw-bold w-100" onclick="submitDrugNote()">新增送出</button>
+          </div>
+          <!-- 歷史註記清單 -->
+          <div class="fw-bold text-secondary mb-2 small"><i class="bi bi-clock-history"></i> 歷史交班紀錄</div>
+          <div id="note-list-area" class="d-flex flex-column gap-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
