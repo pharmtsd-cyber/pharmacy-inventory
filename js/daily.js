@@ -28,7 +28,17 @@ export function loadDailyData(dateStr) {
   });
 }
 
-export function switchDailyTab(tabName) { if (currentDailyTab === tabName) return; currentDailyTab = tabName; updateTabUI(); renderDailyItems(); }
+export function switchDailyTab(tabName) { 
+  if (currentDailyTab === tabName) return; 
+  currentDailyTab = tabName; 
+  
+  // 🌟 新增：切換分頁時，自動清空搜尋框的字
+  const searchInput = document.getElementById('daily-search-input');
+  if (searchInput) searchInput.value = '';
+  
+  updateTabUI(); 
+  renderDailyItems(); 
+}
 
 export function updateTabUI() {
   const btnUn = document.getElementById('btn-tab-uncounted'); const btnCo = document.getElementById('btn-tab-counted');
