@@ -19,8 +19,8 @@ import {
 } from './monthly.js';
 
 import { 
-  initHistoryMode, loadHistoryData, handleDrugSearch, selectDrugFilter, clearDrugFilter, 
-  renderHistoryTable, openDetailsModal, toggleModalCol 
+  initHistoryMode, addHistoryDate, removeHistoryDate, handleDrugSearch, selectDrugFilter, clearDrugFilter, 
+  renderHistoryTable, toggleModalCol 
 } from './history.js';
 
 window.switchView = switchView;
@@ -75,12 +75,12 @@ window.renderMonthlyDashboard = renderMonthlyDashboard;
 window.showTableDetailModal = showTableDetailModal;
 
 window.initHistoryMode = initHistoryMode;
-window.loadHistoryData = loadHistoryData;
+window.addHistoryDate = addHistoryDate;
+window.removeHistoryDate = removeHistoryDate;
 window.handleDrugSearch = handleDrugSearch;
 window.selectDrugFilter = selectDrugFilter;
 window.clearDrugFilter = clearDrugFilter;
 window.renderHistoryTable = renderHistoryTable;
-window.openDetailsModal = openDetailsModal;
 window.toggleModalCol = toggleModalCol;
 
 window.enterTableInventory = enterTableInventory;
