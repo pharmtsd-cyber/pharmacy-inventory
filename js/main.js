@@ -20,7 +20,7 @@ import {
 
 import { 
   initHistoryMode, addHistoryDate, removeHistoryDate, handleDrugSearch, selectDrugFilter, clearDrugFilter, 
-  renderHistoryTable, toggleModalCol, addQuickDate 
+  renderHistoryTable, toggleModalCol, addQuickDate, openNoteModal, submitDrugNote, voidDrugNote 
 } from './history.js';
 
 window.switchView = switchView;
@@ -83,6 +83,10 @@ window.clearDrugFilter = clearDrugFilter;
 window.renderHistoryTable = renderHistoryTable;
 window.toggleModalCol = toggleModalCol;
 window.addQuickDate = addQuickDate;
+window.openNoteModal = openNoteModal;
+window.submitDrugNote = submitDrugNote;
+window.voidDrugNote = voidDrugNote;
+
 
 window.enterTableInventory = enterTableInventory;
 window.handleMonthlyBack = handleMonthlyBack;
