@@ -97,7 +97,7 @@ function updateAvailableDrugs() {
   availableDrugs = Object.keys(pivotData).map(code => ({ code: code, name: pivotData[code].name }));
 }
 
-// 🌟 全新重寫：動態渲染樞紐分析表 (Cross-tab)
+// 🌟 全新重寫：動態渲染樞紐分析表 (Cross-tab) - 三合一數據版
 export function renderHistoryTable() {
   const thead = document.getElementById('history-thead');
   const tbody = document.getElementById('history-tbody'); 
@@ -110,12 +110,13 @@ export function renderHistoryTable() {
 
   // 1. 動態建立標題列 (Columns)
   let headHtml = `<tr>
-    <th class="text-center text-nowrap align-middle" style="min-width: 100px;">代碼</th>
-    <th class="text-start text-nowrap align-middle" style="min-width: 180px;">藥品名稱</th>`;
+    <th class="text-center text-nowrap align-middle bg-light" style="min-width: 90px;">代碼</th>
+    <th class="text-start text-nowrap align-middle bg-light" style="min-width: 160px;">藥品名稱</th>`;
+  
   selectedDates.forEach(d => {
-    headHtml += `<th class="text-center text-nowrap bg-light border-start">
-                   <div class="text-dark">${d.substring(5)}</div>
-                   <div class="small fw-normal text-secondary">數量 (差異)</div>
+    // 將標題列簡化，只留下日期
+    headHtml += `<th class="text-center text-nowrap bg-light border-start align-middle">
+                   <div class="text-dark fs-6 fw-bold"><i class="bi bi-calendar-check"></i> ${d.substring(5)}</div>
                  </th>`;
   });
   headHtml += `</tr>`;
@@ -142,18 +143,28 @@ export function renderHistoryTable() {
     selectedDates.forEach(d => {
       const record = pivotData[code].history[d];
       if (record) {
-         // 有盤點紀錄，顯示數量與差異，並綁定點擊開啟明細
          const diffClass = record.diff === 0 ? 'text-success' : (record.diff > 0 ? 'text-academic' : 'text-danger');
          const diffStr = record.diff > 0 ? `+${record.diff}` : record.diff;
+         
+         // 🌟 核心修改：將 SAP、盤點、差異 垂直整齊排版
          bodyHtml += `
-          <td class="text-center align-middle border-start" style="background-color: #f8f9fa40;">
-            <div class="fw-bold fs-5 text-dark">${record.act}</div>
-            <div class="small fw-bold ${diffClass}" style="cursor: pointer; text-decoration: underline; text-underline-offset: 3px;" onclick="openPivotDetails('${code}', '${d}')">
-              (${diffStr}) <i class="bi bi-info-circle"></i>
+          <td class="align-middle border-start p-2" style="background-color: #f8f9fa40; min-width: 130px;">
+            <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.8rem;">
+              <span class="text-muted">SAP</span>
+              <span class="text-secondary fw-bold">${record.sap}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
+              <span class="text-muted">盤點</span>
+              <span class="text-dark fw-bold">${record.act}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-1 border-top" style="font-size: 0.85rem; cursor: pointer;" onclick="openPivotDetails('${code}', '${d}')">
+              <span class="text-muted">差異</span>
+              <span class="${diffClass} fw-bold text-decoration-underline" style="text-underline-offset: 2px;">
+                ${diffStr} <i class="bi bi-info-circle ms-1"></i>
+              </span>
             </div>
           </td>`;
       } else {
-         // 當天沒有這個藥品的紀錄
          bodyHtml += `<td class="text-center text-muted align-middle border-start bg-light opacity-50">-</td>`;
       }
     });
