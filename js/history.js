@@ -96,7 +96,7 @@ export function renderDateBadges() {
 
 function updateAvailableDrugs() { availableDrugs = Object.keys(pivotData).map(code => ({ code: code, name: pivotData[code].name })); }
 
-// 🌟 完美修復斑馬紋與閱讀尺 (嚴格設定 td 背景色，拒絕破圖)
+// 🌟 完美修復斑馬紋、閱讀尺，以及藥品名稱截斷問題
 export function renderHistoryTable() {
   const thead = document.getElementById('history-thead');
   const tbody = document.getElementById('history-tbody'); 
@@ -117,23 +117,24 @@ export function renderHistoryTable() {
   let bodyHtml = '';
   drugs.forEach((code, index) => {
     const drugName = pivotData[code].name;
-    
-    // 🌟 強制指定每一列的原始底色 (斑馬紋)
     const rowBg = index % 2 === 0 ? '#ffffff' : '#f1f3f5';
     
-    // 🌟 檢查該藥品是否有「成立」的交班註記，決定 Icon 顏色
+    // 🌟 檢查交班註記
     const hasActiveNote = drugNotesData.some(n => n.code === code && n.status === '成立');
     const noteIcon = hasActiveNote 
-      ? `<i class="bi bi-chat-text-fill text-warning ms-1 fs-5" style="cursor:pointer;" onclick="event.stopPropagation(); openNoteModal('${code}', '${drugName}')"></i>` 
-      : `<i class="bi bi-chat-text text-secondary opacity-50 ms-1 fs-6" style="cursor:pointer;" onclick="event.stopPropagation(); openNoteModal('${code}', '${drugName}')"></i>`;
+      ? `<i class="bi bi-chat-text-fill text-warning fs-5" style="cursor:pointer;" title="點擊查看交班註記" onclick="event.stopPropagation(); openNoteModal('${code}', '${drugName}')"></i>` 
+      : `<i class="bi bi-chat-text text-secondary opacity-50 fs-6" style="cursor:pointer;" title="新增交班註記" onclick="event.stopPropagation(); openNoteModal('${code}', '${drugName}')"></i>`;
 
-    // 🌟 點擊整列觸發的高亮事件 (完全透過 JS 操作 td 的 background-color，不再依賴 CSS hover)
     bodyHtml += `<tr style="cursor: pointer;" onclick="const h = this.getAttribute('data-h') === '1'; const c = h ? '${rowBg}' : '#fffbeb'; this.querySelectorAll('td').forEach(td => td.style.setProperty('background-color', c, 'important')); this.setAttribute('data-h', h ? '0' : '1');">
       
       <td class="text-center text-secondary fw-bold align-middle border-end" style="position: sticky; left: 0; z-index: 2; background-color: ${rowBg};">${code}</td>
-      <td class="text-start fw-bold align-middle text-dark border-end border-2" style="position: sticky; left: 90px; z-index: 2; background-color: ${rowBg}; d-flex justify-content-between align-items-center">
-        <span class="text-truncate d-inline-block" style="max-width: 120px; vertical-align: middle;">${drugName}</span>
-        ${noteIcon}
+      
+      <!-- 🌟 關鍵修改：使用 Flexbox 讓圖示排在最前面，且允許藥品名稱自然換行不斷字 -->
+      <td class="text-start align-middle border-end border-2 p-2" style="position: sticky; left: 90px; z-index: 2; background-color: ${rowBg}; min-width: 170px;">
+        <div class="d-flex align-items-center gap-2">
+          <div>${noteIcon}</div>
+          <div class="fw-bold text-dark" style="white-space: normal; word-break: break-word; line-height: 1.2;">${drugName}</div>
+        </div>
       </td>`;
     
     selectedDates.forEach(d => {
