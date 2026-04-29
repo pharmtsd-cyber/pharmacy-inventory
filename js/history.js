@@ -30,44 +30,72 @@ export function initHistoryMode() {
   addHistoryDate(todayStr);
 }
 
-// 🌟 新增：將指定日期加入欄位並撈取資料
+// 🌟 修復版：將指定日期加入欄位並撈取資料 (解決 - 號顯示問題)
 export function addHistoryDate(forceDate = null) {
   const dStr = forceDate || document.getElementById('history-add-date').value;
-  if (!dStr) return alert('請選擇日期');
+  if (!dStr) return; // 使用者如果只是點開日曆又關掉，不報錯
   if (selectedDates.includes(dStr)) return alert('該日期已在比較清單中');
 
   toggleLoader(true);
-  // 我們不需要修改 GAS，直接將 startDate 和 endDate 都設為同一天，就能精準撈取單日紀錄
   fetchBackend('getHistoryData', { startDateStr: dStr, endDateStr: dStr }).then(res => {
     toggleLoader(false);
     if (res && res.success === false) return alert("⚠️ 系統提示：\n" + (res.message || "未知錯誤")); 
     
-    // 將新日期加入並由舊到新排序 (符合趨勢觀看習慣)
     selectedDates.push(dStr);
-    selectedDates.sort();
+    selectedDates.sort(); // 保持日期由小到大排序
 
     const rawData = res.data || [];
     
-    // 🌟 將生資料解析進樞紐資料庫 (Pivot Data)
     rawData.forEach(row => {
-      const code = row[0], name = row[1], date = row[2];
+      const code = row[0], name = row[1]; 
+      // 🌟 關鍵修復：我們不使用 row[2] (後端回傳的日期)，而是強制使用前端請求的 dStr 當作 Key
+      // 這樣無論後端回傳 2026/04/29 還是 04/29，都能 100% 精準對應到表格的欄位！
       const sap = parseFloat(row[3]) || 0, act = parseFloat(row[4]) || 0, diff = parseFloat(row[5]) || 0;
       const detailJSON = row[6] || "[]";
 
       if (!pivotData[code]) pivotData[code] = { name: name, history: {} };
-      pivotData[code].history[date] = { sap, act, diff, detailJSON };
+      pivotData[code].history[dStr] = { sap, act, diff, detailJSON }; 
     });
 
-    // 更新下拉選單清單
     updateAvailableDrugs();
-    
     renderDateBadges();
     renderHistoryTable();
+    
+    // 清空日曆輸入框，方便下次選取
+    document.getElementById('history-add-date').value = '';
     
   }).catch(err => { 
     toggleLoader(false); 
     alert("📡 無法連線讀取該日資料"); 
   });
+}
+
+// 🌟 新增：快捷加入日期功能
+export function addQuickDate(type) {
+  const today = new Date();
+  let targetDate = new Date();
+  
+  if (type === 'today') {
+    targetDate = today;
+  } else if (type === 'yesterday') {
+    targetDate.setDate(today.getDate() - 1);
+  } else if (type === 'prev') {
+    // 往前一天：找出目前已選擇的最早日期，再減一天
+    if (selectedDates.length === 0) {
+      targetDate = today;
+    } else {
+      targetDate = new Date(selectedDates[0]); // 因為 selectedDates 有排序，[0] 絕對是最早的那天
+      targetDate.setDate(targetDate.getDate() - 1);
+    }
+  }
+  
+  // 轉換成 YYYY-MM-DD 格式
+  const yyyy = targetDate.getFullYear();
+  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(targetDate.getDate()).padStart(2, '0');
+  const dStr = `${yyyy}-${mm}-${dd}`;
+  
+  addHistoryDate(dStr);
 }
 
 // 🌟 新增：移除某個日期的欄位
