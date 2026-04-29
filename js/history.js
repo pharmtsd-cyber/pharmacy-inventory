@@ -125,7 +125,7 @@ function updateAvailableDrugs() {
   availableDrugs = Object.keys(pivotData).map(code => ({ code: code, name: pivotData[code].name }));
 }
 
-// 🌟 全新重寫：動態渲染樞紐分析表 (Cross-tab) - 三合一數據版
+// 🌟 全新重寫：動態渲染樞紐分析表 (加入凍結窗格、斑馬紋與點擊閱讀尺)
 export function renderHistoryTable() {
   const thead = document.getElementById('history-thead');
   const tbody = document.getElementById('history-tbody'); 
@@ -137,13 +137,13 @@ export function renderHistoryTable() {
   }
 
   // 1. 動態建立標題列 (Columns)
+  // 🌟 神技一：加入 position: sticky 凍結左邊兩欄 (z-index: 11 確保不被蓋住)
   let headHtml = `<tr>
-    <th class="text-center text-nowrap align-middle bg-light" style="min-width: 90px;">代碼</th>
-    <th class="text-start text-nowrap align-middle bg-light" style="min-width: 160px;">藥品名稱</th>`;
+    <th class="text-center text-nowrap align-middle bg-academic text-white border-end" style="min-width: 90px; position: sticky; left: 0; z-index: 11;">代碼</th>
+    <th class="text-start text-nowrap align-middle bg-academic text-white border-end border-2" style="min-width: 160px; position: sticky; left: 90px; z-index: 11;">藥品名稱</th>`;
   
   selectedDates.forEach(d => {
-    // 將標題列簡化，只留下日期
-    headHtml += `<th class="text-center text-nowrap bg-light border-start align-middle">
+    headHtml += `<th class="text-center text-nowrap bg-light border-start align-middle shadow-sm">
                    <div class="text-dark fs-6 fw-bold"><i class="bi bi-calendar-check"></i> ${d.substring(5)}</div>
                  </th>`;
   });
@@ -162,11 +162,18 @@ export function renderHistoryTable() {
 
   // 3. 填入細胞格 (Cells)
   let bodyHtml = '';
-  drugs.forEach(code => {
+  drugs.forEach((code, index) => {
     const drugName = pivotData[code].name;
-    bodyHtml += `<tr>
-      <td class="text-center text-secondary fw-bold align-middle">${code}</td>
-      <td class="text-start fw-bold align-middle text-dark">${drugName}</td>`;
+    
+    // 🌟 神技二：斑馬紋交錯底色 (奇數白、偶數淺灰)
+    const rowBg = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
+
+    // 🌟 神技三：點擊閱讀尺 (onclick 會切換淺黃色 #fffbeb 與原本的斑馬紋色)
+    // 並且在 td 中使用 background-color: inherit 讓凍結的欄位也能透出整列的顏色
+    bodyHtml += `<tr style="background-color: ${rowBg}; cursor: pointer; transition: background-color 0.2s;" 
+                     onclick="this.style.backgroundColor = this.style.backgroundColor === 'rgb(255, 251, 235)' ? '${rowBg}' : '#fffbeb';">
+      <td class="text-center text-secondary fw-bold align-middle border-end" style="position: sticky; left: 0; z-index: 2; background-color: inherit;">${code}</td>
+      <td class="text-start fw-bold align-middle text-dark border-end border-2" style="position: sticky; left: 90px; z-index: 2; background-color: inherit;">${drugName}</td>`;
     
     selectedDates.forEach(d => {
       const record = pivotData[code].history[d];
@@ -174,9 +181,9 @@ export function renderHistoryTable() {
          const diffClass = record.diff === 0 ? 'text-success' : (record.diff > 0 ? 'text-academic' : 'text-danger');
          const diffStr = record.diff > 0 ? `+${record.diff}` : record.diff;
          
-         // 🌟 核心修改：將 SAP、盤點、差異 垂直整齊排版
+         // 注意：把 onclick 綁在差異那一列，並且加上 event.stopPropagation() 防止觸發整列的高亮變色
          bodyHtml += `
-          <td class="align-middle border-start p-2" style="background-color: #f8f9fa40; min-width: 130px;">
+          <td class="align-middle border-start p-2" style="min-width: 130px;">
             <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.8rem;">
               <span class="text-muted">SAP</span>
               <span class="text-secondary fw-bold">${record.sap}</span>
@@ -185,7 +192,8 @@ export function renderHistoryTable() {
               <span class="text-muted">盤點</span>
               <span class="text-dark fw-bold">${record.act}</span>
             </div>
-            <div class="d-flex justify-content-between align-items-center pt-1 border-top" style="font-size: 0.85rem; cursor: pointer;" onclick="openPivotDetails('${code}', '${d}')">
+            <div class="d-flex justify-content-between align-items-center pt-1 border-top border-secondary border-opacity-25" style="font-size: 0.85rem;" 
+                 onclick="event.stopPropagation(); openPivotDetails('${code}', '${d}')">
               <span class="text-muted">差異</span>
               <span class="${diffClass} fw-bold text-decoration-underline" style="text-underline-offset: 2px;">
                 ${diffStr} <i class="bi bi-info-circle ms-1"></i>
@@ -193,7 +201,7 @@ export function renderHistoryTable() {
             </div>
           </td>`;
       } else {
-         bodyHtml += `<td class="text-center text-muted align-middle border-start bg-light opacity-50">-</td>`;
+         bodyHtml += `<td class="text-center text-muted align-middle border-start opacity-50">-</td>`;
       }
     });
     bodyHtml += `</tr>`;
