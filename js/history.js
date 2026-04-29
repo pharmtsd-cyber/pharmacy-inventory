@@ -173,6 +173,23 @@ export function openNoteModal(code, name) {
   noteModalInstance.show();
 }
 
+// 🌟 新增：時間格式美化小工具
+function formatNoteTime(rawTime) {
+  if (!rawTime) return '';
+  const d = new Date(rawTime);
+  if (isNaN(d.getTime())) return rawTime; // 若解析失敗則顯示原字串
+  
+  const yyyy = d.getFullYear();
+  const m = d.getMonth() + 1; // 月份不需要補零，符合您的需求
+  const day = d.getDate();    // 日期不需要補零
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  
+  return `${yyyy}/${m}/${day} ${hh}:${mm}:${ss}`;
+}
+
+// 🌟 更新：渲染交班清單 (套用時間美化)
 function renderNoteList() {
   const area = document.getElementById('note-list-area');
   // 篩選出這個藥品的註記，由新到舊排序
@@ -187,8 +204,13 @@ function renderNoteList() {
   notes.forEach(n => {
     const isVoid = n.status === '作廢';
     const cardStyle = isVoid ? 'opacity: 0.6; filter: grayscale(100%);' : 'border-start: 4px solid #ffc107;';
+    
+    // 🌟 這裡套用我們剛剛寫好的美化工具
+    const niceCreateTime = formatNoteTime(n.createTime);
+    const niceUpdateTime = formatNoteTime(n.updateTime);
+
     const btnHtml = isVoid 
-      ? `<span class="badge bg-secondary">已於 ${n.updateTime} 由 ${n.updater} 作廢</span>`
+      ? `<span class="badge bg-secondary">已於 ${niceUpdateTime} 由 ${n.updater} 作廢</span>`
       : `<button class="btn btn-sm btn-outline-danger py-0" onclick="voidDrugNote('${n.sn}')">作廢</button>`;
       
     html += `
@@ -196,7 +218,7 @@ function renderNoteList() {
         <div class="card-body p-2">
           <div class="d-flex justify-content-between align-items-center mb-1 border-bottom pb-1">
             <span class="fw-bold text-dark small"><i class="bi bi-person-fill"></i> ${n.creator}</span>
-            <span class="text-muted" style="font-size: 0.75rem;">${n.createTime}</span>
+            <span class="text-muted" style="font-size: 0.75rem;">${niceCreateTime}</span>
           </div>
           <div class="text-dark mb-2 fw-bold" style="white-space: pre-wrap; font-size: 0.9rem;">${n.note}</div>
           <div class="text-end">${btnHtml}</div>
