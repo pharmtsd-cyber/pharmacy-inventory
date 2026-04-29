@@ -5,7 +5,7 @@ import { handleLogin, handleLogout } from './auth.js';
 import { 
   initDailyMode, changeDailyDate, switchDailyTab, submitDailyOne, 
   editDailyQty, toggleDailyStatus, // 🌟 新增這兩個
-  openAdminSort, toggleVisibility, highlightSearchItem, rebuildAdminList, saveAdminDataToServer 
+  openAdminSort, toggleVisibility, highlightSearchItem, rebuildAdminList, saveAdminDataToServer, renderDailyItems 
 } from './daily.js';
 
 import { 
@@ -43,6 +43,7 @@ window.toggleVisibility = toggleVisibility;
 window.highlightSearchItem = highlightSearchItem;
 window.rebuildAdminList = rebuildAdminList;
 window.saveAdminDataToServer = saveAdminDataToServer;
+window.renderDailyItems = renderDailyItems;
 
 window.initMonthlyMode = initMonthlyMode;
 window.switchMonthlyTab = switchMonthlyTab;
