@@ -56,6 +56,10 @@
         <li class="nav-item"><button class="nav-link active fw-bold border bg-academic shadow-sm text-white py-2" id="btn-tab-uncounted" onclick="switchDailyTab('未盤')">未盤點 (<span id="count-uncounted">0</span>)</button></li>
         <li class="nav-item"><button class="nav-link fw-bold border text-success shadow-sm bg-white py-2" id="btn-tab-counted" onclick="switchDailyTab('已盤')">已盤點 (<span id="count-counted">0</span>)</button></li>
       </ul>
+      <div class="input-group shadow-sm mb-2">
+        <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
+        <input type="text" id="daily-search-input" class="form-control py-2 border-secondary fw-bold" placeholder="輸入藥名、代碼或儲位快速尋找..." onkeyup="renderDailyItems()">
+      </div>
     </div>
     <div id="daily-list-area" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
   </div>
