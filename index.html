@@ -218,10 +218,12 @@
       </div>
       
       <!-- 新增日期控制面板 -->
-      <label class="small fw-bold text-secondary mb-1">選擇要比較的日期 (可無限加入)</label>
-      <div class="d-flex gap-2 mb-2">
-        <input type="date" id="history-add-date" class="form-control py-2 border-secondary shadow-sm">
-        <button class="btn btn-academic fw-bold shadow-sm px-4 text-nowrap" onclick="addHistoryDate()"><i class="bi bi-plus-lg"></i> 加入比較</button>
+      <label class="small fw-bold text-secondary mb-1">快速加入比較日期：</label>
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <input type="date" id="history-add-date" class="form-control py-2 border-secondary shadow-sm" style="max-width: 160px;" onchange="addHistoryDate()">
+        <button class="btn btn-outline-academic fw-bold shadow-sm px-3" onclick="addQuickDate('today')">今天</button>
+        <button class="btn btn-outline-academic fw-bold shadow-sm px-3" onclick="addQuickDate('yesterday')">昨天</button>
+        <button class="btn btn-academic fw-bold shadow-sm px-3" onclick="addQuickDate('prev')"><i class="bi bi-arrow-left"></i> 往前一天</button>
       </div>
       
       <!-- 顯示已加入的日期標籤 -->
