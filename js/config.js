@@ -7,7 +7,7 @@ const urlParams = new URLSearchParams(window.location.search);
 export const currentDept = urlParams.get('dept');
 
 // 🌟 2. 統一的 Cloudflare Worker API 網址 (請替換成您的真實網址)
-export const WEB_APP_URL = "https://femh-inventory-api.您的帳號.workers.dev";
+export const WEB_APP_URL = "femh-inventory-api.femhpwise.com";
 
 // 🌟 3. 各單位專屬的「盤點表維護連結」對照表 (之後改為前端維護頁前可先保留)
 export const MAINTENANCE_LINK_MAP = {
