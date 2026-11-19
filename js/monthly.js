@@ -1,11 +1,15 @@
+import { session, currentDept } from './config.js';
 import { fetchBackend } from './api.js';
 import { toggleLoader, switchView, showToast, playBeep, requestWakeLock, releaseWakeLock } from './ui.js';
-import { session } from './config.js';
 
 export let monthlyDrugMaster = []; export let monthlyTables = []; export let myRecordsData = []; 
 export let activeRecordFilters = { stock: null, desk: null, online: null, records: null }; 
 export let html5QrCode = null; export let stockSelectedDrug = null; export let onlineSelectedDrug = null;
 export let barcodeQtyResolve = null; export let allRecordsData = [];
+
+
+const UNIT_PREFIX_MAP = { opd: 'BA', ipd: 'BF', erd: 'BE', comp: 'BG' };
+const unitPrefix = UNIT_PREFIX_MAP[currentDept] || 'BF';
 
 // ==========================================
 // 🚀 核心：「單筆消失/清空 + 60秒自動打包」統一引擎
@@ -235,7 +239,7 @@ export function submitMonthlyStock() {
   const queue = getMonthlyQueue();
   queue.push({
     queueId: Date.now().toString() + '_' + Math.random().toString(36).substring(2,7), tempSn, timestamp: now.getTime(), localTimeStr: timeStr, action: 'submitInventory',
-    data: { mode: '月盤點', userId: session.id, userName: session.name, type: '盤點庫存', actionSrc: '', dispType: '', drugCode: currentDrug.invCode, drugName: currentDrug.name, priceCodeSelect: currentDrug.priceCode, handQty: qty, tableId: 'BFYYY', locCode: '', barcode: '' }
+    data: { mode: '月盤點', userId: session.id, userName: session.name, type: '盤點庫存', actionSrc: '', dispType: '', drugCode: currentDrug.invCode, drugName: currentDrug.name, priceCodeSelect: currentDrug.priceCode, handQty: qty, tableId: `${unitPrefix}YYY`, locCode: '', barcode: '' }
   });
   saveMonthlyQueue(queue); applyMonthlyQueueToLocalState(); renderAllRecordLists(); startMonthlyAutoSyncTimer();
 }
@@ -266,7 +270,7 @@ export function submitMonthlyOnline(actionSrc, parsedData = null, writePriceCode
   const queue = getMonthlyQueue();
   queue.push({
     queueId: Date.now().toString() + '_' + Math.random().toString(36).substring(2,7), tempSn, timestamp: now.getTime(), localTimeStr: timeStr, action: 'submitInventory',
-    data: { mode: '月盤點', userId: session.id, userName: session.name, type: type, actionSrc: actionSrc, dispType: dispType, drugCode: payloadDrug.invCode, drugName: payloadDrug.name, priceCodeSelect: writePriceCode, handQty: qty, tableId: 'BFZZZ', locCode: '', barcode: barcodeStr }
+    data: { mode: '月盤點', userId: session.id, userName: session.name, type: type, actionSrc: actionSrc, dispType: dispType, drugCode: payloadDrug.invCode, drugName: payloadDrug.name, priceCodeSelect: writePriceCode, handQty: qty, tableId: `${unitPrefix}ZZZ`, locCode: '', barcode: barcodeStr }
   });
   saveMonthlyQueue(queue); applyMonthlyQueueToLocalState(); renderAllRecordLists(); startMonthlyAutoSyncTimer();
 }
