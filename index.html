@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -129,7 +130,7 @@
       
       <hr class="text-secondary opacity-25 my-3">
       
-      <button class="btn btn-outline-secondary btn-lg w-100 shadow-sm" style="border-width: 2px; border-radius: 12px; background-color: #f8f9fa;" onclick="openMaintenanceLink()">
+      <button class="btn btn-outline-secondary btn-lg w-100 shadow-sm" style="border-width: 2px; border-radius: 12px; background-color: #f8f9fa;" onclick="initMaintenanceMode()">
         <div class="d-flex align-items-center justify-content-center py-2">
           <i class="bi bi-table fs-1 me-3 text-secondary"></i>
           <div class="text-start">
@@ -535,6 +536,252 @@
       </div>
     </div>
   </div>
+
+  <div id="view-maintenance" class="container-fluid view-section">
+  <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold text-academic mb-0" id="maint-dept-title"><i class="bi bi-tools"></i> 資料庫維護中心</h6>
+      <button class="btn btn-outline-secondary fw-bold py-1 px-3" onclick="switchView('view-mode-select')">
+        <i class="bi bi-chevron-left"></i> 返回模式選單
+      </button>
+    </div>
+    <ul class="nav nav-pills nav-fill gap-2 mt-1" id="maint-tabs">
+      <li class="nav-item">
+        <button class="nav-link active fw-bold border bg-academic text-white py-2" data-target="maint-tab-users" onclick="switchMaintTab('maint-tab-users')">藥師權限管理</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold border text-academic bg-white py-2" data-target="maint-tab-sap" onclick="switchMaintTab('maint-tab-sap')">上傳每日/月 SAP</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold border text-academic bg-white py-2" data-target="maint-tab-locations" onclick="switchMaintTab('maint-tab-locations')">儲位維護</button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- 1. 藥師權限管理 -->
+  <div id="maint-tab-users" class="flex-grow-1 overflow-auto px-1 pb-4">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-2">
+        <div class="d-flex flex-wrap gap-2 flex-grow-1">
+          <input type="text" id="maint-user-search" class="form-control border-secondary" style="max-width: 240px;" placeholder="搜尋工號、姓名、帳號、單位..." onkeyup="renderUsersTable()">
+          <select id="maint-user-status-filter" class="form-select border-secondary w-auto fw-bold" onchange="renderUsersTable()">
+            <option value="ALL">全部狀態</option>
+            <option value="在職">在職</option>
+            <option value="待確認">待確認</option>
+            <option value="調任">調任</option>
+            <option value="離職">離職</option>
+            <option value="留停">留停</option>
+          </select>
+        </div>
+        <button class="btn btn-academic fw-bold" onclick="openUserEditModal('')"><i class="bi bi-person-plus"></i> 新增人員</button>
+      </div>
+      <div class="table-responsive border rounded">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-academic-head">
+            <tr>
+              <th class="text-center">員工編號</th>
+              <th>姓名</th>
+              <th>醫院帳號</th>
+              <th class="text-center">狀態</th>
+              <th>單位</th>
+              <th>角色 / 權限</th>
+              <th class="text-center">管理員</th>
+              <th class="text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="maint-users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 上傳每日 / 月 SAP Excel -->
+  <div id="maint-tab-sap" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-4 bg-white">
+      <h6 class="fw-bold text-academic mb-3"><i class="bi bi-file-earmark-spreadsheet"></i> 批次匯入 SAP 庫存 Excel</h6>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">SAP 類別</label>
+          <select id="maint-sap-type" class="form-select border-secondary fw-bold">
+            <option value="daily" selected>導入每日 SAP (daily_sap)</option>
+            <option value="monthly">導入月 SAP (monthly_sap)</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-bold">選擇 Excel 檔案 (.xlsx / .xls)</label>
+          <input type="file" id="maint-sap-file" class="form-control border-secondary" accept=".xlsx,.xls" onchange="handleSapFileSelect(event)">
+        </div>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="maint-sap-replace-date" checked>
+        <label class="form-check-label fw-bold text-dark" for="maint-sap-replace-date">
+          匯入前先清除本單位該 SAP 日期原有資料（避免殘留舊物料）
+        </label>
+      </div>
+      <div id="maint-sap-preview" class="alert alert-light border small text-secondary mb-3">尚未選擇檔案</div>
+      <button id="maint-sap-upload-btn" class="btn btn-success btn-lg fw-bold" disabled onclick="uploadParsedSap()">
+        <i class="bi bi-cloud-arrow-up"></i> 確認寫入 D1 資料庫
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. 儲位維護 -->
+  <div id="maint-tab-locations" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-2">
+        <input type="text" id="maint-loc-search" class="form-control border-secondary" style="max-width: 280px;" placeholder="搜尋儲位碼、盤點表、藥品代碼/名稱..." onkeyup="renderLocationsTable()">
+        <button class="btn btn-academic fw-bold" onclick="openLocEditModal('')"><i class="bi bi-plus-circle"></i> 新增儲位</button>
+      </div>
+      <div class="table-responsive border rounded">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-academic-head">
+            <tr>
+              <th>儲位碼</th>
+              <th>盤點表</th>
+              <th>藥品代碼</th>
+              <th>藥品名稱</th>
+              <th>說明 / 備註 / 注意</th>
+              <th class="text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="maint-loc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 人員新增/編輯 Modal -->
+<div class="modal fade" id="userEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-academic text-white">
+        <h6 class="modal-title fw-bold">藥師權限與生命週期維護</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">員工編號 (KEY)</label>
+            <input type="text" id="u-user-id" class="form-control border-secondary" oninput="autoGenerateUserEmail()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">姓名</label>
+            <input type="text" id="u-name" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">醫院帳號 (自動生成)</label>
+            <input type="text" id="u-email" class="form-control bg-light" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">人員狀態</label>
+            <select id="u-status" class="form-select border-secondary"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">加入日期</label>
+            <input type="date" id="u-join-date" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">離開日期</label>
+            <input type="date" id="u-leave-date" class="form-control border-secondary">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">最後群組出現時間</label>
+            <input type="text" id="u-last-seen" class="form-control border-secondary" placeholder="YYYY-MM-DD HH:mm:ss">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">單位</label>
+            <select id="u-department" class="form-select border-secondary"></select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">資訊權限</label>
+            <select id="u-info-level" class="form-select border-secondary"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">管理角色</label>
+            <select id="u-mgmt-role" class="form-select border-secondary"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">學生角色</label>
+            <select id="u-student-role" class="form-select border-secondary"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">教師角色</label>
+            <select id="u-teacher-role" class="form-select border-secondary"></select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">系統管理員</label>
+            <select id="u-is-admin" class="form-select border-secondary"></select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitUserEdit()">儲存人員</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 儲位新增/編輯 Modal -->
+<div class="modal fade" id="locEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-academic text-white">
+        <h6 class="modal-title fw-bold">儲位資料維護</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">儲位碼</label>
+            <input type="text" id="l-loc-code" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">盤點表</label>
+            <select id="l-table-id" class="form-select border-secondary"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-bold">排</label>
+            <input type="text" id="l-row-no" class="form-control border-secondary">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-bold">位</label>
+            <input type="text" id="l-pos-no" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">藥品代碼 (加P碼)</label>
+            <input type="text" id="l-drug-code" class="form-control border-secondary">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label small fw-bold">藥品名稱</label>
+            <input type="text" id="l-drug-name" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">月盤點說明</label>
+            <input type="text" id="l-monthly-desc" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">藥品備註</label>
+            <input type="text" id="l-drug-remark" class="form-control border-secondary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">每日盤點注意事項</label>
+            <input type="text" id="l-daily-notice" class="form-control border-secondary">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitLocEdit()">儲存儲位</button>
+      </div>
+    </div>
+  </div>
+</div>
   
 </body>
 </html>
