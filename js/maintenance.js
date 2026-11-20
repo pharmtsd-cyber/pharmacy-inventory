@@ -14,6 +14,7 @@ const DEPT_OPTIONS = [
 ];
 
 const UNIT_PREFIX_MAP = { opd: 'BA', ipd: 'BF', erd: 'BE', comp: 'BG' };
+const UNIT_LABEL_MAP = { BA: '門診藥局(BA)', BF: '住院藥局(BF)', BE: '急診藥局(BE)', BG: '調配藥局(BG)' };
 const unitPrefix = UNIT_PREFIX_MAP[currentDept] || 'BF';
 
 let usersCache = [];
@@ -21,12 +22,19 @@ let portalPermsCache = [];
 let parsedMasterRows = [];
 let parsedSapDailyRows = [];
 let parsedSapMonthlyRows = [];
+let dailySnapCache = [];
+let monthlySnapCache = [];
 
-let areasCache = [];
-let tablesCache = [];
-let locationsCache = [];
+// 分層儲位維護狀態 (支援跨表拖拉、分段、自動重編碼)
+let hierAreas = [];
+let hierTables = [];
+let hierLocations = [];
 let selectedAreaId = null;
 let selectedTableId = null;
+let hierDirty = false;
+let areaSortable = null;
+let tableSortable = null;
+let locSortable = null;
 
 let userModalInstance = null;
 let areaModalInstance = null;
@@ -51,7 +59,7 @@ function normalizeExcelDate(v) {
 }
 
 // =====================================================================
-// 一、入口專區 1：藥師權限管理 (入口處直接進入)
+// 一、入口專區 1：藥師權限管理
 // =====================================================================
 export function initUserMgmtPortal() {
   switchView('view-user-mgmt');
@@ -183,7 +191,7 @@ export function submitUserEdit() {
 }
 
 // =====================================================================
-// 二、入口專區 2：網站權限管理 (控制各入口誰可進入)
+// 二、入口專區 2：網站權限管理
 // =====================================================================
 export function initPortalPermPortal() {
   switchView('view-portal-perm');
@@ -262,7 +270,8 @@ export function savePortalPermRow(portalKey) {
 }
 
 // =====================================================================
-// 三、入口專區 3：藥品管理組 (5 大獨立分頁)
+// 三、入口專區 3：藥品管理組
+// 順序：更新藥品主檔 -> 上傳每日SAP -> 上傳月SAP -> 每日盤點結果 -> 月盤點結果
 // =====================================================================
 export function initDrugMgmtPortal() {
   switchView('view-drug-mgmt');
@@ -276,7 +285,7 @@ export function initDrugMgmtPortal() {
 }
 
 export function switchDrugMgmtTab(tabId) {
-  ['dm-tab-master', 'dm-tab-daily-res', 'dm-tab-monthly-res', 'dm-tab-sap-daily', 'dm-tab-sap-monthly'].forEach(id => {
+  ['dm-tab-master', 'dm-tab-sap-daily', 'dm-tab-sap-monthly', 'dm-tab-daily-res', 'dm-tab-monthly-res'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('d-none', id !== tabId);
   });
@@ -290,10 +299,49 @@ export function switchDrugMgmtTab(tabId) {
   });
 
   if (tabId === 'dm-tab-master') loadDrugMasterStats();
-  else if (tabId === 'dm-tab-daily-res') loadDailySnapshots();
-  else if (tabId === 'dm-tab-monthly-res') loadMonthlySnapshots();
   else if (tabId === 'dm-tab-sap-daily') loadSapHistoryList('daily');
   else if (tabId === 'dm-tab-sap-monthly') loadSapHistoryList('monthly');
+  else if (tabId === 'dm-tab-daily-res') loadDailySnapshots();
+  else if (tabId === 'dm-tab-monthly-res') loadMonthlySnapshots();
+}
+
+// --- 範本 Excel 下載小工具 (防呆：讓使用者直接下載標準表頭範本) ---
+export function downloadExcelTemplate(type) {
+  if (!window.XLSX) return alert('Excel 套件尚未載入完成');
+  const wb = window.XLSX.utils.book_new();
+  let rows = [];
+  let filename = 'template.xlsx';
+  let sheetName = 'Sheet1';
+
+  if (type === 'master') {
+    sheetName = '藥品主檔';
+    filename = '範本_藥品主檔更新.xlsx';
+    rows = [
+      ['批價代碼', '加P', '藥品學名', '藥檔狀態'],
+      ['BAMIN0', 'PBAMIN0', 'Amino Acid 7% 250ml/bot (Nephrosteril)', '0'],
+      ['OACET5', 'POACET5', 'Acetaminophen (Acetal) 500mg/tab', '0']
+    ];
+  } else if (type === 'daily_sap') {
+    sheetName = '導入每日SAP';
+    filename = '範本_每日SAP上傳.xlsx';
+    rows = [
+      ['SAP日期', '物料', '物料說明', '數量', '單位'],
+      ['2026-11-20', 'POTAC01', 'PR-Tacrolimus (Advagraf) <1mg> /cap', 120, 'CAP'],
+      ['2026-11-20', 'POACET5', 'Acetaminophen (Acetal) 500mg/tab', 500, 'TAB']
+    ];
+  } else if (type === 'monthly_sap') {
+    sheetName = '導入月SAP';
+    filename = '範本_月SAP上傳.xlsx';
+    rows = [
+      ['SAP日期', '物料', '物料說明', '數量', '單位'],
+      ['2026-11-30', 'PBAMIN0', 'Amino Acid 7% (Nephrosteril) 250ml/bot', 82, 'BOT'],
+      ['2026-11-30', 'POACET5', 'Acetaminophen (Acetal) 500mg/tab', 1500, 'TAB']
+    ];
+  }
+
+  const ws = window.XLSX.utils.aoa_to_sheet(rows);
+  window.XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  window.XLSX.writeFile(wb, filename);
 }
 
 // --- 3-1. 更新藥品主檔 (全刪全重建) ---
@@ -335,7 +383,7 @@ export function handleMasterFileSelect(event) {
       const sIdx = h.indexOf('藥檔狀態');
 
       if (pIdx === -1 || iIdx === -1 || nIdx === -1) {
-        preview.innerHTML = '<span class="text-danger fw-bold">欄位格式錯誤：找不到「批價代碼」、「加P」或「藥品學名」欄位</span>';
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「批價代碼」、「加P」、「藥品學名」三個欄位名稱（目前讀到：${h.filter(Boolean).join(', ')}）</span>`;
         btn.disabled = true;
         return;
       }
@@ -344,16 +392,23 @@ export function handleMasterFileSelect(event) {
       for (let i = 1; i < raw.length; i++) {
         const r = raw[i];
         const pCode = String(r[pIdx] || '').trim();
-        if (!pCode) continue;
+        const invCode = String(r[iIdx] || '').trim();
+        const dName = String(r[nIdx] || '').trim();
+        if (!pCode || !invCode) continue;
         rows.push({
           price_code: pCode,
-          inv_code: String(r[iIdx] || '').trim(),
-          drug_name: String(r[nIdx] || '').trim(),
+          inv_code: invCode,
+          drug_name: dName,
           drug_status: sIdx > -1 && r[sIdx] !== '' ? String(r[sIdx]).trim() : '0'
         });
       }
       parsedMasterRows = rows;
-      preview.innerHTML = `已解析 <strong>${rows.length}</strong> 筆藥品主檔（工作表：${sheetName}）。<br><span class="text-danger fw-bold">注意：執行後將會清空舊的藥品主檔並全數重建，歷史盤點結果請先確保已存檔快照。</span>`;
+      const sampleHtml = rows.slice(0, 3).map(x => `<li><code>${x.price_code}</code> ➔ <code>${x.inv_code}</code>：${x.drug_name}</li>`).join('');
+      preview.innerHTML = `
+        <div class="text-success fw-bold mb-1">✅ 格式驗證通過！共解析 ${rows.length} 筆藥品主檔（工作表：${sheetName}）</div>
+        <div class="small text-muted mb-1">前三筆預覽（批價代碼 ➔ 藥品代碼：藥品名稱）：</div>
+        <ul class="small mb-2">${sampleHtml}</ul>
+        <div class="text-danger fw-bold small">⚠️ 執行後將會清空舊的藥品主檔並全數重建，舊盤點結果請先至「每日/月盤點結果」鎖存快照。</div>`;
       btn.disabled = rows.length === 0;
     } catch (err) {
       preview.innerText = '解析失敗：' + err.message;
@@ -365,7 +420,7 @@ export function handleMasterFileSelect(event) {
 
 export function submitRebuildDrugMaster() {
   if (parsedMasterRows.length === 0) return;
-  if (!confirm(`⚠️ 確定要「全刪全重建」藥品主檔嗎？\n\n本次將清空舊主檔並寫入 ${parsedMasterRows.length} 筆新藥品。`)) return;
+  if (!confirm(`⚠️ 確定要「全刪全重建」藥品主檔嗎？\n\n本次將清空舊主檔並寫入 ${parsedMasterRows.length} 筆新藥品對應資料。`)) return;
 
   toggleLoader(true, `正在全刪全重建 ${parsedMasterRows.length} 筆藥品主檔...`, true);
   fetchBackend('rebuildDrugMaster', { rows: JSON.stringify(parsedMasterRows) }).then(res => {
@@ -383,99 +438,7 @@ export function submitRebuildDrugMaster() {
   });
 }
 
-// --- 3-2. 每日盤點結果快照 ---
-export function generateDailySnapshotNow() {
-  const unitCode = document.getElementById('dm-daily-unit').value;
-  const dateStr = document.getElementById('dm-daily-date').value;
-  if (!dateStr) return alert('請選擇日期');
-
-  toggleLoader(true, '正在彙整並鎖存每日盤點結果...');
-  fetchBackend('generateDailySnapshot', { unitCode, dateStr }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '存檔失敗');
-    showToast(`已成功鎖存 ${res.count} 筆每日盤點結果`);
-    loadDailySnapshots();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('存檔異常：' + err.message);
-  });
-}
-
-export function loadDailySnapshots() {
-  const unitCode = document.getElementById('dm-daily-unit')?.value || 'BF';
-  const dateStr = document.getElementById('dm-daily-date')?.value || '';
-  const tbody = document.getElementById('dm-daily-tbody');
-  if (!tbody || !dateStr) return;
-
-  fetchBackend('getDailySnapshots', { unitCode, dateStr }).then(res => {
-    const list = res?.data || [];
-    if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">此日期尚未產生盤點結果存檔，請點擊上方「結算並存檔結果」</td></tr>';
-      return;
-    }
-    tbody.innerHTML = list.map(r => {
-      const diffCls = r.diff_qty === 0 ? 'text-success' : (r.diff_qty > 0 ? 'text-primary' : 'text-danger');
-      return `
-        <tr>
-          <td class="text-center fw-bold">${r.drug_code}</td>
-          <td class="fw-bold">${r.drug_name}</td>
-          <td class="text-end">${r.sap_qty}</td>
-          <td class="text-end fw-bold">${r.actual_qty}</td>
-          <td class="text-end fw-bold ${diffCls}">${r.diff_qty > 0 ? '+' + r.diff_qty : r.diff_qty}</td>
-          <td class="text-center small text-muted">${r.created_at || ''}</td>
-        </tr>`;
-    }).join('');
-  });
-}
-
-// --- 3-3. 月盤點結果快照 ---
-export function generateMonthlySnapshotNow() {
-  const unitCode = document.getElementById('dm-monthly-unit').value;
-  const monthStr = document.getElementById('dm-monthly-month').value;
-  if (!monthStr) return alert('請選擇月份');
-
-  toggleLoader(true, '正在彙整並鎖存月盤點結果...');
-  fetchBackend('generateMonthlySnapshot', { unitCode, monthStr }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '存檔失敗');
-    showToast(`已成功鎖存 ${res.count} 筆月盤點結果`);
-    loadMonthlySnapshots();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('存檔異常：' + err.message);
-  });
-}
-
-export function loadMonthlySnapshots() {
-  const unitCode = document.getElementById('dm-monthly-unit')?.value || 'BF';
-  const monthStr = document.getElementById('dm-monthly-month')?.value || '';
-  const tbody = document.getElementById('dm-monthly-tbody');
-  if (!tbody || !monthStr) return;
-
-  fetchBackend('getMonthlySnapshots', { unitCode, monthStr }).then(res => {
-    const list = res?.data || [];
-    if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">此月份尚未產生月盤點結果存檔，請點擊上方「結算並存檔結果」</td></tr>';
-      return;
-    }
-    tbody.innerHTML = list.map(r => {
-      const diffCls = r.diff_qty === 0 ? 'text-success' : (r.diff_qty > 0 ? 'text-primary' : 'text-danger');
-      return `
-        <tr>
-          <td class="text-center fw-bold">${r.drug_code}</td>
-          <td class="fw-bold">${r.drug_name}</td>
-          <td class="text-end">${r.sap_qty}</td>
-          <td class="text-end">${r.desk_qty}</td>
-          <td class="text-end">${r.stock_qty}</td>
-          <td class="text-end">${r.online_qty}</td>
-          <td class="text-end fw-bold">${r.total_actual_qty}</td>
-          <td class="text-end fw-bold ${diffCls}">${r.diff_qty > 0 ? '+' + r.diff_qty : r.diff_qty}</td>
-        </tr>`;
-    }).join('');
-  });
-}
-
-// --- 3-4 & 3-5. 上傳每日 SAP / 上傳月 SAP (獨立頁面 + 二次確認 + 更新覆蓋 / 取回刪除) ---
+// --- 3-2 & 3-3. 上傳每日 SAP / 上傳月 SAP ---
 export function handleSapFileSelectV2(sapType, event) {
   const file = event.target.files[0];
   const preview = document.getElementById(`dm-sap-${sapType}-preview`);
@@ -507,7 +470,7 @@ export function handleSapFileSelectV2(sapType, event) {
       const uIdx = h.indexOf('單位');
 
       if (dIdx === -1 || mIdx === -1 || qIdx === -1) {
-        preview.innerHTML = '<span class="text-danger fw-bold">欄位格式錯誤：找不到「SAP日期」、「物料」或「數量」欄位</span>';
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「SAP日期」、「物料」、「數量」欄位（目前讀到：${h.filter(Boolean).join(', ')}）</span>`;
         btn.disabled = true;
         return;
       }
@@ -531,7 +494,10 @@ export function handleSapFileSelectV2(sapType, event) {
       else parsedSapMonthlyRows = rows;
 
       const dates = Array.from(new Set(rows.map(x => x.sap_date))).sort();
-      preview.innerHTML = `已解析 <strong>${rows.length}</strong> 筆資料，涵蓋日期：<strong>${dates.join(', ')}</strong>`;
+      const sampleHtml = rows.slice(0, 3).map(x => `<li>[${x.sap_date}] <code>${x.drug_code}</code> ${x.drug_name} ➔ 數量：<strong>${x.qty}</strong> ${x.unit}</li>`).join('');
+      preview.innerHTML = `
+        <div class="text-success fw-bold mb-1">✅ 格式驗證通過！共 ${rows.length} 筆資料，涵蓋日期：${dates.join(', ')}</div>
+        <ul class="small mb-0">${sampleHtml}</ul>`;
       btn.disabled = rows.length === 0;
     } catch (err) {
       preview.innerText = '解析失敗：' + err.message;
@@ -627,13 +593,279 @@ export function rollbackSapDate(sapType, sapDate) {
   });
 }
 
+// --- 3-4. 每日盤點結果快照 (支援單一單位 / 全部單位 + Excel 匯出) ---
+export function generateDailySnapshotNow() {
+  const unitCode = document.getElementById('dm-daily-unit').value;
+  const dateStr = document.getElementById('dm-daily-date').value;
+  if (!dateStr) return alert('請選擇日期');
+
+  toggleLoader(true, '正在彙整並鎖存每日盤點結果...');
+  fetchBackend('generateDailySnapshotAll', { unitCode, dateStr }).then(res => {
+    toggleLoader(false);
+    if (!res || !res.success) return alert(res?.message || '存檔失敗');
+    showToast(`已成功鎖存 ${res.count} 筆每日盤點結果`);
+    loadDailySnapshots();
+  }).catch(err => {
+    toggleLoader(false);
+    alert('存檔異常：' + err.message);
+  });
+}
+
+export function loadDailySnapshots() {
+  const unitCode = document.getElementById('dm-daily-unit')?.value || 'ALL';
+  const dateStr = document.getElementById('dm-daily-date')?.value || '';
+  const tbody = document.getElementById('dm-daily-tbody');
+  if (!tbody || !dateStr) return;
+
+  fetchBackend('getDailySnapshotsAll', { unitCode, dateStr }).then(res => {
+    dailySnapCache = res?.data || [];
+    if (dailySnapCache.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">此日期尚未產生盤點結果存檔，請點擊上方「結算並存檔結果」</td></tr>';
+      return;
+    }
+    tbody.innerHTML = dailySnapCache.map(r => {
+      const diffCls = r.diff_qty === 0 ? 'text-success' : (r.diff_qty > 0 ? 'text-primary' : 'text-danger');
+      return `
+        <tr>
+          <td class="text-center"><span class="badge bg-secondary">${UNIT_LABEL_MAP[r.unit_code] || r.unit_code}</span></td>
+          <td class="text-center fw-bold">${r.drug_code}</td>
+          <td class="fw-bold">${r.drug_name}</td>
+          <td class="text-end">${r.sap_qty}</td>
+          <td class="text-end fw-bold">${r.actual_qty}</td>
+          <td class="text-end fw-bold ${diffCls}">${r.diff_qty > 0 ? '+' + r.diff_qty : r.diff_qty}</td>
+          <td class="text-center small text-muted">${r.created_at || ''}</td>
+        </tr>`;
+    }).join('');
+  });
+}
+
+export function exportDailySnapshotsExcel() {
+  if (!window.XLSX) return alert('Excel 套件尚未載入');
+  if (dailySnapCache.length === 0) return alert('目前畫面無資料可匯出，請先查詢或結算存檔');
+
+  const unitCode = document.getElementById('dm-daily-unit')?.value || 'ALL';
+  const dateStr = document.getElementById('dm-daily-date')?.value || '';
+  const rows = [
+    ['單位代碼', '單位名稱', '盤點日期', '藥品代碼', '藥品名稱', 'SAP數量', '實際盤點', '差異', '存檔時間']
+  ];
+  dailySnapCache.forEach(r => {
+    rows.push([
+      r.unit_code,
+      UNIT_LABEL_MAP[r.unit_code] || r.unit_code,
+      r.record_date,
+      r.drug_code,
+      r.drug_name,
+      r.sap_qty,
+      r.actual_qty,
+      r.diff_qty,
+      r.created_at || ''
+    ]);
+  });
+
+  const wb = window.XLSX.utils.book_new();
+  const ws = window.XLSX.utils.aoa_to_sheet(rows);
+  window.XLSX.utils.book_append_sheet(wb, ws, '每日盤點結果');
+  window.XLSX.writeFile(wb, `每日盤點結果_${unitCode}_${dateStr}.xlsx`);
+}
+
+// --- 3-5. 月盤點結果快照 (支援單一單位 / 全部單位分色欄位 + Excel 匯出) ---
+export function generateMonthlySnapshotNow() {
+  const unitCode = document.getElementById('dm-monthly-unit').value;
+  const monthStr = document.getElementById('dm-monthly-month').value;
+  if (!monthStr) return alert('請選擇月份');
+
+  toggleLoader(true, '正在彙整並鎖存月盤點結果...');
+  fetchBackend('generateMonthlySnapshotAll', { unitCode, monthStr }).then(res => {
+    toggleLoader(false);
+    if (!res || !res.success) return alert(res?.message || '存檔失敗');
+    showToast(`已成功鎖存 ${res.count} 筆月盤點結果`);
+    loadMonthlySnapshots();
+  }).catch(err => {
+    toggleLoader(false);
+    alert('存檔異常：' + err.message);
+  });
+}
+
+export function loadMonthlySnapshots() {
+  const unitCode = document.getElementById('dm-monthly-unit')?.value || 'ALL';
+  const monthStr = document.getElementById('dm-monthly-month')?.value || '';
+  const thead = document.getElementById('dm-monthly-thead');
+  const tbody = document.getElementById('dm-monthly-tbody');
+  if (!tbody || !thead || !monthStr) return;
+
+  fetchBackend('getMonthlySnapshotsAll', { unitCode, monthStr }).then(res => {
+    monthlySnapCache = res?.data || [];
+
+    if (unitCode === 'ALL') {
+      // 全院各單位橫向分色對照表
+      thead.innerHTML = `
+        <tr>
+          <th class="text-center align-middle" rowspan="2">藥品代碼</th>
+          <th class="align-middle" rowspan="2">藥品名稱 (鎖存快照)</th>
+          <th class="text-center text-white" colspan="3" style="background-color:#1A365D;">門診藥局 (BA)</th>
+          <th class="text-center text-white" colspan="3" style="background-color:#1E4D2B;">住院藥局 (BF)</th>
+          <th class="text-center text-white" colspan="3" style="background-color:#7A1717;">急診藥局 (BE)</th>
+          <th class="text-center text-white" colspan="3" style="background-color:#4E342E;">調配藥局 (BG)</th>
+          <th class="text-center bg-dark text-white" colspan="3">全院加總</th>
+        </tr>
+        <tr>
+          <th class="text-end small" style="background-color:#e8eef7;">SAP</th><th class="text-end small" style="background-color:#e8eef7;">實盤</th><th class="text-end small" style="background-color:#e8eef7;">帳差</th>
+          <th class="text-end small" style="background-color:#e8f3ec;">SAP</th><th class="text-end small" style="background-color:#e8f3ec;">實盤</th><th class="text-end small" style="background-color:#e8f3ec;">帳差</th>
+          <th class="text-end small" style="background-color:#f9eaea;">SAP</th><th class="text-end small" style="background-color:#f9eaea;">實盤</th><th class="text-end small" style="background-color:#f9eaea;">帳差</th>
+          <th class="text-end small" style="background-color:#f2ecea;">SAP</th><th class="text-end small" style="background-color:#f2ecea;">實盤</th><th class="text-end small" style="background-color:#f2ecea;">帳差</th>
+          <th class="text-end small bg-light">總SAP</th><th class="text-end small bg-light">總實盤</th><th class="text-end small bg-light">總帳差</th>
+        </tr>`;
+
+      if (monthlySnapCache.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="17" class="text-center py-4 text-muted">此月份尚未產生月盤點結果存檔，請點擊上方「結算並存檔結果」</td></tr>';
+        return;
+      }
+
+      // 依 drug_code 彙整四個單位
+      const pivot = {};
+      for (const r of monthlySnapCache) {
+        if (!pivot[r.drug_code]) {
+          pivot[r.drug_code] = { drug_code: r.drug_code, drug_name: r.drug_name, units: {} };
+        }
+        pivot[r.drug_code].units[r.unit_code] = r;
+      }
+
+      const fmtCell = (obj, bg) => {
+        if (!obj) return `<td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td>`;
+        const dc = obj.diff_qty === 0 ? 'text-success' : (obj.diff_qty > 0 ? 'text-primary' : 'text-danger');
+        return `<td class="text-end" style="background-color:${bg};">${obj.sap_qty}</td><td class="text-end fw-bold" style="background-color:${bg};">${obj.total_actual_qty}</td><td class="text-end fw-bold ${dc}" style="background-color:${bg};">${obj.diff_qty > 0 ? '+' + obj.diff_qty : obj.diff_qty}</td>`;
+      };
+
+      tbody.innerHTML = Object.values(pivot).sort((a, b) => a.drug_code.localeCompare(b.drug_code)).map(item => {
+        let totSap = 0, totAct = 0, totDiff = 0;
+        ['BA', 'BF', 'BE', 'BG'].forEach(u => {
+          if (item.units[u]) {
+            totSap += Number(item.units[u].sap_qty) || 0;
+            totAct += Number(item.units[u].total_actual_qty) || 0;
+            totDiff += Number(item.units[u].diff_qty) || 0;
+          }
+        });
+        const tdc = totDiff === 0 ? 'text-success' : (totDiff > 0 ? 'text-primary' : 'text-danger');
+        return `
+          <tr>
+            <td class="text-center fw-bold text-nowrap">${item.drug_code}</td>
+            <td class="fw-bold text-nowrap">${item.drug_name}</td>
+            ${fmtCell(item.units['BA'], '#f4f7fc')}
+            ${fmtCell(item.units['BF'], '#f3faf5')}
+            ${fmtCell(item.units['BE'], '#fdf4f4')}
+            ${fmtCell(item.units['BG'], '#f8f5f4')}
+            <td class="text-end bg-light">${totSap}</td>
+            <td class="text-end fw-bold bg-light">${totAct}</td>
+            <td class="text-end fw-bold bg-light ${tdc}">${totDiff > 0 ? '+' + totDiff : totDiff}</td>
+          </tr>`;
+      }).join('');
+    } else {
+      // 單一單位明細表
+      thead.innerHTML = `
+        <tr>
+          <th class="text-center">藥品代碼</th>
+          <th>藥品名稱 (鎖存快照)</th>
+          <th class="text-end">月SAP</th>
+          <th class="text-end">調劑台</th>
+          <th class="text-end">庫存</th>
+          <th class="text-end">線上調整</th>
+          <th class="text-end">盤點總量</th>
+          <th class="text-end">帳差</th>
+        </tr>`;
+
+      if (monthlySnapCache.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">此月份尚未產生月盤點結果存檔，請點擊上方「結算並存檔結果」</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = monthlySnapCache.map(r => {
+        const diffCls = r.diff_qty === 0 ? 'text-success' : (r.diff_qty > 0 ? 'text-primary' : 'text-danger');
+        return `
+          <tr>
+            <td class="text-center fw-bold">${r.drug_code}</td>
+            <td class="fw-bold">${r.drug_name}</td>
+            <td class="text-end">${r.sap_qty}</td>
+            <td class="text-end">${r.desk_qty}</td>
+            <td class="text-end">${r.stock_qty}</td>
+            <td class="text-end">${r.online_qty}</td>
+            <td class="text-end fw-bold">${r.total_actual_qty}</td>
+            <td class="text-end fw-bold ${diffCls}">${r.diff_qty > 0 ? '+' + r.diff_qty : r.diff_qty}</td>
+          </tr>`;
+      }).join('');
+    }
+  });
+}
+
+export function exportMonthlySnapshotsExcel() {
+  if (!window.XLSX) return alert('Excel 套件尚未載入');
+  if (monthlySnapCache.length === 0) return alert('目前畫面無資料可匯出，請先查詢或結算存檔');
+
+  const unitCode = document.getElementById('dm-monthly-unit')?.value || 'ALL';
+  const monthStr = document.getElementById('dm-monthly-month')?.value || '';
+  const wb = window.XLSX.utils.book_new();
+
+  if (unitCode === 'ALL') {
+    const pivot = {};
+    for (const r of monthlySnapCache) {
+      if (!pivot[r.drug_code]) pivot[r.drug_code] = { drug_code: r.drug_code, drug_name: r.drug_name, units: {} };
+      pivot[r.drug_code].units[r.unit_code] = r;
+    }
+
+    const summaryRows = [
+      ['藥品代碼', '藥品名稱', '門診SAP', '門診實盤', '門診帳差', '住院SAP', '住院實盤', '住院帳差', '急診SAP', '急診實盤', '急診帳差', '調配SAP', '調配實盤', '調配帳差', '全院總SAP', '全院總實盤', '全院總帳差']
+    ];
+    Object.values(pivot).sort((a, b) => a.drug_code.localeCompare(b.drug_code)).forEach(item => {
+      const getU = (u) => item.units[u] || { sap_qty: 0, total_actual_qty: 0, diff_qty: 0 };
+      const ba = getU('BA'), bf = getU('BF'), be = getU('BE'), bg = getU('BG');
+      summaryRows.push([
+        item.drug_code, item.drug_name,
+        ba.sap_qty, ba.total_actual_qty, ba.diff_qty,
+        bf.sap_qty, bf.total_actual_qty, bf.diff_qty,
+        be.sap_qty, be.total_actual_qty, be.diff_qty,
+        bg.sap_qty, bg.total_actual_qty, bg.diff_qty,
+        ba.sap_qty + bf.sap_qty + be.sap_qty + bg.sap_qty,
+        ba.total_actual_qty + bf.total_actual_qty + be.total_actual_qty + bg.total_actual_qty,
+        ba.diff_qty + bf.diff_qty + be.diff_qty + bg.diff_qty
+      ]);
+    });
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(summaryRows), '全院月盤點總表');
+  } else {
+    const rows = [
+      ['單位代碼', '單位名稱', '盤點月份', '藥品代碼', '藥品名稱', '月SAP', '調劑台', '庫存', '線上調整', '盤點總量', '帳差']
+    ];
+    monthlySnapCache.forEach(r => {
+      rows.push([
+        r.unit_code, UNIT_LABEL_MAP[r.unit_code] || r.unit_code, r.record_month,
+        r.drug_code, r.drug_name, r.sap_qty, r.desk_qty, r.stock_qty, r.online_qty, r.total_actual_qty, r.diff_qty
+      ]);
+    });
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), '月盤點結果');
+  }
+
+  window.XLSX.writeFile(wb, `月盤點結果_${unitCode}_${monthStr}.xlsx`);
+}
+
 // =====================================================================
-// 四、各單位內部：分層儲位維護 (第一層: 區域 -> 第二層: 盤點表 -> 第三層: 儲位)
+// 四、分層儲位維護 (跨表拖拉 + 分段 + 自動字母順序重編碼)
 // =====================================================================
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function indexToAlpha(idx) {
+  // 0 -> A, 25 -> Z
+  return ALPHABET[idx] || 'Z';
+}
+
+function indexToTwoLetters(majorIdx, minorIdx) {
+  // majorIdx: 0->A, 1->B... (分段), minorIdx: 0->A, 1->B... (段內順序)
+  const first = ALPHABET[majorIdx] || 'Z';
+  const second = ALPHABET[minorIdx] || 'Z';
+  return `${first}${second}`;
+}
+
 export function initHierarchyMaintenance() {
   switchView('view-maintenance');
   const titleEl = document.getElementById('maint-dept-title');
-  if (titleEl) titleEl.innerText = `${DEPT_NAME} — 分層儲位維護`;
+  if (titleEl) titleEl.innerHTML = `<i class="bi bi-diagram-3"></i> ${DEPT_NAME}（鎖定前綴：<code>${unitPrefix}</code>）— 分層儲位維護`;
   loadHierarchyData();
 }
 
@@ -642,13 +874,14 @@ export function loadHierarchyData() {
   fetchBackend('getHierarchyData').then(res => {
     toggleLoader(false);
     if (!res || !res.success) return alert('載入失敗：' + (res?.message || '未知錯誤'));
-    areasCache = res.areas || [];
-    tablesCache = res.tables || [];
-    locationsCache = res.locations || [];
+    hierAreas = res.areas || [];
+    hierTables = res.tables || [];
+    hierLocations = res.locations || [];
+    hierDirty = false;
+    updateDirtyBanner();
 
-    // 若未選取區域或原區域已被刪，自動選第一個
-    if (!selectedAreaId || !areasCache.some(a => a.area_id === selectedAreaId)) {
-      selectedAreaId = areasCache[0]?.area_id || null;
+    if (!selectedAreaId || !hierAreas.some(a => a.area_id === selectedAreaId)) {
+      selectedAreaId = hierAreas[0]?.area_id || null;
     }
     renderAreasColumn();
   }).catch(err => {
@@ -657,30 +890,137 @@ export function loadHierarchyData() {
   });
 }
 
+function markHierDirty() {
+  hierDirty = true;
+  updateDirtyBanner();
+}
+
+function updateDirtyBanner() {
+  const banner = document.getElementById('hier-dirty-banner');
+  if (banner) banner.classList.toggle('d-none', !hierDirty);
+}
+
+// --- 核心重編碼引擎：依照目前三層順序與分段，全部重新計算編號並一次寫入 D1 ---
+export function renumberAndSaveHierarchy() {
+  if (hierAreas.length === 0) return alert('目前沒有任何區域資料');
+  if (!confirm(`確定要依照目前的拖拉順序與分段，全部重新編碼（前綴鎖定 ${unitPrefix}）並儲存至資料庫嗎？`)) return;
+
+  const areaIdMap = {};   // oldAreaId -> newAreaId
+  const tableIdMap = {};  // oldTableId -> newTableId
+
+  // 1. 第一層重編碼：由上至下 A ~ Z -> BFA, BFB, BFC...
+  const newAreas = hierAreas.map((a, idx) => {
+    const newCode = indexToAlpha(idx);
+    const newId = `${unitPrefix}${newCode}`;
+    areaIdMap[a.area_id] = newId;
+    return {
+      ...a,
+      area_code: newCode,
+      area_id: newId
+    };
+  });
+
+  // 2. 第二層重編碼：依所屬區域分組，支援分段 (AA, AB, AC... 遇到分段跳到 BA, BB, BC...)
+  const newTables = [];
+  for (const a of newAreas) {
+    const oldAreaIds = Object.keys(areaIdMap).filter(k => areaIdMap[k] === a.area_id);
+    const groupTables = hierTables.filter(t => oldAreaIds.includes(t.area_code) || t.area_code === a.area_id);
+
+    let majorIdx = 0; // A=0, B=1...
+    let minorIdx = 0; // A=0, B=1...
+    groupTables.forEach((t, idx) => {
+      if (idx > 0 && t.is_section_start) {
+        majorIdx++;
+        minorIdx = 0;
+      }
+      const newTCode = indexToTwoLetters(majorIdx, minorIdx);
+      minorIdx++;
+      const newTId = `${a.area_id}${newTCode}`;
+      tableIdMap[t.table_id] = newTId;
+      newTables.push({
+        ...t,
+        area_code: a.area_id,
+        table_code: newTCode,
+        table_id: newTId
+      });
+    });
+  }
+
+  // 3. 第三層重編碼：依所屬盤點表分組，支援分段 (排 1, 2, 3...，位 1001, 1003, 1005...)
+  const newLocations = [];
+  for (const t of newTables) {
+    const oldTblIds = Object.keys(tableIdMap).filter(k => tableIdMap[k] === t.table_id);
+    const groupLocs = hierLocations.filter(l => oldTblIds.includes(l.table_id) || l.table_id === t.table_id);
+
+    let rowNo = 1;
+    let posSeq = 1001;
+    groupLocs.forEach((l, idx) => {
+      if (idx > 0 && l.is_section_start) {
+        rowNo++;
+        posSeq = 1001;
+      }
+      const rowStr = String(rowNo);
+      const posStr = String(posSeq);
+      posSeq += 2; // 維持原系統 1001, 1003, 1005 奇數跳號規則
+      const newLocCode = `${t.table_id}${rowStr}${posStr}`;
+      newLocations.push({
+        ...l,
+        table_id: t.table_id,
+        row_no: rowStr,
+        pos_no: posStr,
+        loc_code: newLocCode
+      });
+    });
+  }
+
+  toggleLoader(true, '正在重新編碼並儲存至 D1 資料庫...');
+  fetchBackend('saveFullHierarchy', {
+    areas: JSON.stringify(newAreas),
+    tables: JSON.stringify(newTables),
+    locations: JSON.stringify(newLocations)
+  }).then(res => {
+    toggleLoader(false);
+    if (!res || !res.success) return alert('儲存失敗：' + (res?.message || '未知錯誤'));
+    if (selectedAreaId && areaIdMap[selectedAreaId]) selectedAreaId = areaIdMap[selectedAreaId];
+    if (selectedTableId && tableIdMap[selectedTableId]) selectedTableId = tableIdMap[selectedTableId];
+    showToast(`重編碼完成！共 ${res.areaCount} 區、${res.tableCount} 表、${res.locCount} 儲位`);
+    loadHierarchyData();
+  }).catch(err => {
+    toggleLoader(false);
+    alert('儲存異常：' + err.message);
+  });
+}
+
 export function renderAreasColumn() {
   const areaListEl = document.getElementById('hier-area-list');
   if (!areaListEl) return;
 
-  if (areasCache.length === 0) {
+  if (hierAreas.length === 0) {
     areaListEl.innerHTML = '<div class="text-center text-muted small py-4">尚無區域資料，請點擊右上角新增</div>';
     selectedAreaId = null;
     renderTablesColumn();
     return;
   }
 
-  areaListEl.innerHTML = areasCache.map(a => {
+  areaListEl.innerHTML = hierAreas.map((a, idx) => {
     const active = a.area_id === selectedAreaId;
-    const tblCount = tablesCache.filter(t => t.area_code === a.area_id).length;
+    const tblCount = hierTables.filter(t => t.area_code === a.area_id).length;
+    const previewId = `${unitPrefix}${indexToAlpha(idx)}`;
+    const codeBadge = previewId !== a.area_id
+      ? `<span class="badge bg-secondary text-decoration-line-through me-1">${a.area_id}</span><span class="badge bg-warning text-dark me-1">➔ ${previewId}</span>`
+      : `<span class="badge ${active ? 'bg-light text-dark' : 'bg-secondary'} me-1">${a.area_id}</span>`;
+
     return `
-      <div class="list-group-item list-group-item-action p-2 ${active ? 'active bg-academic border-academic' : ''}" style="cursor:pointer;" onclick="selectHierArea('${a.area_id}')">
+      <div class="list-group-item list-group-item-action p-2 hier-area-item ${active ? 'active bg-academic border-academic' : ''}" data-area-id="${a.area_id}" style="cursor:pointer;" onclick="selectHierArea('${a.area_id}')">
         <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <span class="badge ${active ? 'bg-light text-dark' : 'bg-secondary'} me-1">${a.area_id}</span>
+          <div class="d-flex align-items-center gap-1">
+            <i class="bi bi-grip-vertical area-drag-handle opacity-75" style="cursor:grab;"></i>
+            ${codeBadge}
             <span class="fw-bold">${a.area_name}</span>
           </div>
-          <span class="badge ${active ? 'bg-warning text-dark' : 'bg-light text-dark border'}">${tblCount} 表</span>
+          <span class="badge ${active ? 'bg-light text-dark' : 'bg-light text-dark border'}">${tblCount} 表</span>
         </div>
-        <div class="d-flex justify-content-between align-items-center mt-1">
+        <div class="d-flex justify-content-between align-items-center mt-1 ps-3">
           <small class="${active ? 'text-light' : 'text-muted'}">${a.area_desc || ''}</small>
           <div onclick="event.stopPropagation()">
             <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-primary'} py-0 px-1" onclick="openAreaModal('${a.area_id}')">編</button>
@@ -689,6 +1029,20 @@ export function renderAreasColumn() {
         </div>
       </div>`;
   }).join('');
+
+  if (areaSortable) areaSortable.destroy();
+  if (window.Sortable) {
+    areaSortable = new window.Sortable(areaListEl, {
+      handle: '.area-drag-handle',
+      animation: 150,
+      onEnd: () => {
+        const orderedIds = Array.from(areaListEl.querySelectorAll('.hier-area-item')).map(el => el.getAttribute('data-area-id'));
+        hierAreas.sort((a, b) => orderedIds.indexOf(a.area_id) - orderedIds.indexOf(b.area_id));
+        markHierDirty();
+        renderAreasColumn();
+      }
+    });
+  }
 
   renderTablesColumn();
 }
@@ -703,9 +1057,9 @@ export function renderTablesColumn() {
   const tblListEl = document.getElementById('hier-table-list');
   if (!tblListEl) return;
 
-  const filteredTables = selectedAreaId ? tablesCache.filter(t => t.area_code === selectedAreaId) : [];
+  const filteredTables = selectedAreaId ? hierTables.filter(t => t.area_code === selectedAreaId) : [];
   if (filteredTables.length === 0) {
-    tblListEl.innerHTML = '<div class="text-center text-muted small py-4">此區域尚無盤點表</div>';
+    tblListEl.innerHTML = '<div class="text-center text-muted small py-4">此區域尚無盤點表（可從其他區域拖拉盤點表到此區域）</div>';
     selectedTableId = null;
     renderLocationsColumn();
     return;
@@ -715,20 +1069,41 @@ export function renderTablesColumn() {
     selectedTableId = filteredTables[0].table_id;
   }
 
-  tblListEl.innerHTML = filteredTables.map(t => {
+  let majorIdx = 0, minorIdx = 0;
+  tblListEl.innerHTML = filteredTables.map((t, idx) => {
+    if (idx > 0 && t.is_section_start) { majorIdx++; minorIdx = 0; }
+    const previewTCode = indexToTwoLetters(majorIdx, minorIdx);
+    minorIdx++;
+    const previewTId = `${selectedAreaId}${previewTCode}`;
     const active = t.table_id === selectedTableId;
-    const locCount = locationsCache.filter(l => l.table_id === t.table_id).length;
+    const locCount = hierLocations.filter(l => l.table_id === t.table_id).length;
+
+    const sectionTag = (idx > 0 && t.is_section_start)
+      ? `<div class="bg-warning bg-opacity-25 text-dark small fw-bold px-2 py-0 mb-1 rounded border-start border-3 border-warning">✂️ 新分段 (${ALPHABET[majorIdx]}段)</div>`
+      : '';
+
+    const codeBadge = previewTId !== t.table_id
+      ? `<span class="badge bg-secondary text-decoration-line-through me-1">${t.table_id}</span><span class="badge bg-warning text-dark me-1">➔ ${previewTId}</span>`
+      : `<span class="badge ${active ? 'bg-light text-dark' : 'bg-secondary'} me-1">${t.table_id}</span>`;
+
     return `
-      <div class="list-group-item list-group-item-action p-2 ${active ? 'active bg-academic border-academic' : ''}" style="cursor:pointer;" onclick="selectHierTable('${t.table_id}')">
+      <div class="list-group-item list-group-item-action p-2 hier-table-item ${active ? 'active bg-academic border-academic' : ''}" data-table-id="${t.table_id}" style="cursor:pointer;" onclick="selectHierTable('${t.table_id}')">
+        ${sectionTag}
         <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <span class="badge ${active ? 'bg-light text-dark' : 'bg-secondary'} me-1">${t.table_id}</span>
+          <div class="d-flex align-items-center gap-1">
+            <i class="bi bi-grip-vertical table-drag-handle opacity-75" style="cursor:grab;"></i>
+            ${codeBadge}
             <span class="fw-bold">${t.table_name}</span>
           </div>
-          <span class="badge ${active ? 'bg-warning text-dark' : 'bg-light text-dark border'}">${locCount} 儲位</span>
+          <span class="badge ${active ? 'bg-light text-dark' : 'bg-light text-dark border'}">${locCount} 儲</span>
         </div>
-        <div class="d-flex justify-content-between align-items-center mt-1">
-          <small class="${active ? 'text-light' : 'text-muted'}">${t.table_desc || ''}</small>
+        <div class="d-flex justify-content-between align-items-center mt-1 ps-3">
+          <div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+            <select class="form-select form-select-sm py-0 px-1" style="font-size:0.72rem; width:auto;" title="跨區移動" onchange="moveTableToArea('${t.table_id}', this.value)">
+              ${hierAreas.map(a => `<option value="${a.area_id}" ${a.area_id === selectedAreaId ? 'selected' : ''}>移至 ${a.area_id}</option>`).join('')}
+            </select>
+            ${idx > 0 ? `<button class="btn btn-sm ${t.is_section_start ? 'btn-warning text-dark' : 'btn-outline-secondary'} py-0 px-1" style="font-size:0.7rem;" onclick="toggleTableSection('${t.table_id}')">${t.is_section_start ? '取消分段' : '設為分段'}</button>` : ''}
+          </div>
           <div onclick="event.stopPropagation()">
             <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-primary'} py-0 px-1" onclick="openTableModal('${t.table_id}')">編</button>
             <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-danger'} py-0 px-1" onclick="deleteTableItem('${t.table_id}')">刪</button>
@@ -736,6 +1111,22 @@ export function renderTablesColumn() {
         </div>
       </div>`;
   }).join('');
+
+  if (tableSortable) tableSortable.destroy();
+  if (window.Sortable) {
+    tableSortable = new window.Sortable(tblListEl, {
+      handle: '.table-drag-handle',
+      animation: 150,
+      onEnd: () => {
+        const orderedIds = Array.from(tblListEl.querySelectorAll('.hier-table-item')).map(el => el.getAttribute('data-table-id'));
+        const others = hierTables.filter(t => t.area_code !== selectedAreaId);
+        const reordered = orderedIds.map(id => hierTables.find(t => t.table_id === id)).filter(Boolean);
+        hierTables = [...others, ...reordered];
+        markHierDirty();
+        renderTablesColumn();
+      }
+    });
+  }
 
   renderLocationsColumn();
 }
@@ -745,12 +1136,29 @@ export function selectHierTable(tableId) {
   renderTablesColumn();
 }
 
+export function toggleTableSection(tableId) {
+  const t = hierTables.find(x => x.table_id === tableId);
+  if (!t) return;
+  t.is_section_start = !t.is_section_start;
+  markHierDirty();
+  renderTablesColumn();
+}
+
+export function moveTableToArea(tableId, newAreaId) {
+  const t = hierTables.find(x => x.table_id === tableId);
+  if (!t || t.area_code === newAreaId) return;
+  t.area_code = newAreaId;
+  markHierDirty();
+  renderAreasColumn();
+  showToast(`已將盤點表移至 ${newAreaId}（請記得按右上角「儲存並重新編碼」）`);
+}
+
 export function renderLocationsColumn() {
   const tbody = document.getElementById('hier-loc-tbody');
   const titleEl = document.getElementById('hier-loc-header');
   if (!tbody) return;
 
-  const tblObj = tablesCache.find(t => t.table_id === selectedTableId);
+  const tblObj = hierTables.find(t => t.table_id === selectedTableId);
   if (titleEl) {
     titleEl.innerText = tblObj ? `第三層：儲位明細（${tblObj.table_id} - ${tblObj.table_name}）` : '第三層：儲位明細';
   }
@@ -761,42 +1169,103 @@ export function renderLocationsColumn() {
   }
 
   const kw = (document.getElementById('hier-loc-search')?.value || '').toLowerCase().trim();
-  const list = locationsCache.filter(l => {
-    if (l.table_id !== selectedTableId) return false;
-    if (!kw) return true;
-    return (
-      (l.loc_code || '').toLowerCase().includes(kw) ||
-      (l.drug_code || '').toLowerCase().includes(kw) ||
-      (l.drug_name || '').toLowerCase().includes(kw)
-    );
+  const tableLocs = hierLocations.filter(l => l.table_id === selectedTableId);
+
+  let rowNo = 1, posSeq = 1001;
+  const enriched = tableLocs.map((l, idx) => {
+    if (idx > 0 && l.is_section_start) { rowNo++; posSeq = 1001; }
+    const pRow = String(rowNo);
+    const pPos = String(posSeq);
+    posSeq += 2;
+    const pCode = `${selectedTableId}${pRow}${pPos}`;
+    return { ...l, idxInTable: idx, previewRow: pRow, previewPos: pPos, previewCode: pCode };
   });
 
-  if (list.length === 0) {
+  const filtered = kw ? enriched.filter(l =>
+    (l.loc_code || '').toLowerCase().includes(kw) ||
+    (l.previewCode || '').toLowerCase().includes(kw) ||
+    (l.drug_code || '').toLowerCase().includes(kw) ||
+    (l.drug_name || '').toLowerCase().includes(kw)
+  ) : enriched;
+
+  if (filtered.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">此盤點表尚無儲位資料</td></tr>';
     return;
   }
 
-  tbody.innerHTML = list.map(l => `
-    <tr>
-      <td class="text-center fw-bold text-nowrap">${l.row_no || '-'} / ${l.pos_no || '-'}</td>
-      <td class="fw-bold text-nowrap">${l.loc_code}</td>
-      <td class="small text-nowrap">${l.drug_code}</td>
-      <td class="fw-bold">${l.drug_name}</td>
-      <td class="small text-secondary">${[l.monthly_desc, l.drug_remark, l.daily_notice].filter(Boolean).join(' / ') || '-'}</td>
-      <td class="text-center text-nowrap">
-        <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="openLocEditModal('${l.loc_code}')">編輯</button>
-        <button class="btn btn-sm btn-outline-danger py-0" onclick="deleteLocItem('${l.loc_code}')">刪除</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = filtered.map(l => {
+    const codeHtml = l.previewCode !== l.loc_code
+      ? `<span class="text-muted text-decoration-line-through small">${l.loc_code}</span><br><span class="badge bg-warning text-dark">➔ ${l.previewCode}</span>`
+      : `<span class="fw-bold">${l.loc_code}</span>`;
+
+    const secBadge = (l.idxInTable > 0 && l.is_section_start)
+      ? `<span class="badge bg-warning text-dark me-1">第 ${l.previewRow} 排分段</span>`
+      : '';
+
+    return `
+      <tr class="hier-loc-row" data-loc-code="${l.loc_code}">
+        <td class="text-center text-nowrap">
+          <i class="bi bi-grip-vertical loc-drag-handle text-secondary me-1" style="cursor:grab;"></i>
+          <span class="fw-bold">${l.previewRow}</span> / ${l.previewPos}
+        </td>
+        <td class="text-nowrap">${codeHtml}</td>
+        <td class="small text-nowrap">${l.drug_code}</td>
+        <td class="fw-bold">${secBadge}${l.drug_name}</td>
+        <td class="small text-secondary">${[l.monthly_desc, l.drug_remark, l.daily_notice].filter(Boolean).join(' / ') || '-'}</td>
+        <td class="text-center text-nowrap">
+          <div class="d-inline-flex gap-1 align-items-center">
+            <select class="form-select form-select-sm py-0 px-1" style="font-size:0.72rem; width:auto;" title="跨表移動儲位" onchange="moveLocToTable('${l.loc_code}', this.value)">
+              ${hierTables.map(t => `<option value="${t.table_id}" ${t.table_id === selectedTableId ? 'selected' : ''}>移至 ${t.table_id}</option>`).join('')}
+            </select>
+            ${l.idxInTable > 0 ? `<button class="btn btn-sm ${l.is_section_start ? 'btn-warning text-dark' : 'btn-outline-secondary'} py-0 px-1" style="font-size:0.7rem;" onclick="toggleLocSection('${l.loc_code}')">${l.is_section_start ? '取消分段' : '分段'}</button>` : ''}
+            <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="openLocEditModal('${l.loc_code}')">編</button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteLocItem('${l.loc_code}')">刪</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  if (locSortable) locSortable.destroy();
+  if (window.Sortable && !kw) {
+    locSortable = new window.Sortable(tbody, {
+      handle: '.loc-drag-handle',
+      animation: 150,
+      onEnd: () => {
+        const orderedCodes = Array.from(tbody.querySelectorAll('.hier-loc-row')).map(el => el.getAttribute('data-loc-code'));
+        const others = hierLocations.filter(l => l.table_id !== selectedTableId);
+        const reordered = orderedCodes.map(c => hierLocations.find(l => l.loc_code === c)).filter(Boolean);
+        hierLocations = [...others, ...reordered];
+        markHierDirty();
+        renderLocationsColumn();
+      }
+    });
+  }
 }
 
-// --- 區域 Modal ---
+export function toggleLocSection(locCode) {
+  const l = hierLocations.find(x => x.loc_code === locCode);
+  if (!l) return;
+  l.is_section_start = !l.is_section_start;
+  markHierDirty();
+  renderLocationsColumn();
+}
+
+export function moveLocToTable(locCode, newTableId) {
+  const l = hierLocations.find(x => x.loc_code === locCode);
+  if (!l || l.table_id === newTableId) return;
+  l.table_id = newTableId;
+  markHierDirty();
+  renderTablesColumn();
+  showToast(`已將儲位移至 ${newTableId}（請記得按右上角「儲存並重新編碼」）`);
+}
+
+// --- 第一層：新增/編輯區域 Modal ---
 export function openAreaModal(areaId = '') {
-  const existing = areaId ? areasCache.find(a => a.area_id === areaId) : null;
-  document.getElementById('a-area-code').value = existing ? existing.area_code : '';
-  document.getElementById('a-area-code').readOnly = !!existing;
-  document.getElementById('a-area-id').value = existing ? existing.area_id : '';
+  const existing = areaId ? hierAreas.find(a => a.area_id === areaId) : null;
+  document.getElementById('a-editing-id').value = existing ? existing.area_id : '';
+  const nextCode = existing ? existing.area_code : indexToAlpha(hierAreas.length);
+  document.getElementById('a-area-code').value = nextCode;
+  document.getElementById('a-area-id').value = existing ? existing.area_id : `${unitPrefix}${nextCode}`;
   document.getElementById('a-area-name').value = existing ? existing.area_name : '';
   document.getElementById('a-area-desc').value = existing ? existing.area_desc : '';
 
@@ -804,60 +1273,49 @@ export function openAreaModal(areaId = '') {
   areaModalInstance.show();
 }
 
-export function autoPreviewAreaId() {
-  const code = document.getElementById('a-area-code').value.trim().toUpperCase();
-  document.getElementById('a-area-id').value = code ? `${unitPrefix}${code}` : '';
-}
-
 export function submitAreaEdit() {
-  const areaCode = document.getElementById('a-area-code').value.trim().toUpperCase();
+  const editingId = document.getElementById('a-editing-id').value;
   const areaName = document.getElementById('a-area-name').value.trim();
-  if (!areaCode || !areaName) return alert('請填寫區域代碼與區域名稱');
+  const areaDesc = document.getElementById('a-area-desc').value.trim();
+  if (!areaName) return alert('請填寫區域名稱');
 
-  toggleLoader(true, '儲存區域...');
-  fetchBackend('saveAreaRecord', {
-    area: {
-      area_id: `${unitPrefix}${areaCode}`,
-      area_code: areaCode,
-      area_name: areaName,
-      area_desc: document.getElementById('a-area-desc').value.trim()
-    }
-  }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '儲存失敗');
-    if (areaModalInstance) areaModalInstance.hide();
-    showToast('已儲存區域設定');
-    loadHierarchyData();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('異常：' + err.message);
-  });
+  if (editingId) {
+    const target = hierAreas.find(a => a.area_id === editingId);
+    if (target) { target.area_name = areaName; target.area_desc = areaDesc; }
+  } else {
+    const newCode = indexToAlpha(hierAreas.length);
+    const newId = `${unitPrefix}${newCode}`;
+    hierAreas.push({ area_id: newId, unit_code: unitPrefix, area_code: newCode, area_name: areaName, area_desc: areaDesc });
+    selectedAreaId = newId;
+  }
+
+  if (areaModalInstance) areaModalInstance.hide();
+  markHierDirty();
+  renderAreasColumn();
 }
 
 export function deleteAreaItem(areaId) {
-  if (!confirm(`確定要刪除區域「${areaId}」嗎？`)) return;
-  toggleLoader(true, '刪除區域...');
-  fetchBackend('deleteAreaRecord', { areaId }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '刪除失敗');
-    showToast('已刪除區域');
-    loadHierarchyData();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('異常：' + err.message);
-  });
+  const childCount = hierTables.filter(t => t.area_code === areaId).length;
+  if (childCount > 0) return alert(`此區域底下尚有 ${childCount} 張盤點表，請先移走或刪除盤點表`);
+  if (!confirm(`確定要移除區域「${areaId}」嗎？`)) return;
+  hierAreas = hierAreas.filter(a => a.area_id !== areaId);
+  if (selectedAreaId === areaId) selectedAreaId = hierAreas[0]?.area_id || null;
+  markHierDirty();
+  renderAreasColumn();
 }
 
-// --- 盤點表 Modal ---
+// --- 第二層：新增/編輯盤點表 Modal ---
 export function openTableModal(tableId = '') {
   if (!selectedAreaId && !tableId) return alert('請先於第一層選擇所屬區域');
-  const existing = tableId ? tablesCache.find(t => t.table_id === tableId) : null;
+  const existing = tableId ? hierTables.find(t => t.table_id === tableId) : null;
   const areaId = existing ? existing.area_code : selectedAreaId;
 
+  document.getElementById('t-editing-id').value = existing ? existing.table_id : '';
   document.getElementById('t-area-id').value = areaId;
-  document.getElementById('t-table-code').value = existing ? existing.table_code : '';
-  document.getElementById('t-table-code').readOnly = !!existing;
-  document.getElementById('t-table-id').value = existing ? existing.table_id : '';
+  const countInArea = hierTables.filter(t => t.area_code === areaId).length;
+  const previewCode = existing ? existing.table_code : indexToTwoLetters(0, countInArea);
+  document.getElementById('t-table-code').value = previewCode;
+  document.getElementById('t-table-id').value = existing ? existing.table_id : `${areaId}${previewCode}`;
   document.getElementById('t-table-name').value = existing ? existing.table_name : '';
   document.getElementById('t-table-desc').value = existing ? existing.table_desc : '';
 
@@ -865,66 +1323,48 @@ export function openTableModal(tableId = '') {
   tableModalInstance.show();
 }
 
-export function autoPreviewTableId() {
-  const areaId = document.getElementById('t-area-id').value.trim().toUpperCase();
-  const tCode = document.getElementById('t-table-code').value.trim().toUpperCase();
-  document.getElementById('t-table-id').value = tCode ? `${areaId}${tCode}` : '';
-}
-
 export function submitTableEdit() {
-  const areaId = document.getElementById('t-area-id').value.trim().toUpperCase();
-  const tableCode = document.getElementById('t-table-code').value.trim().toUpperCase();
+  const editingId = document.getElementById('t-editing-id').value;
+  const areaId = document.getElementById('t-area-id').value;
   const tableName = document.getElementById('t-table-name').value.trim();
-  const tableId = document.getElementById('t-table-id').value.trim().toUpperCase() || `${areaId}${tableCode}`;
-  if (!areaId || !tableName || !tableId) return alert('請填寫盤點表代碼與名稱');
+  const tableDesc = document.getElementById('t-table-desc').value.trim();
+  if (!tableName) return alert('請填寫盤點表名稱');
 
-  toggleLoader(true, '儲存盤點表...');
-  fetchBackend('saveTableRecord', {
-    table: {
-      table_id: tableId,
-      area_code: areaId,
-      table_code: tableCode,
-      table_name: tableName,
-      table_desc: document.getElementById('t-table-desc').value.trim()
-    }
-  }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '儲存失敗');
-    if (tableModalInstance) tableModalInstance.hide();
-    showToast('已儲存盤點表設定');
-    loadHierarchyData();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('異常：' + err.message);
-  });
+  if (editingId) {
+    const target = hierTables.find(t => t.table_id === editingId);
+    if (target) { target.table_name = tableName; target.table_desc = tableDesc; }
+  } else {
+    const tempId = `${areaId}_NEW_${Date.now()}`;
+    hierTables.push({ table_id: tempId, unit_code: unitPrefix, area_code: areaId, table_code: 'NEW', table_name: tableName, table_desc: tableDesc });
+    selectedTableId = tempId;
+  }
+
+  if (tableModalInstance) tableModalInstance.hide();
+  markHierDirty();
+  renderAreasColumn();
 }
 
 export function deleteTableItem(tableId) {
-  if (!confirm(`確定要刪除盤點表「${tableId}」嗎？`)) return;
-  toggleLoader(true, '刪除盤點表...');
-  fetchBackend('deleteTableRecord', { tableId }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '刪除失敗');
-    showToast('已刪除盤點表');
-    loadHierarchyData();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('異常：' + err.message);
-  });
+  const childCount = hierLocations.filter(l => l.table_id === tableId).length;
+  if (childCount > 0) return alert(`此盤點表底下尚有 ${childCount} 個儲位，請先移走或刪除儲位`);
+  if (!confirm(`確定要移除盤點表「${tableId}」嗎？`)) return;
+  hierTables = hierTables.filter(t => t.table_id !== tableId);
+  if (selectedTableId === tableId) selectedTableId = null;
+  markHierDirty();
+  renderAreasColumn();
 }
 
-// --- 儲位 Modal (自動組合 盤點表編號 + 排 + 位 = 儲位碼編號) ---
+// --- 第三層：新增/編輯儲位 Modal ---
 export function openLocEditModal(locCode = '') {
   if (!selectedTableId && !locCode) return alert('請先於第二層選擇盤點表');
-  const existing = locCode ? locationsCache.find(l => l.loc_code === locCode) : null;
+  const existing = locCode ? hierLocations.find(l => l.loc_code === locCode) : null;
   const tblId = existing ? existing.table_id : selectedTableId;
 
+  document.getElementById('l-editing-code').value = existing ? existing.loc_code : '';
   document.getElementById('l-table-id').value = tblId;
-  document.getElementById('l-row-no').value = existing ? existing.row_no : '';
-  document.getElementById('l-pos-no').value = existing ? existing.pos_no : '';
-  document.getElementById('l-row-no').readOnly = !!existing;
-  document.getElementById('l-pos-no').readOnly = !!existing;
-  document.getElementById('l-loc-code').value = existing ? existing.loc_code : '';
+  document.getElementById('l-row-no').value = existing ? existing.row_no : '自動';
+  document.getElementById('l-pos-no').value = existing ? existing.pos_no : '自動';
+  document.getElementById('l-loc-code').value = existing ? existing.loc_code : `${tblId}(存檔自動重編)`;
   document.getElementById('l-drug-code').value = existing ? existing.drug_code : '';
   document.getElementById('l-drug-name').value = existing ? existing.drug_name : '';
   document.getElementById('l-monthly-desc').value = existing ? existing.monthly_desc : '';
@@ -935,60 +1375,49 @@ export function openLocEditModal(locCode = '') {
   locModalInstance.show();
 }
 
-export function autoPreviewLocCode() {
-  const tblId = document.getElementById('l-table-id').value.trim().toUpperCase();
-  const rNo = document.getElementById('l-row-no').value.trim();
-  const pNo = document.getElementById('l-pos-no').value.trim();
-  document.getElementById('l-loc-code').value = (rNo && pNo) ? `${tblId}${rNo}${pNo}` : '';
-}
-
 export function submitLocEdit() {
-  const tblId = document.getElementById('l-table-id').value.trim().toUpperCase();
-  const rNo = document.getElementById('l-row-no').value.trim();
-  const pNo = document.getElementById('l-pos-no').value.trim();
-  const locCode = document.getElementById('l-loc-code').value.trim().toUpperCase() || `${tblId}${rNo}${pNo}`;
+  const editingCode = document.getElementById('l-editing-code').value;
+  const tblId = document.getElementById('l-table-id').value;
   const drugCode = document.getElementById('l-drug-code').value.trim();
   const drugName = document.getElementById('l-drug-name').value.trim();
+  if (!drugCode || !drugName) return alert('請填寫藥品代碼與藥品名稱');
 
-  if (!locCode || !tblId || !drugCode || !drugName) {
-    return alert('請填寫排、位、藥品代碼與藥品名稱');
-  }
+  const monthlyDesc = document.getElementById('l-monthly-desc').value.trim();
+  const drugRemark = document.getElementById('l-drug-remark').value.trim();
+  const dailyNotice = document.getElementById('l-daily-notice').value.trim();
 
-  toggleLoader(true, '儲存儲位資料...');
-  fetchBackend('saveLocationRecord', {
-    location: {
-      loc_code: locCode,
+  if (editingCode) {
+    const target = hierLocations.find(l => l.loc_code === editingCode);
+    if (target) {
+      target.drug_code = drugCode;
+      target.drug_name = drugName;
+      target.monthly_desc = monthlyDesc;
+      target.drug_remark = drugRemark;
+      target.daily_notice = dailyNotice;
+    }
+  } else {
+    hierLocations.push({
+      loc_code: `${tblId}_NEW_${Date.now()}`,
+      unit_code: unitPrefix,
       table_id: tblId,
-      row_no: rNo,
-      pos_no: pNo,
+      row_no: '1',
+      pos_no: '1001',
       drug_code: drugCode,
       drug_name: drugName,
-      monthly_desc: document.getElementById('l-monthly-desc').value.trim(),
-      drug_remark: document.getElementById('l-drug-remark').value.trim(),
-      daily_notice: document.getElementById('l-daily-notice').value.trim()
-    }
-  }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '儲存失敗');
-    if (locModalInstance) locModalInstance.hide();
-    showToast('已儲存儲位資料');
-    loadHierarchyData();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('異常：' + err.message);
-  });
+      monthly_desc: monthlyDesc,
+      drug_remark: drugRemark,
+      daily_notice: dailyNotice
+    });
+  }
+
+  if (locModalInstance) locModalInstance.hide();
+  markHierDirty();
+  renderTablesColumn();
 }
 
 export function deleteLocItem(locCode) {
-  if (!confirm(`確定要刪除儲位「${locCode}」嗎？`)) return;
-  toggleLoader(true, '刪除儲位...');
-  fetchBackend('deleteLocationRecord', { locCode }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert(res?.message || '刪除失敗');
-    showToast('已刪除儲位');
-    loadHierarchyData();
-  }).catch(err => {
-    toggleLoader(false);
-    alert('異常：' + err.message);
-  });
+  if (!confirm(`確定要移除儲位「${locCode}」嗎？`)) return;
+  hierLocations = hierLocations.filter(l => l.loc_code !== locCode);
+  markHierDirty();
+  renderTablesColumn();
 }
