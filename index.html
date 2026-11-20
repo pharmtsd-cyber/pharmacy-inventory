@@ -108,7 +108,7 @@
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('drug_mgmt')" style="border-top: 4px solid #0F5132 !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-box-seam" style="color: #0F5132;"></i></div>
             <h5 class="fw-bold text-dark mb-1">藥品管理組</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">藥品主檔 / 盤點結果快照 / SAP上傳</span>
+            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">藥品主檔 / SAP上傳 / 盤點結果</span>
           </div>
         </div>
         <div class="col-12 col-md-4">
@@ -130,7 +130,7 @@
   </div>
 </div>
 
-<!-- ==================== 身分驗證畫面 (附返回網站入口按鈕) ==================== -->
+<!-- ==================== 身分驗證畫面 ==================== -->
 <div id="view-login" class="container view-section">
   <div class="card card-academic p-4 mt-4 bg-white shadow" style="max-width: 480px; width: 100%; margin-left: auto; margin-right: auto;">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -161,7 +161,7 @@
         <i class="bi bi-diagram-3 fs-1 me-3 text-secondary"></i>
         <div class="text-start">
           <h5 class="fw-bold mb-0 text-dark">分層儲位維護</h5>
-          <span class="small text-muted" style="font-size: 0.8rem;">管理區域、盤點表與儲位架構</span>
+          <span class="small text-muted" style="font-size: 0.8rem;">管理區域、盤點表與儲位自動重編碼</span>
         </div>
       </div>
     </button>
@@ -447,7 +447,7 @@
   <div id="portal-perm-list" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
 </div>
 
-<!-- ==================== 入口專區 3：藥品管理組 ==================== -->
+<!-- ==================== 入口專區 3：藥品管理組 (指定分頁順序) ==================== -->
 <div id="view-drug-mgmt" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -456,21 +456,33 @@
     </div>
     <ul class="nav nav-pills nav-fill gap-1 mt-1" id="dm-tabs">
       <li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white py-2 small" data-target="dm-tab-master" onclick="switchDrugMgmtTab('dm-tab-master')">更新藥品主檔</button></li>
-      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="dm-tab-daily-res" onclick="switchDrugMgmtTab('dm-tab-daily-res')">每日盤點結果</button></li>
-      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="dm-tab-monthly-res" onclick="switchDrugMgmtTab('dm-tab-monthly-res')">月盤點結果</button></li>
       <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="dm-tab-sap-daily" onclick="switchDrugMgmtTab('dm-tab-sap-daily')">上傳每日SAP</button></li>
       <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="dm-tab-sap-monthly" onclick="switchDrugMgmtTab('dm-tab-sap-monthly')">上傳月SAP</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="dm-tab-daily-res" onclick="switchDrugMgmtTab('dm-tab-daily-res')">每日盤點結果</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="dm-tab-monthly-res" onclick="switchDrugMgmtTab('dm-tab-monthly-res')">月盤點結果</button></li>
     </ul>
   </div>
 
-  <!-- 3-1 更新藥品主檔 (全刪全重建) -->
+  <!-- 3-1 更新藥品主檔 (全刪全重建 + 格式提示與範本下載) -->
   <div id="dm-tab-master" class="flex-grow-1 overflow-auto px-1 pb-4">
     <div class="card border-0 shadow-sm p-4 bg-white">
-      <h6 class="fw-bold text-dark mb-2">更新全院共用藥品主檔（全刪全重建）</h6>
-      <div id="dm-master-stats" class="badge bg-light text-dark border mb-3 p-2 text-start">讀取中...</div>
-      <div class="alert alert-warning small">
-        <i class="bi bi-exclamation-triangle-fill"></i> 此操作會<strong>清空舊的藥品主檔</strong>並依新 Excel 全數重建（需包含「批價代碼」、「加P」、「藥品學名」欄位）。歷史盤點結果請透過「每日盤點結果 / 月盤點結果」鎖存快照，即可永久保留當時的藥品名稱。
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h6 class="fw-bold text-dark mb-0">更新全院共用藥品主檔（全刪全重建）</h6>
+        <button class="btn btn-sm btn-outline-success fw-bold" onclick="downloadExcelTemplate('master')">
+          <i class="bi bi-file-earmark-excel"></i> 下載標準 Excel 範本
+        </button>
       </div>
+      <div id="dm-master-stats" class="badge bg-light text-dark border mb-3 p-2 text-start">讀取中...</div>
+
+      <div class="alert alert-info small mb-3">
+        <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 上傳格式與用途說明：</div>
+        <ul class="mb-1 ps-3">
+          <li><strong>用途</strong>：建立<strong>本版本之後</strong>全院共用的「批價代碼」、「藥品代碼(加P)」與「藥品學名」對照基準。</li>
+          <li><strong>必備欄位名稱（第一列標題）</strong>：<code>批價代碼</code>、<code>加P</code>、<code>藥品學名</code>（選填：<code>藥檔狀態</code>）。</li>
+        </ul>
+        <div class="text-danger fw-bold mt-1">⚠️ 執行後會全數清空舊主檔再重建，舊盤點紀錄請先於「每日/月盤點結果」結算鎖存快照。</div>
+      </div>
+
       <input type="file" id="dm-master-file" class="form-control border-secondary mb-3" accept=".xlsx,.xls" onchange="handleMasterFileSelect(event)">
       <div id="dm-master-preview" class="alert alert-light border small text-secondary mb-3">尚未選擇檔案</div>
       <button id="dm-master-upload-btn" class="btn btn-danger fw-bold px-4" disabled onclick="submitRebuildDrugMaster()">
@@ -479,74 +491,24 @@
     </div>
   </div>
 
-  <!-- 3-2 每日盤點結果快照 -->
-  <div id="dm-tab-daily-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
-    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
-      <div class="d-flex flex-wrap gap-2 align-items-center">
-        <select id="dm-daily-unit" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
-          <option value="BF">住院藥局 (BF)</option>
-          <option value="BA">門診藥局 (BA)</option>
-          <option value="BE">急診藥局 (BE)</option>
-          <option value="BG">調配藥局 (BG)</option>
-        </select>
-        <input type="date" id="dm-daily-date" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
-        <button class="btn btn-sm btn-academic fw-bold" onclick="generateDailySnapshotNow()"><i class="bi bi-lock-fill"></i> 結算並存檔結果</button>
-      </div>
-    </div>
-    <div class="table-responsive bg-white border rounded shadow-sm">
-      <table class="table table-hover table-sm align-middle mb-0">
-        <thead class="table-academic-head">
-          <tr>
-            <th class="text-center">藥品代碼</th>
-            <th>藥品名稱 (鎖存快照)</th>
-            <th class="text-end">SAP數量</th>
-            <th class="text-end">實際盤點</th>
-            <th class="text-end">差異</th>
-            <th class="text-center">存檔時間</th>
-          </tr>
-        </thead>
-        <tbody id="dm-daily-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 3-3 月盤點結果快照 -->
-  <div id="dm-tab-monthly-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
-    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
-      <div class="d-flex flex-wrap gap-2 align-items-center">
-        <select id="dm-monthly-unit" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadMonthlySnapshots()">
-          <option value="BF">住院藥局 (BF)</option>
-          <option value="BA">門診藥局 (BA)</option>
-          <option value="BE">急診藥局 (BE)</option>
-          <option value="BG">調配藥局 (BG)</option>
-        </select>
-        <input type="month" id="dm-monthly-month" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadMonthlySnapshots()">
-        <button class="btn btn-sm btn-academic fw-bold" onclick="generateMonthlySnapshotNow()"><i class="bi bi-lock-fill"></i> 結算並存檔結果</button>
-      </div>
-    </div>
-    <div class="table-responsive bg-white border rounded shadow-sm">
-      <table class="table table-hover table-sm align-middle mb-0">
-        <thead class="table-academic-head">
-          <tr>
-            <th class="text-center">藥品代碼</th>
-            <th>藥品名稱 (鎖存快照)</th>
-            <th class="text-end">月SAP</th>
-            <th class="text-end">調劑台</th>
-            <th class="text-end">庫存</th>
-            <th class="text-end">線上調整</th>
-            <th class="text-end">盤點總量</th>
-            <th class="text-end">帳差</th>
-          </tr>
-        </thead>
-        <tbody id="dm-monthly-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 3-4 上傳每日 SAP (獨立專區) -->
+  <!-- 3-2 上傳每日 SAP (格式提示與範本下載 + 二次確認 + 取回刪除) -->
   <div id="dm-tab-sap-daily" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-      <h6 class="fw-bold text-primary mb-3"><i class="bi bi-calendar-day"></i> 上傳【每日 SAP】Excel</h6>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h6 class="fw-bold text-primary mb-0"><i class="bi bi-calendar-day"></i> 上傳【每日 SAP】Excel</h6>
+        <button class="btn btn-sm btn-outline-primary fw-bold" onclick="downloadExcelTemplate('daily_sap')">
+          <i class="bi bi-file-earmark-excel"></i> 下載每日 SAP 範本
+        </button>
+      </div>
+
+      <div class="alert alert-primary bg-opacity-10 small mb-3">
+        <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 格式與用途說明：</div>
+        <ul class="mb-0 ps-3">
+          <li><strong>用途</strong>：提供各單位<strong>每日盤點</strong>時，該藥品代碼要比對參考的帳面 SAP 數量。</li>
+          <li><strong>必備欄位名稱（第一列標題）</strong>：<code>SAP日期</code>（如 2026-11-20）、<code>物料</code>（藥品代碼）、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。</li>
+        </ul>
+      </div>
+
       <div class="row g-2 mb-3">
         <div class="col-md-4">
           <label class="form-label small fw-bold">目標單位</label>
@@ -581,10 +543,24 @@
     </div>
   </div>
 
-  <!-- 3-5 上傳月 SAP (獨立專區) -->
+  <!-- 3-3 上傳月 SAP (格式提示與範本下載 + 二次確認 + 取回刪除) -->
   <div id="dm-tab-sap-monthly" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-      <h6 class="fw-bold text-success mb-3"><i class="bi bi-calendar-month"></i> 上傳【月 SAP】Excel</h6>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h6 class="fw-bold text-success mb-0"><i class="bi bi-calendar-month"></i> 上傳【月 SAP】Excel</h6>
+        <button class="btn btn-sm btn-outline-success fw-bold" onclick="downloadExcelTemplate('monthly_sap')">
+          <i class="bi bi-file-earmark-excel"></i> 下載月 SAP 範本
+        </button>
+      </div>
+
+      <div class="alert alert-success bg-opacity-10 small mb-3">
+        <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 格式與用途說明：</div>
+        <ul class="mb-0 ps-3">
+          <li><strong>用途</strong>：提供各單位<strong>當月份盤點結果</strong>結算時，要比對參考的期末帳面 SAP 數量。</li>
+          <li><strong>必備欄位名稱（第一列標題）</strong>：<code>SAP日期</code>（該月日期，如 2026-11-30）、<code>物料</code>（藥品代碼）、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。</li>
+        </ul>
+      </div>
+
       <div class="row g-2 mb-3">
         <div class="col-md-4">
           <label class="form-label small fw-bold">目標單位</label>
@@ -618,50 +594,127 @@
       </div>
     </div>
   </div>
+
+  <!-- 3-4 每日盤點結果快照 (支援全部單位 + Excel 匯出) -->
+  <div id="dm-tab-daily-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <select id="dm-daily-unit" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
+            <option value="ALL" selected>全部單位</option>
+            <option value="BF">住院藥局 (BF)</option>
+            <option value="BA">門診藥局 (BA)</option>
+            <option value="BE">急診藥局 (BE)</option>
+            <option value="BG">調配藥局 (BG)</option>
+          </select>
+          <input type="date" id="dm-daily-date" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
+          <button class="btn btn-sm btn-academic fw-bold" onclick="generateDailySnapshotNow()"><i class="bi bi-lock-fill"></i> 結算並存檔結果</button>
+        </div>
+        <button class="btn btn-sm btn-success fw-bold" onclick="exportDailySnapshotsExcel()">
+          <i class="bi bi-file-earmark-excel"></i> 下載 Excel
+        </button>
+      </div>
+    </div>
+    <div class="table-responsive bg-white border rounded shadow-sm">
+      <table class="table table-hover table-sm align-middle mb-0">
+        <thead class="table-academic-head">
+          <tr>
+            <th class="text-center">單位</th>
+            <th class="text-center">藥品代碼</th>
+            <th>藥品名稱 (鎖存快照)</th>
+            <th class="text-end">SAP數量</th>
+            <th class="text-end">實際盤點</th>
+            <th class="text-end">差異</th>
+            <th class="text-center">存檔時間</th>
+          </tr>
+        </thead>
+        <tbody id="dm-daily-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3-5 月盤點結果快照 (支援全部單位分色欄位 + Excel 匯出) -->
+  <div id="dm-tab-monthly-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <select id="dm-monthly-unit" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadMonthlySnapshots()">
+            <option value="ALL" selected>全部單位 (分色總表)</option>
+            <option value="BF">住院藥局 (BF)</option>
+            <option value="BA">門診藥局 (BA)</option>
+            <option value="BE">急診藥局 (BE)</option>
+            <option value="BG">調配藥局 (BG)</option>
+          </select>
+          <input type="month" id="dm-monthly-month" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadMonthlySnapshots()">
+          <button class="btn btn-sm btn-academic fw-bold" onclick="generateMonthlySnapshotNow()"><i class="bi bi-lock-fill"></i> 結算並存檔結果</button>
+        </div>
+        <button class="btn btn-sm btn-success fw-bold" onclick="exportMonthlySnapshotsExcel()">
+          <i class="bi bi-file-earmark-excel"></i> 下載 Excel
+        </button>
+      </div>
+    </div>
+    <div class="table-responsive bg-white border rounded shadow-sm">
+      <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size: 0.85rem;">
+        <thead class="table-academic-head" id="dm-monthly-thead"></thead>
+        <tbody id="dm-monthly-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
-<!-- ==================== 各單位分層儲位維護 (區域 -> 盤點表 -> 儲位) ==================== -->
+<!-- ==================== 各單位分層儲位維護 (跨表拖拉 + 分段 + 自動重編碼) ==================== -->
 <div id="view-maintenance" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
-    <div class="d-flex justify-content-between align-items-center">
-      <h6 class="fw-bold text-academic mb-0" id="maint-dept-title"><i class="bi bi-diagram-3"></i> 分層儲位維護</h6>
-      <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')">
-        <i class="bi bi-chevron-left"></i> 返回模式選單
-      </button>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h6 class="fw-bold text-academic mb-0" id="maint-dept-title"><i class="bi bi-diagram-3"></i> 分層儲位維護</h6>
+        <div class="small text-muted">支援拖拉排序、跨區/跨表移動、第二/三層分段，調整完畢後點擊右側按鈕自動重編碼</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" onclick="renumberAndSaveHierarchy()">
+          <i class="bi bi-check2-all"></i> 儲存並全部重新編碼
+        </button>
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')">
+          <i class="bi bi-chevron-left"></i> 返回模式選單
+        </button>
+      </div>
+    </div>
+    <div id="hier-dirty-banner" class="alert alert-warning py-1 px-2 mt-2 mb-0 small fw-bold d-none">
+      ⚠️ 順序或分段已變更（黃色標記為預覽新編號），請務必點擊右上角「儲存並全部重新編碼」才會正式寫入資料庫！
     </div>
   </div>
 
   <div class="flex-grow-1 overflow-auto px-1 pb-4">
     <div class="row g-2">
-      <!-- 第一層：區域 -->
+      <!-- 第一層：區域 (A-Z 自動順序) -->
       <div class="col-12 col-lg-3">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-            <span class="fw-bold small text-dark">第一層：區域編號</span>
+            <span class="fw-bold small text-dark">第一層：區域 (拖拉排 A-Z)</span>
             <button class="btn btn-sm btn-academic py-0 fw-bold" onclick="openAreaModal('')">+ 新增區域</button>
           </div>
           <div id="hier-area-list" class="list-group list-group-flush" style="max-height: 65vh; overflow-y: auto;"></div>
         </div>
       </div>
 
-      <!-- 第二層：盤點表 -->
+      <!-- 第二層：盤點表 (AA-AZ / 分段 BA-BZ + 跨區移動) -->
       <div class="col-12 col-lg-3">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-            <span class="fw-bold small text-dark">第二層：盤點表編號</span>
+            <span class="fw-bold small text-dark">第二層：盤點表 (拖拉/分段)</span>
             <button class="btn btn-sm btn-academic py-0 fw-bold" onclick="openTableModal('')">+ 新增盤點表</button>
           </div>
           <div id="hier-table-list" class="list-group list-group-flush" style="max-height: 65vh; overflow-y: auto;"></div>
         </div>
       </div>
 
-      <!-- 第三層：儲位明細 -->
+      <!-- 第三層：儲位明細 (排/位自動跳號 + 分段 + 跨表移動) -->
       <div class="col-12 col-lg-6">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex flex-wrap gap-2 justify-content-between align-items-center py-2">
             <span id="hier-loc-header" class="fw-bold small text-dark">第三層：儲位明細</span>
             <div class="d-flex gap-1">
-              <input type="text" id="hier-loc-search" class="form-control form-control-sm border-secondary" style="max-width: 150px;" placeholder="篩選儲位/藥品..." onkeyup="renderLocationsColumn()">
+              <input type="text" id="hier-loc-search" class="form-control form-control-sm border-secondary" style="max-width: 140px;" placeholder="搜尋儲位/藥品..." onkeyup="renderLocationsColumn()">
               <button class="btn btn-sm btn-academic py-0 fw-bold text-nowrap" onclick="openLocEditModal('')">+ 新增儲位</button>
             </div>
           </div>
@@ -674,7 +727,7 @@
                   <th>藥品代碼</th>
                   <th>藥品名稱</th>
                   <th>說明/備註/注意</th>
-                  <th class="text-center">操作</th>
+                  <th class="text-center">操作 / 分段 / 跨表</th>
                 </tr>
               </thead>
               <tbody id="hier-loc-tbody"></tbody>
@@ -686,7 +739,7 @@
   </div>
 </div>
 
-<!-- ==================== 新增的維護用 Modals ==================== -->
+<!-- ==================== 維護用 Modals ==================== -->
 <div class="modal fade" id="userEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
@@ -762,17 +815,18 @@
   <div class="modal-dialog">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-academic text-white">
-        <h6 class="modal-title fw-bold">第一層：區域設定</h6>
+        <h6 class="modal-title fw-bold">第一層：區域設定 (依順序自動編 A-Z)</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
+        <input type="hidden" id="a-editing-id">
         <div class="row g-2">
           <div class="col-6">
-            <label class="form-label small fw-bold">區域代碼 (如: A, B, H)</label>
-            <input type="text" id="a-area-code" class="form-control border-secondary" oninput="autoPreviewAreaId()">
+            <label class="form-label small fw-bold">區域代碼 (自動順序)</label>
+            <input type="text" id="a-area-code" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-6">
-            <label class="form-label small fw-bold">區域編號 (自動組合)</label>
+            <label class="form-label small fw-bold">區域編號 (鎖定單位前綴)</label>
             <input type="text" id="a-area-id" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-12">
@@ -787,7 +841,7 @@
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitAreaEdit()">儲存區域</button>
+        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitAreaEdit()">確定</button>
       </div>
     </div>
   </div>
@@ -797,21 +851,22 @@
   <div class="modal-dialog">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-academic text-white">
-        <h6 class="modal-title fw-bold">第二層：盤點表設定</h6>
+        <h6 class="modal-title fw-bold">第二層：盤點表設定 (依順序/分段自動編 AA-ZZ)</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
+        <input type="hidden" id="t-editing-id">
         <div class="row g-2">
           <div class="col-4">
             <label class="form-label small fw-bold">所屬區域編號</label>
             <input type="text" id="t-area-id" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-4">
-            <label class="form-label small fw-bold">盤點表代碼 (如: AA)</label>
-            <input type="text" id="t-table-code" class="form-control border-secondary" oninput="autoPreviewTableId()">
+            <label class="form-label small fw-bold">盤點表代碼</label>
+            <input type="text" id="t-table-code" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-4">
-            <label class="form-label small fw-bold">盤點表編號 (自動組合)</label>
+            <label class="form-label small fw-bold">盤點表編號</label>
             <input type="text" id="t-table-id" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-12">
@@ -826,7 +881,7 @@
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitTableEdit()">儲存盤點表</button>
+        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitTableEdit()">確定</button>
       </div>
     </div>
   </div>
@@ -836,25 +891,25 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-academic text-white">
-        <h6 class="modal-title fw-bold">第三層：儲位資料維護</h6>
+        <h6 class="modal-title fw-bold">第三層：儲位資料維護 (排/位依拖拉與分段自動重編)</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
+        <input type="hidden" id="l-editing-code">
         <div class="row g-2">
-          <div class="col-md-3">
+          <div class="col-md-4">
             <label class="form-label small fw-bold">盤點表編號</label>
             <input type="text" id="l-table-id" class="form-control bg-light fw-bold" readonly>
           </div>
-          <div class="col-md-2">
-            <label class="form-label small fw-bold">排</label>
-            <input type="text" id="l-row-no" class="form-control border-secondary" placeholder="1" oninput="autoPreviewLocCode()">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-bold">位</label>
-            <input type="text" id="l-pos-no" class="form-control border-secondary" placeholder="1001" oninput="autoPreviewLocCode()">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">排 / 位 (自動順序)</label>
+            <div class="input-group">
+              <input type="text" id="l-row-no" class="form-control bg-light text-center" readonly>
+              <input type="text" id="l-pos-no" class="form-control bg-light text-center" readonly>
+            </div>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-bold">儲位碼編號 (自動組合)</label>
+            <label class="form-label small fw-bold">儲位碼編號</label>
             <input type="text" id="l-loc-code" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-md-4">
@@ -881,135 +936,168 @@
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitLocEdit()">儲存儲位</button>
+        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitLocEdit()">確定</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 原有的明細、條碼、小算盤、交班註記、修改與作廢 Modals -->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
-    <div class="modal-content bg-light">
-      <div class="modal-header bg-academic text-white border-0"><h6 class="modal-title fw-bold" id="modal-drug-name"></h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body p-0">
-        <div class="p-2 bg-white border-bottom shadow-sm sticky-top" style="top: 0; z-index: 1050;"><div id="modal-col-toggles" class="d-flex flex-wrap gap-1"></div></div>
-        <div class="p-2"><div class="table-responsive bg-white border rounded shadow-sm"><table class="table table-bordered table-sm table-hover align-middle text-nowrap mb-0" style="font-size: 0.85rem;"><thead class="table-academic-head text-center" id="modal-thead"></thead><tbody id="modal-tbody"></tbody></table></div></div>
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+      <div class="modal-content bg-light">
+        <div class="modal-header bg-academic text-white border-0"><h6 class="modal-title fw-bold" id="modal-drug-name"></h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-0">
+          <div class="p-2 bg-white border-bottom shadow-sm sticky-top" style="top: 0; z-index: 1050;"><div id="modal-col-toggles" class="d-flex flex-wrap gap-1"></div></div>
+          <div class="p-2"><div class="table-responsive bg-white border rounded shadow-sm"><table class="table table-bordered table-sm table-hover align-middle text-nowrap mb-0" style="font-size: 0.85rem;"><thead class="table-academic-head text-center" id="modal-thead"></thead><tbody id="modal-tbody"></tbody></table></div></div>
+        </div>
+        <div class="modal-footer bg-white border-top p-2"><button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">關閉</button></div>
       </div>
-      <div class="modal-footer bg-white border-top p-2"><button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">關閉</button></div>
     </div>
   </div>
-</div>
 
 <div class="modal fade" id="barcodeQtyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg border-0">
-      <div class="modal-header bg-academic text-white border-0"><h6 class="modal-title fw-bold"><i class="bi bi-upc-scan"></i> 掃描成功：輸入數量</h6></div>
-      <div class="modal-body p-4">
-        <div class="text-center mb-3"><div id="barcode-qty-drug-name" class="fw-bold fs-5 text-dark">藥品名稱</div><div id="barcode-qty-drug-info" class="small text-secondary">代碼訊息</div></div>
-        <div class="input-group shadow-sm mt-3 mb-2">
-          <input type="number" id="barcode-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入數量" onkeydown="if(event.key === 'Enter') confirmBarcodeQty()">
-          <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('barcode-qty-input', '掃描數量')"><i class="bi bi-calculator fs-2"></i></button>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-academic text-white border-0">
+          <h6 class="modal-title fw-bold"><i class="bi bi-upc-scan"></i> 掃描成功：輸入數量</h6>
         </div>
-      </div>
-      <div class="modal-footer border-0 p-3">
-        <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelBarcodeQty()">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmBarcodeQty()">確認</button>
+        <div class="modal-body p-4">
+          <div class="text-center mb-3">
+            <div id="barcode-qty-drug-name" class="fw-bold fs-5 text-dark">藥品名稱</div>
+            <div id="barcode-qty-drug-info" class="small text-secondary">代碼訊息</div>
+          </div>
+          
+          <div class="input-group shadow-sm mt-3 mb-2">
+            <input type="number" id="barcode-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入數量" onkeydown="if(event.key === 'Enter') confirmBarcodeQty()">
+            <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('barcode-qty-input', '掃描數量')">
+              <i class="bi bi-calculator fs-2"></i>
+            </button>
+          </div>
+          </div>
+        <div class="modal-footer border-0 p-3">
+          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelBarcodeQty()">取消</button>
+          <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmBarcodeQty()">確認</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  
 
 <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content shadow-lg border-0 bg-light">
-      <div class="modal-header bg-academic text-white border-0 py-2">
-        <h6 class="modal-title fw-bold"><i class="bi bi-calculator"></i> <span id="calc-title" class="text-truncate" style="max-width: 150px; display: inline-block; vertical-align: bottom;">小算盤</span></h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-3">
-        <div id="calc-display" class="form-control text-end fs-3 fw-bold mb-3 shadow-sm bg-white text-academic" style="height: 60px; overflow-x: auto; white-space: nowrap; line-height: 45px;">0</div>
-        <div class="row g-2">
-          <div class="col-3"><button class="btn btn-danger w-100 fw-bold fs-4 shadow-sm" onclick="calcClear()">C</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('(')">(</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress(')')">)</button></div>
-          <div class="col-3"><button class="btn btn-warning w-100 fw-bold fs-5 shadow-sm h-100" onclick="calcBackspace()"><i class="bi bi-backspace"></i></button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('7')">7</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('8')">8</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('9')">9</button></div>
-          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('/')">÷</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('4')">4</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('5')">5</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('6')">6</button></div>
-          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('*')">×</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('1')">1</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('2')">2</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('3')">3</button></div>
-          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('-')">-</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('0')">0</button></div>
-          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('.')">.</button></div>
-          <div class="col-3"><button class="btn btn-success w-100 fw-bold fs-4 shadow-sm" onclick="calcEqual()">=</button></div>
-          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('+')">+</button></div>
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content shadow-lg border-0 bg-light">
+        <div class="modal-header bg-academic text-white border-0 py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-calculator"></i> <span id="calc-title" class="text-truncate" style="max-width: 150px; display: inline-block; vertical-align: bottom;">小算盤</span></h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <div class="mt-3"><button class="btn btn-academic w-100 fw-bold fs-5 shadow-sm py-2" onclick="calcConfirm()"><i class="bi bi-check2-circle"></i> 確認帶入</button></div>
+        <div class="modal-body p-3">
+          <div id="calc-display" class="form-control text-end fs-3 fw-bold mb-3 shadow-sm bg-white text-academic" style="height: 60px; overflow-x: auto; white-space: nowrap; line-height: 45px;">0</div>
+          
+          <div class="row g-2">
+            <div class="col-3"><button class="btn btn-danger w-100 fw-bold fs-4 shadow-sm" onclick="calcClear()">C</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('(')">(</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress(')')">)</button></div>
+            <div class="col-3"><button class="btn btn-warning w-100 fw-bold fs-5 shadow-sm h-100" onclick="calcBackspace()"><i class="bi bi-backspace"></i></button></div>
+            
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('7')">7</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('8')">8</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('9')">9</button></div>
+            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('/')">÷</button></div>
+            
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('4')">4</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('5')">5</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('6')">6</button></div>
+            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('*')">×</button></div>
+            
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('1')">1</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('2')">2</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('3')">3</button></div>
+            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('-')">-</button></div>
+            
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('0')">0</button></div>
+            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('.')">.</button></div>
+            <div class="col-3"><button class="btn btn-success w-100 fw-bold fs-4 shadow-sm" onclick="calcEqual()">=</button></div>
+            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('+')">+</button></div>
+          </div>
+          
+          <div class="mt-3">
+            <button class="btn btn-academic w-100 fw-bold fs-5 shadow-sm py-2" onclick="calcConfirm()"><i class="bi bi-check2-circle"></i> 確認帶入</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="modal fade" id="drugNoteModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content bg-light shadow-lg border-0">
-      <div class="modal-header bg-warning text-dark border-0"><h6 class="modal-title fw-bold"><i class="bi bi-journal-check"></i> 交班註記：<span id="note-modal-title-name"></span></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body p-3">
-        <div class="mb-3 bg-white p-3 rounded shadow-sm border-start border-4 border-warning">
-          <label class="small fw-bold text-secondary mb-1">新增交班事項</label>
-          <textarea id="new-note-text" class="form-control border-secondary mb-2" rows="2" placeholder="請輸入需要交班的內容..."></textarea>
-          <button class="btn btn-warning fw-bold w-100" onclick="submitDrugNote()">新增送出</button>
+  <div class="modal fade" id="drugNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content bg-light shadow-lg border-0">
+        <div class="modal-header bg-warning text-dark border-0">
+          <h6 class="modal-title fw-bold"><i class="bi bi-journal-check"></i> 交班註記：<span id="note-modal-title-name"></span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="fw-bold text-secondary mb-2 small"><i class="bi bi-clock-history"></i> 歷史交班紀錄</div>
-        <div id="note-list-area" class="d-flex flex-column gap-2"></div>
+        <div class="modal-body p-3">
+          <div class="mb-3 bg-white p-3 rounded shadow-sm border-start border-4 border-warning">
+            <label class="small fw-bold text-secondary mb-1">新增交班事項</label>
+            <textarea id="new-note-text" class="form-control border-secondary mb-2" rows="2" placeholder="請輸入需要交班的內容..."></textarea>
+            <button class="btn btn-warning fw-bold w-100" onclick="submitDrugNote()">新增送出</button>
+          </div>
+          <div class="fw-bold text-secondary mb-2 small"><i class="bi bi-clock-history"></i> 歷史交班紀錄</div>
+          <div id="note-list-area" class="d-flex flex-column gap-2"></div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
 <div class="modal fade" id="editQtyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg border-0">
-      <div class="modal-header bg-academic text-white border-0"><h6 class="modal-title fw-bold"><i class="bi bi-pencil-square"></i> 修改盤點數量</h6></div>
-      <div class="modal-body p-4">
-        <div class="text-center mb-3"><div id="edit-qty-drug-name" class="fw-bold fs-5 text-dark mb-2">藥品名稱</div><div class="small text-secondary">原盤點數量: <span id="edit-qty-old" class="badge bg-secondary fs-6"></span></div></div>
-        <div class="input-group shadow-sm mt-3 mb-2">
-          <input type="number" id="edit-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="輸入新數量" onkeydown="if(event.key === 'Enter') confirmEditQty()">
-          <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('edit-qty-input', '修改數量')"><i class="bi bi-calculator fs-2"></i></button>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-academic text-white border-0">
+          <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square"></i> 修改盤點數量</h6>
+        </div>
+        <div class="modal-body p-4">
+          <div class="text-center mb-3">
+            <div id="edit-qty-drug-name" class="fw-bold fs-5 text-dark mb-2">藥品名稱</div>
+            <div class="small text-secondary">原盤點數量: <span id="edit-qty-old" class="badge bg-secondary fs-6"></span></div>
+          </div>
+          
+          <div class="input-group shadow-sm mt-3 mb-2">
+            <input type="number" id="edit-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="輸入新數量" onkeydown="if(event.key === 'Enter') confirmEditQty()">
+            <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('edit-qty-input', '修改數量')">
+              <i class="bi bi-calculator fs-2"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer border-0 p-3">
+          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelEditQty()">取消</button>
+          <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmEditQty()">確認修改</button>
         </div>
       </div>
-      <div class="modal-footer border-0 p-3">
-        <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelEditQty()">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmEditQty()">確認修改</button>
-      </div>
     </div>
   </div>
-</div>
 
-<div class="modal fade" id="voidConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg border-0">
-      <div class="modal-header bg-danger text-white border-0"><h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> 確認識別作廢</h6></div>
-      <div class="modal-body p-4 text-center">
-        <div class="mb-3"><i class="bi bi-trash3 text-danger opacity-75" style="font-size: 3.5rem;"></i></div>
-        <p class="mb-2 fw-bold text-dark fs-5">確定要將此紀錄作廢嗎？</p>
-        <div id="void-drug-name" class="fw-bold text-danger fs-5 mb-2">藥品名稱</div>
-        <div class="small text-secondary">目前數量: <span id="void-drug-info" class="badge bg-secondary fs-6"></span></div>
-      </div>
-      <div class="modal-footer border-0 p-3 justify-content-center">
-        <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelVoid()">保留返回</button>
-        <button type="button" class="btn btn-danger fw-bold px-5" onclick="confirmVoid()">確定作廢</button>
+  <div class="modal fade" id="voidConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-danger text-white border-0">
+          <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> 確認識別作廢</h6>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <div class="mb-3">
+            <i class="bi bi-trash3 text-danger opacity-75" style="font-size: 3.5rem;"></i>
+          </div>
+          <p class="mb-2 fw-bold text-dark fs-5">確定要將此紀錄作廢嗎？</p>
+          <div id="void-drug-name" class="fw-bold text-danger fs-5 mb-2">藥品名稱</div>
+          <div class="small text-secondary">目前數量: <span id="void-drug-info" class="badge bg-secondary fs-6"></span></div>
+        </div>
+        <div class="modal-footer border-0 p-3 justify-content-center">
+          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelVoid()">保留返回</button>
+          <button type="button" class="btn btn-danger fw-bold px-5" onclick="confirmVoid()">確定作廢</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+  
 
 <script type="module" src="./js/main.js"></script>
 </body>
