@@ -32,6 +32,12 @@ import {
   generateDailySnapshotNow, loadDailySnapshots, exportDailySnapshotsExcel,
   generateMonthlySnapshotNow, loadMonthlySnapshots, exportMonthlySnapshotsExcel,
   handleSapFileSelectV2, uploadSapWithConfirm, loadSapHistoryList, rollbackSapDate,
+  initMonthlyAdjPortal, switchAdjTab, toggleAdjColGroup, loadAdjInventoryData,
+  handleAdjSortClick, applyAdjFilters, handleAdjSaveVersion,
+  loadAdjAppRecords, toggleAdjAppCol, applyAdjAppRecordFilters,
+  loadAdjMarkers, handleAdjMarkerAutocomplete, selectAdjMarkerDrug, saveAdjMarkerItem,
+  applyAdjMarkerFilters, updateExistingAdjMarker, deleteExistingAdjMarker,
+  loadAdjVersionRecords, applyAdjVersionFilters, exportAdjVersionExcel,
   initHierarchyMaintenance, loadHierarchyData, renumberAndSaveHierarchy,
   selectHierArea, selectHierTable, toggleTableSection, moveTableToArea,
   renderLocationsColumn, toggleLocSection, moveLocToTable,
@@ -168,6 +174,27 @@ window.handleSapFileSelectV2 = handleSapFileSelectV2;
 window.uploadSapWithConfirm = uploadSapWithConfirm;
 window.loadSapHistoryList = loadSapHistoryList;
 window.rollbackSapDate = rollbackSapDate;
+
+window.initMonthlyAdjPortal = initMonthlyAdjPortal;
+window.switchAdjTab = switchAdjTab;
+window.toggleAdjColGroup = toggleAdjColGroup;
+window.loadAdjInventoryData = loadAdjInventoryData;
+window.handleAdjSortClick = handleAdjSortClick;
+window.applyAdjFilters = applyAdjFilters;
+window.handleAdjSaveVersion = handleAdjSaveVersion;
+window.loadAdjAppRecords = loadAdjAppRecords;
+window.toggleAdjAppCol = toggleAdjAppCol;
+window.applyAdjAppRecordFilters = applyAdjAppRecordFilters;
+window.loadAdjMarkers = loadAdjMarkers;
+window.handleAdjMarkerAutocomplete = handleAdjMarkerAutocomplete;
+window.selectAdjMarkerDrug = selectAdjMarkerDrug;
+window.saveAdjMarkerItem = saveAdjMarkerItem;
+window.applyAdjMarkerFilters = applyAdjMarkerFilters;
+window.updateExistingAdjMarker = updateExistingAdjMarker;
+window.deleteExistingAdjMarker = deleteExistingAdjMarker;
+window.loadAdjVersionRecords = loadAdjVersionRecords;
+window.applyAdjVersionFilters = applyAdjVersionFilters;
+window.exportAdjVersionExcel = exportAdjVersionExcel;
 
 window.initHierarchyMaintenance = initHierarchyMaintenance;
 window.loadHierarchyData = loadHierarchyData;
