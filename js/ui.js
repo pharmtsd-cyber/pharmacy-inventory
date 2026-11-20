@@ -3,17 +3,12 @@
  */
 import { session, DEPT_NAME, currentDept } from './config.js';
 
-
-// ==========================================
-// 🌟 背景同步狀態視覺回饋
-// ==========================================
 let syncTimeout = null;
 
 export function updateSyncUI(activeCount) {
   const syncBadge = document.getElementById('nav-sync-status');
   if (!syncBadge) return;
 
-  // 為了避免與 api.js 的循環依賴，這裡直接讀取 localStorage
   const offlineQueue = JSON.parse(localStorage.getItem('femh_offline_queue')) || [];
   const offlineCount = offlineQueue.length;
   const totalPending = activeCount + offlineCount;
@@ -43,7 +38,6 @@ export function updateSyncUI(activeCount) {
 
 let progressInterval = null;
 
-// 切換全螢幕載入動畫 (支援進度條模式)
 export function toggleLoader(show, text = '系統處理中...', isBatch = false) {
   const loader = document.getElementById('loader');
   if (!loader) return;
@@ -55,19 +49,16 @@ export function toggleLoader(show, text = '系統處理中...', isBatch = false)
   
   if (show) {
     if (loaderText) loaderText.innerText = text;
-    
-    // 如果是批次處理，顯示進度條並隱藏轉圈圈
     if (isBatch && progressContainer) {
       if (spinner) spinner.classList.add('d-none');
       progressContainer.classList.remove('d-none');
-      progressBar.classList.remove('bg-success'); // 重置顏色
+      progressBar.classList.remove('bg-success');
       progressBar.classList.add('bg-academic');
       progressBar.style.width = '0%';
       progressBar.innerText = '0%';
       
       let currentProgress = 0;
       clearInterval(progressInterval);
-      // 模擬進度推進，跑到 90% 會停住等待伺服器
       progressInterval = setInterval(() => {
         if (currentProgress < 90) {
           currentProgress += Math.floor(Math.random() * 15) + 5; 
@@ -77,14 +68,12 @@ export function toggleLoader(show, text = '系統處理中...', isBatch = false)
         }
       }, 400);
     } else {
-      // 一般的轉圈圈模式
       if (spinner) spinner.classList.remove('d-none');
       if (progressContainer) progressContainer.classList.add('d-none');
     }
     loader.style.display = 'flex';
   } else {
     clearInterval(progressInterval);
-    // 關閉時，如果是進度條模式，先填滿 100% 展現成功感再消失
     if (isBatch && progressContainer && !progressContainer.classList.contains('d-none')) {
        progressBar.classList.remove('bg-academic');
        progressBar.classList.add('bg-success');
@@ -92,18 +81,14 @@ export function toggleLoader(show, text = '系統處理中...', isBatch = false)
        progressBar.innerText = '100%';
        setTimeout(() => {
          loader.style.display = 'none';
-       }, 600); // 留 0.6 秒讓使用者看到 100% 成功
+       }, 600);
     } else {
        loader.style.display = 'none';
     }
   }
 }
 
-/**
- * 切換主畫面 View，並自動動態渲染頂部 Navbar 資訊欄位
- */
 export function switchView(viewId) {
-  // 1. 切換各節點的 active 狀態
   document.querySelectorAll('.view-section').forEach(el => {
     el.classList.remove('active');
   });
@@ -112,43 +97,35 @@ export function switchView(viewId) {
     target.classList.add('active');
   }
 
-  // 2. 抓取 Navbar 所有新設計的獨立動態欄位元件
   const idEl = document.getElementById('nav-user-id');
   const nameEl = document.getElementById('nav-user-name');
   const modeEl = document.getElementById('nav-mode-name');
   const backBtn = document.getElementById('nav-back-btn');
   const logoutBtn = document.getElementById('nav-logout-btn');
 
-  // 🌟 安全防呆，確保程式絕對不中斷
   if (!idEl) return; 
 
-  // 3. 動態路由分流排版引擎
   if (viewId === 'view-lobby' || viewId === 'view-login') {
     idEl.style.display = 'none';
     nameEl.style.display = 'none';
     modeEl.style.display = 'none';
     backBtn.style.display = 'none';
     logoutBtn.style.display = 'none';
-    
   } else if (viewId === 'view-mode-select') {
     idEl.innerText = session.id || '';
     nameEl.innerText = session.name ? `${session.name} 藥師` : '';
-    
     idEl.style.display = session.id ? 'inline-block' : 'none';
     nameEl.style.display = session.name ? 'inline-block' : 'none';
-    
     modeEl.style.display = 'none'; 
     backBtn.style.display = 'none'; 
     logoutBtn.style.display = 'inline-block'; 
-    
   } else {
     idEl.innerText = session.id || '';
     nameEl.innerText = session.name ? `${session.name} 藥師` : '';
-    
     idEl.style.display = session.id ? 'inline-block' : 'none';
     nameEl.style.display = session.name ? 'inline-block' : 'none';
 
-    const isGlobalPortal = ['user_mgmt', 'drug_mgmt', 'portal_perm'].includes(currentDept);
+    const isGlobalPortal = ['user_mgmt', 'drug_mgmt', 'portal_perm', 'monthly_adj'].includes(currentDept);
     if (viewId === 'view-daily-app') {
       modeEl.innerText = '每日盤點';
     } else if (viewId === 'view-monthly-app') {
@@ -161,6 +138,8 @@ export function switchView(viewId) {
       modeEl.innerText = '藥品管理組';
     } else if (viewId === 'view-portal-perm') {
       modeEl.innerText = '網站權限管理';
+    } else if (viewId === 'view-monthly-adj') {
+      modeEl.innerText = '月盤點調帳專區';
     } else if (viewId === 'view-maintenance') {
       modeEl.innerText = '分層儲位維護';
     } else {
@@ -181,20 +160,17 @@ export function switchView(viewId) {
   }
 }
 
-// 顯示提示訊息 (Toast)
 export function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
   if (!container) return;
   
   const toast = document.createElement('div');
-  
   let bgClass = 'bg-success';
   if (type === 'error') bgClass = 'bg-danger';
   if (type === 'delete') bgClass = 'bg-warning text-dark';
   
   toast.className = `custom-toast ${bgClass}`;
   toast.innerText = message;
-  
   container.appendChild(toast);
   
   setTimeout(() => toast.classList.add('show'), 10);
@@ -204,7 +180,6 @@ export function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// 掃描條碼成功時的提示音
 export function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -216,9 +191,6 @@ export function playBeep() {
   } catch(e) {}
 }
 
-// ==========================================
-// 🌟 螢幕長亮控制 (防止盤點時手機自動休眠)
-// ==========================================
 let wakeLock = null;
 
 export async function requestWakeLock() {
