@@ -1,7 +1,7 @@
 /**
  * ui.js - 負責畫面切換、載入動畫與提示訊息
  */
-import { session, DEPT_NAME } from './config.js';
+import { session, DEPT_NAME, currentDept } from './config.js';
 
 
 // ==========================================
@@ -148,14 +148,31 @@ export function switchView(viewId) {
     idEl.style.display = session.id ? 'inline-block' : 'none';
     nameEl.style.display = session.name ? 'inline-block' : 'none';
 
+    const isGlobalPortal = ['user_mgmt', 'drug_mgmt', 'portal_perm'].includes(currentDept);
     if (viewId === 'view-daily-app') {
       modeEl.innerText = '每日盤點';
     } else if (viewId === 'view-monthly-app') {
       modeEl.innerText = '月盤點';
     } else if (viewId === 'view-history-app') {
       modeEl.innerText = '對帳分析';
+    } else if (viewId === 'view-user-mgmt') {
+      modeEl.innerText = '藥師權限管理';
+    } else if (viewId === 'view-drug-mgmt') {
+      modeEl.innerText = '藥品管理組';
+    } else if (viewId === 'view-portal-perm') {
+      modeEl.innerText = '網站權限管理';
+    } else if (viewId === 'view-maintenance') {
+      modeEl.innerText = '分層儲位維護';
     } else {
       modeEl.innerText = '作業中';
+    }
+
+    if (isGlobalPortal) {
+      backBtn.setAttribute('onclick', 'backToLobby()');
+      backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> 回入口';
+    } else {
+      backBtn.setAttribute('onclick', 'backToModeSelect()');
+      backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> 返回';
     }
     
     modeEl.style.display = 'inline-block';      
