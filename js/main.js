@@ -1,25 +1,7 @@
 import { activeUploads, syncOfflineData } from './api.js'; 
 import { session, DEPT_NAME, DEPT_COLOR, currentDept, MAINTENANCE_LINK_MAP } from './config.js';
 import { switchView } from './ui.js';
-import { handleLogin, handleLogout } from './auth.js';
-import {
-  initMaintenanceMode, switchMaintTab, autoGenerateUserEmail, renderUsersTable,
-  openUserEditModal, submitUserEdit, handleSapFileSelect, uploadParsedSap,
-  renderLocationsTable, openLocEditModal, submitLocEdit, deleteLocItem
-} from './maintenance.js';
-
-window.initMaintenanceMode = initMaintenanceMode;
-window.switchMaintTab = switchMaintTab;
-window.autoGenerateUserEmail = autoGenerateUserEmail;
-window.renderUsersTable = renderUsersTable;
-window.openUserEditModal = openUserEditModal;
-window.submitUserEdit = submitUserEdit;
-window.handleSapFileSelect = handleSapFileSelect;
-window.uploadParsedSap = uploadParsedSap;
-window.renderLocationsTable = renderLocationsTable;
-window.openLocEditModal = openLocEditModal;
-window.submitLocEdit = submitLocEdit;
-window.deleteLocItem = deleteLocItem;
+import { handleLogin, handleLogout, backToLobby } from './auth.js';
 
 import { 
   initDailyMode, changeDailyDate, switchDailyTab, submitDailyOne, 
@@ -42,8 +24,20 @@ import {
   renderHistoryTable, toggleModalCol, addQuickDate, openNoteModal, submitDrugNote, voidDrugNote 
 } from './history.js';
 
+import {
+  initUserMgmtPortal, autoGenerateUserEmail, loadUsersList, renderUsersTable, openUserEditModal, submitUserEdit,
+  initPortalPermPortal, loadPortalPermissions, savePortalPermRow,
+  initDrugMgmtPortal, switchDrugMgmtTab, loadDrugMasterStats, handleMasterFileSelect, submitRebuildDrugMaster,
+  generateDailySnapshotNow, loadDailySnapshots, generateMonthlySnapshotNow, loadMonthlySnapshots,
+  handleSapFileSelectV2, uploadSapWithConfirm, loadSapHistoryList, rollbackSapDate,
+  initHierarchyMaintenance, loadHierarchyData, selectHierArea, selectHierTable, renderLocationsColumn,
+  openAreaModal, autoPreviewAreaId, submitAreaEdit, deleteAreaItem,
+  openTableModal, autoPreviewTableId, submitTableEdit, deleteTableItem,
+  openLocEditModal, autoPreviewLocCode, submitLocEdit, deleteLocItem
+} from './maintenance.js';
+
 // ==========================================
-// 🛡️ 瀏覽器與 APP 內部防護網 (自動攔截與主動打包)
+// 🛡️ 瀏覽器與 APP 內部防護網
 // ==========================================
 window.addEventListener('beforeunload', function (e) {
   const mCount = typeof getMonthlyQueueCount === 'function' ? getMonthlyQueueCount() : 0;
@@ -51,13 +45,12 @@ window.addEventListener('beforeunload', function (e) {
   if (activeUploads > 0 || mCount > 0 || dCount > 0) {
     if (mCount > 0 && typeof flushMonthlyQueue === 'function') flushMonthlyQueue({ showBlockingLoader: false });
     if (dCount > 0 && typeof flushDailyQueue === 'function') flushDailyQueue({ showBlockingLoader: false });
-    const msg = '尚有待打包同步的盤點資料，請等待同步完成再關閉網頁！';
+    const msg = '尚有待同步的盤點資料，請等待同步完成再關閉網頁！';
     e.returnValue = msg; 
     return msg;          
   }
 });
 
-// 🌟 覆寫頂部 Navbar 返回按鈕：離開前強制打包
 window.backToModeSelect = function() {
   if (activeUploads > 0) { alert(`⚠️ 系統正在背景同步，請稍候再離開。`); return; }
   const mCount = typeof getMonthlyQueueCount === 'function' ? getMonthlyQueueCount() : 0;
@@ -105,18 +98,34 @@ function safeSilentRefresh() {
 window.addEventListener('offline-sync-complete', safeSilentRefresh);
 
 // ==========================================
-// 🚀 全院多藥局與模組匯出
+// 🚀 全院多藥局與管理專區路由
 // ==========================================
 (function applyDynamicEnvironment() {
-  if (!currentDept) { switchView('view-lobby'); document.title = '盤點系統入口大廳';
-  } else { switchView('view-login'); document.title = `${DEPT_NAME}盤點APP`; document.documentElement.style.setProperty('--academic-primary', DEPT_COLOR); const brandEl = document.querySelector('.navbar-brand'); if (brandEl) brandEl.innerHTML = `<i class="bi bi-capsule"></i> ${DEPT_NAME}盤點APP`; }
+  if (!currentDept) {
+    switchView('view-lobby');
+    document.title = 'FEMH藥學部盤點APP';
+  } else {
+    switchView('view-login');
+    document.title = `${DEPT_NAME} — FEMH藥學部盤點APP`;
+    document.documentElement.style.setProperty('--academic-primary', DEPT_COLOR);
+    const brandEl = document.querySelector('.navbar-brand');
+    if (brandEl) brandEl.innerHTML = `<i class="bi bi-capsule"></i> ${DEPT_NAME}`;
+    const loginTitle = document.getElementById('login-portal-title');
+    if (loginTitle) loginTitle.innerText = `【${DEPT_NAME}】身分驗證`;
+  }
 })();
 
 window.enterPharmacy = function(deptCode) { window.location.href = `?dept=${deptCode}`; };
-window.openMaintenanceLink = function() { const link = MAINTENANCE_LINK_MAP[currentDept]; if (link) window.open(link, '_blank'); else alert('未設定連結！'); };
+window.backToLobby = backToLobby;
+window.openMaintenanceLink = function() { initHierarchyMaintenance(); };
 
-window.switchView = switchView; window.handleLogin = handleLogin;
-window.selectMode = function(modeName) { session.mode = modeName; if(modeName === '每日盤點') initDailyMode(); else if (modeName === '月盤點') initMonthlyMode(); };
+window.switchView = switchView;
+window.handleLogin = handleLogin;
+window.selectMode = function(modeName) {
+  session.mode = modeName;
+  if (modeName === '每日盤點') initDailyMode();
+  else if (modeName === '月盤點') initMonthlyMode();
+};
 
 // Daily Exports
 window.initDailyMode = initDailyMode; window.changeDailyDate = changeDailyDate; window.switchDailyTab = switchDailyTab; window.submitDailyOne = submitDailyOne; window.openAdminSort = openAdminSort; window.toggleVisibility = toggleVisibility; window.highlightSearchItem = highlightSearchItem; window.rebuildAdminList = rebuildAdminList; window.saveAdminDataToServer = saveAdminDataToServer; window.renderDailyItems = renderDailyItems; window.flushDailyQueue = flushDailyQueue;
@@ -126,6 +135,50 @@ window.refreshMonthlyData = refreshMonthlyData; window.initMonthlyMode = initMon
 
 // History Exports
 window.initHistoryMode = initHistoryMode; window.addHistoryDate = addHistoryDate; window.removeHistoryDate = removeHistoryDate; window.handleDrugSearch = handleDrugSearch; window.selectDrugFilter = selectDrugFilter; window.clearDrugFilter = clearDrugFilter; window.renderHistoryTable = renderHistoryTable; window.toggleModalCol = toggleModalCol; window.addQuickDate = addQuickDate; window.openNoteModal = openNoteModal; window.submitDrugNote = submitDrugNote; window.voidDrugNote = voidDrugNote;
+
+// Maintenance & Portals Exports
+window.initUserMgmtPortal = initUserMgmtPortal;
+window.autoGenerateUserEmail = autoGenerateUserEmail;
+window.loadUsersList = loadUsersList;
+window.renderUsersTable = renderUsersTable;
+window.openUserEditModal = openUserEditModal;
+window.submitUserEdit = submitUserEdit;
+
+window.initPortalPermPortal = initPortalPermPortal;
+window.loadPortalPermissions = loadPortalPermissions;
+window.savePortalPermRow = savePortalPermRow;
+
+window.initDrugMgmtPortal = initDrugMgmtPortal;
+window.switchDrugMgmtTab = switchDrugMgmtTab;
+window.loadDrugMasterStats = loadDrugMasterStats;
+window.handleMasterFileSelect = handleMasterFileSelect;
+window.submitRebuildDrugMaster = submitRebuildDrugMaster;
+window.generateDailySnapshotNow = generateDailySnapshotNow;
+window.loadDailySnapshots = loadDailySnapshots;
+window.generateMonthlySnapshotNow = generateMonthlySnapshotNow;
+window.loadMonthlySnapshots = loadMonthlySnapshots;
+window.handleSapFileSelectV2 = handleSapFileSelectV2;
+window.uploadSapWithConfirm = uploadSapWithConfirm;
+window.loadSapHistoryList = loadSapHistoryList;
+window.rollbackSapDate = rollbackSapDate;
+
+window.initHierarchyMaintenance = initHierarchyMaintenance;
+window.loadHierarchyData = loadHierarchyData;
+window.selectHierArea = selectHierArea;
+window.selectHierTable = selectHierTable;
+window.renderLocationsColumn = renderLocationsColumn;
+window.openAreaModal = openAreaModal;
+window.autoPreviewAreaId = autoPreviewAreaId;
+window.submitAreaEdit = submitAreaEdit;
+window.deleteAreaItem = deleteAreaItem;
+window.openTableModal = openTableModal;
+window.autoPreviewTableId = autoPreviewTableId;
+window.submitTableEdit = submitTableEdit;
+window.deleteTableItem = deleteTableItem;
+window.openLocEditModal = openLocEditModal;
+window.autoPreviewLocCode = autoPreviewLocCode;
+window.submitLocEdit = submitLocEdit;
+window.deleteLocItem = deleteLocItem;
 
 // ==========================================
 // ✨ 全域小算盤功能
