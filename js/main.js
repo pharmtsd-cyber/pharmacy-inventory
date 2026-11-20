@@ -2,6 +2,24 @@ import { activeUploads, syncOfflineData } from './api.js';
 import { session, DEPT_NAME, DEPT_COLOR, currentDept, MAINTENANCE_LINK_MAP } from './config.js';
 import { switchView } from './ui.js';
 import { handleLogin, handleLogout } from './auth.js';
+import {
+  initMaintenanceMode, switchMaintTab, autoGenerateUserEmail, renderUsersTable,
+  openUserEditModal, submitUserEdit, handleSapFileSelect, uploadParsedSap,
+  renderLocationsTable, openLocEditModal, submitLocEdit, deleteLocItem
+} from './maintenance.js';
+
+window.initMaintenanceMode = initMaintenanceMode;
+window.switchMaintTab = switchMaintTab;
+window.autoGenerateUserEmail = autoGenerateUserEmail;
+window.renderUsersTable = renderUsersTable;
+window.openUserEditModal = openUserEditModal;
+window.submitUserEdit = submitUserEdit;
+window.handleSapFileSelect = handleSapFileSelect;
+window.uploadParsedSap = uploadParsedSap;
+window.renderLocationsTable = renderLocationsTable;
+window.openLocEditModal = openLocEditModal;
+window.submitLocEdit = submitLocEdit;
+window.deleteLocItem = deleteLocItem;
 
 import { 
   initDailyMode, changeDailyDate, switchDailyTab, submitDailyOne, 
