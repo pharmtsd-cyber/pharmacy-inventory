@@ -54,7 +54,6 @@
   </div>
 </nav>
 
-<!-- ==================== 網站入口大廳 ==================== -->
 <div id="view-lobby" class="view-section" style="background-color: #f4f6f9; overflow-y: auto;">
   <div class="container py-4 py-md-5 d-flex flex-column justify-content-center align-items-center min-vh-100 px-3">
     <div class="text-center mb-4">
@@ -125,12 +124,18 @@
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">各入口登入權限規則設定</span>
           </div>
         </div>
+        <div class="col-12 col-md-4">
+          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('monthly_adj')" style="border-top: 4px solid #6F42C1 !important;">
+            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-calculator-fill" style="color: #6F42C1;"></i></div>
+            <h5 class="fw-bold text-dark mb-1">月盤點調帳專區</h5>
+            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">調帳總表 / 盤點紀錄 / 標記追蹤 / 版本存檔</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ==================== 身分驗證畫面 ==================== -->
 <div id="view-login" class="container view-section">
   <div class="card card-academic p-4 mt-4 bg-white shadow" style="max-width: 480px; width: 100%; margin-left: auto; margin-right: auto;">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -145,7 +150,6 @@
   </div>
 </div>
 
-<!-- ==================== 單位作業模式選單 ==================== -->
 <div id="view-mode-select" class="container view-section">
   <div class="card card-academic p-4 mt-4 text-center bg-white shadow">
     <h5 class="mb-4 text-academic fw-bold">請選擇作業模式</h5>
@@ -171,7 +175,6 @@
   </div>
 </div>
 
-<!-- ==================== 每日盤點畫面 ==================== -->
 <div id="view-daily-app" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -200,7 +203,6 @@
   <div id="daily-list-area" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
 </div>
 
-<!-- ==================== 管理排序畫面 ==================== -->
 <div id="view-admin-sort" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
@@ -219,7 +221,6 @@
   <div id="admin-sortable-list" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
 </div>
 
-<!-- ==================== 月盤點畫面 ==================== -->
 <div id="view-monthly-app" class="container-fluid view-section">
   <div class="card card-academic p-2 shadow-sm mb-2 border-0 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -354,7 +355,6 @@
   </div>
 </div>
 
-<!-- ==================== 對帳與趨勢分析 ==================== -->
 <div id="view-history-app" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
@@ -389,7 +389,6 @@
   </div>
 </div>
 
-<!-- ==================== 入口專區 1：藥師權限管理 ==================== -->
 <div id="view-user-mgmt" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -433,7 +432,6 @@
   </div>
 </div>
 
-<!-- ==================== 入口專區 2：網站權限管理 ==================== -->
 <div id="view-portal-perm" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center">
@@ -447,7 +445,6 @@
   <div id="portal-perm-list" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
 </div>
 
-<!-- ==================== 入口專區 3：藥品管理組 (指定分頁順序) ==================== -->
 <div id="view-drug-mgmt" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -463,7 +460,6 @@
     </ul>
   </div>
 
-  <!-- 3-1 更新藥品主檔 (全刪全重建 + 格式提示與範本下載) -->
   <div id="dm-tab-master" class="flex-grow-1 overflow-auto px-1 pb-4">
     <div class="card border-0 shadow-sm p-4 bg-white">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
@@ -473,7 +469,6 @@
         </button>
       </div>
       <div id="dm-master-stats" class="badge bg-light text-dark border mb-3 p-2 text-start">讀取中...</div>
-
       <div class="alert alert-info small mb-3">
         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 上傳格式與用途說明：</div>
         <ul class="mb-1 ps-3">
@@ -482,7 +477,6 @@
         </ul>
         <div class="text-danger fw-bold mt-1">⚠️ 執行後會全數清空舊主檔再重建，舊盤點紀錄請先於「每日/月盤點結果」結算鎖存快照。</div>
       </div>
-
       <input type="file" id="dm-master-file" class="form-control border-secondary mb-3" accept=".xlsx,.xls" onchange="handleMasterFileSelect(event)">
       <div id="dm-master-preview" class="alert alert-light border small text-secondary mb-3">尚未選擇檔案</div>
       <button id="dm-master-upload-btn" class="btn btn-danger fw-bold px-4" disabled onclick="submitRebuildDrugMaster()">
@@ -491,7 +485,6 @@
     </div>
   </div>
 
-  <!-- 3-2 上傳每日 SAP (格式提示與範本下載 + 二次確認 + 取回刪除) -->
   <div id="dm-tab-sap-daily" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
@@ -500,7 +493,6 @@
           <i class="bi bi-file-earmark-excel"></i> 下載每日 SAP 範本
         </button>
       </div>
-
       <div class="alert alert-primary bg-opacity-10 small mb-3">
         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 格式與用途說明：</div>
         <ul class="mb-0 ps-3">
@@ -508,7 +500,6 @@
           <li><strong>必備欄位名稱（第一列標題）</strong>：<code>SAP日期</code>（如 2026-11-20）、<code>物料</code>（藥品代碼）、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。</li>
         </ul>
       </div>
-
       <div class="row g-2 mb-3">
         <div class="col-md-4">
           <label class="form-label small fw-bold">目標單位</label>
@@ -529,7 +520,6 @@
         <i class="bi bi-cloud-upload"></i> 確認上傳每日 SAP
       </button>
     </div>
-
     <div class="card border-0 shadow-sm p-3 bg-white">
       <div class="fw-bold small text-secondary mb-2">已上傳的【每日 SAP】批次紀錄（傳錯可點「取回刪除」或重新上傳覆蓋）</div>
       <div class="table-responsive border rounded">
@@ -543,7 +533,6 @@
     </div>
   </div>
 
-  <!-- 3-3 上傳月 SAP (格式提示與範本下載 + 二次確認 + 取回刪除) -->
   <div id="dm-tab-sap-monthly" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
@@ -552,7 +541,6 @@
           <i class="bi bi-file-earmark-excel"></i> 下載月 SAP 範本
         </button>
       </div>
-
       <div class="alert alert-success bg-opacity-10 small mb-3">
         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 格式與用途說明：</div>
         <ul class="mb-0 ps-3">
@@ -560,7 +548,6 @@
           <li><strong>必備欄位名稱（第一列標題）</strong>：<code>SAP日期</code>（該月日期，如 2026-11-30）、<code>物料</code>（藥品代碼）、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。</li>
         </ul>
       </div>
-
       <div class="row g-2 mb-3">
         <div class="col-md-4">
           <label class="form-label small fw-bold">目標單位</label>
@@ -581,7 +568,6 @@
         <i class="bi bi-cloud-upload"></i> 確認上傳月 SAP
       </button>
     </div>
-
     <div class="card border-0 shadow-sm p-3 bg-white">
       <div class="fw-bold small text-secondary mb-2">已上傳的【月 SAP】批次紀錄（傳錯可點「取回刪除」或重新上傳覆蓋）</div>
       <div class="table-responsive border rounded">
@@ -595,7 +581,6 @@
     </div>
   </div>
 
-  <!-- 3-4 每日盤點結果快照 (支援全部單位 + Excel 匯出) -->
   <div id="dm-tab-daily-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
       <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
@@ -633,7 +618,6 @@
     </div>
   </div>
 
-  <!-- 3-5 月盤點結果快照 (支援全部單位分色欄位 + Excel 匯出) -->
   <div id="dm-tab-monthly-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
       <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
@@ -662,7 +646,165 @@
   </div>
 </div>
 
-<!-- ==================== 各單位分層儲位維護 (跨表拖拉 + 分段 + 自動重編碼) ==================== -->
+<div id="view-monthly-adj" class="container-fluid view-section">
+  <div class="card card-academic p-2 shadow-sm mb-2 bg-white flex-shrink-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <h6 class="fw-bold text-academic mb-0"><i class="bi bi-calculator-fill"></i> 月盤點調帳專區</h6>
+        <select id="adj-unit-select" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadAdjInventoryData()">
+          <option value="BF" selected>住院藥局 (BF)</option>
+          <option value="BA">門診藥局 (BA)</option>
+          <option value="BE">急診藥局 (BE)</option>
+          <option value="BG">調配藥局 (BG)</option>
+        </select>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
+    </div>
+    <ul class="nav nav-pills nav-fill gap-1" id="adj-main-tabs">
+      <li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white py-2 small" data-target="adj-tab-inventory" onclick="switchAdjTab('adj-tab-inventory')">調帳專區</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-records" onclick="switchAdjTab('adj-tab-records')">APP盤點紀錄</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-marker" onclick="switchAdjTab('adj-tab-marker')">標記追蹤藥品</button></li>
+      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-version" onclick="switchAdjTab('adj-tab-version')">盤點表版本紀錄</button></li>
+    </ul>
+  </div>
+
+  <div id="adj-tab-inventory" class="flex-grow-1 overflow-auto px-1 pb-4">
+    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2 p-2 rounded" style="background:#e3f2fd;">
+        <div class="d-flex align-items-center gap-1">
+          <label class="small fw-bold text-secondary mb-0">預測日(起):</label>
+          <input type="date" id="adj-param-forecast" class="form-control form-control-sm border-secondary w-auto">
+        </div>
+        <div class="d-flex align-items-center gap-1">
+          <label class="small fw-bold text-primary mb-0">基準日(迄):</label>
+          <input type="date" id="adj-param-reference" class="form-control form-control-sm border-primary w-auto fw-bold">
+        </div>
+        <button class="btn btn-sm btn-primary fw-bold" onclick="loadAdjInventoryData()">🔍 依日期載入</button>
+        <button class="btn btn-sm btn-success fw-bold" onclick="handleAdjSaveVersion()">💾 存檔版本</button>
+        <span id="adj-save-status" class="small fw-bold ms-1"></span>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <input type="text" id="adj-search-input" class="form-control form-control-sm border-secondary" style="max-width:210px;" placeholder="藥品代碼/名稱搜尋..." oninput="applyAdjFilters()">
+        <select id="adj-filter-symbol" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
+          <option value="ALL">全部符號</option>
+        </select>
+        <select id="adj-filter-prev" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
+          <option value="ALL">前日: 全部</option>
+          <option value="HAS_VALUE">前日: 其一不為0</option>
+          <option value="EMPTY">前日: 都為0</option>
+        </select>
+        <select id="adj-filter-curr" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
+          <option value="HAS_VALUE" selected>當日: 其一不為0</option>
+          <option value="EMPTY">當日: 都為0</option>
+          <option value="ALL">當日: 全部</option>
+        </select>
+        <div class="btn-group ms-auto">
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(1)">前日結存欄</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(2)">當日盤點欄</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(3)">申報調帳欄</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
+      <table class="table table-bordered table-hover table-sm align-middle mb-0" id="adj-data-table" style="font-size:0.85rem;">
+        <thead class="table-academic-head sticky-top" id="adj-thead"></thead>
+        <tbody id="adj-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="adj-tab-records" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+        <label class="small fw-bold">日期區間:</label>
+        <input type="date" id="adj-rec-start" class="form-control form-control-sm border-secondary w-auto">
+        <span>~</span>
+        <input type="date" id="adj-rec-end" class="form-control form-control-sm border-secondary w-auto">
+        <input type="text" id="adj-rec-search" class="form-control form-control-sm border-secondary" style="max-width:200px;" placeholder="代碼/名稱/儲位搜尋" oninput="applyAdjAppRecordFilters()">
+        <button class="btn btn-sm btn-success fw-bold ms-auto" onclick="loadAdjAppRecords()">🔍 依區間載入</button>
+      </div>
+      <div id="adj-rec-col-toggles" class="d-flex flex-wrap gap-1"></div>
+    </div>
+    <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
+      <table class="table table-bordered table-hover table-sm align-middle text-nowrap mb-0" style="font-size:0.85rem;">
+        <thead class="table-academic-head sticky-top" id="adj-rec-thead"></thead>
+        <tbody id="adj-rec-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="adj-tab-marker" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="fw-bold small text-primary mb-2">新增 / 編輯追蹤標記</div>
+      <div class="row g-2 mb-3">
+        <div class="col-md-3 position-relative">
+          <input type="text" id="adj-mk-code" class="form-control form-control-sm border-secondary" placeholder="輸入藥品代碼/名稱" oninput="handleAdjMarkerAutocomplete()" autocomplete="off">
+          <div id="adj-mk-autocomplete" class="search-dropdown"></div>
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="adj-mk-name" class="form-control form-control-sm bg-light" placeholder="藥品名稱" readonly>
+        </div>
+        <div class="col-md-2">
+          <input type="text" id="adj-mk-symbol" class="form-control form-control-sm border-secondary" placeholder="標記 (如 $)">
+        </div>
+        <div class="col-md-2">
+          <input type="text" id="adj-mk-note" class="form-control form-control-sm border-secondary" placeholder="追蹤備註">
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-sm btn-primary fw-bold w-100" onclick="saveAdjMarkerItem()">儲存標記</button>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 align-items-center border-top pt-2">
+        <input type="text" id="adj-marker-search" class="form-control form-control-sm border-secondary" style="max-width:220px;" placeholder="搜尋代碼/名稱" oninput="applyAdjMarkerFilters()">
+        <select id="adj-marker-sym-filter" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjMarkerFilters()">
+          <option value="ALL">全部顯示</option>
+        </select>
+        <button class="btn btn-sm btn-outline-primary fw-bold ms-auto" onclick="loadAdjMarkers()">🔄 重新載入</button>
+      </div>
+    </div>
+
+    <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:55vh; overflow:auto;">
+      <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size:0.85rem;">
+        <thead class="table-academic-head sticky-top">
+          <tr>
+            <th>藥品代碼</th>
+            <th>藥品名稱</th>
+            <th style="width:110px;">標記符號</th>
+            <th>追蹤備註</th>
+            <th>更新者</th>
+            <th>最後更新時間</th>
+            <th class="text-center">操作</th>
+          </tr>
+        </thead>
+        <tbody id="adj-marker-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="adj-tab-version" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <label class="small fw-bold">版本月份:</label>
+        <select id="adj-ver-month-filter" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="applyAdjVersionFilters()">
+          <option value="ALL">全部月份</option>
+        </select>
+        <input type="text" id="adj-ver-search" class="form-control form-control-sm border-secondary" style="max-width:220px;" placeholder="代碼/名稱搜尋" oninput="applyAdjVersionFilters()">
+        <button class="btn btn-sm btn-success fw-bold ms-auto" onclick="exportAdjVersionExcel()">📥 下載此版本 EXCEL</button>
+        <button class="btn btn-sm btn-outline-primary fw-bold" onclick="loadAdjVersionRecords()">🔄 重新載入</button>
+      </div>
+    </div>
+    <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
+      <table class="table table-bordered table-hover table-sm align-middle text-nowrap mb-0" style="font-size:0.85rem;">
+        <thead class="table-academic-head sticky-top" id="adj-ver-thead"></thead>
+        <tbody id="adj-ver-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div id="view-maintenance" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -686,7 +828,6 @@
 
   <div class="flex-grow-1 overflow-auto px-1 pb-4">
     <div class="row g-2">
-      <!-- 第一層：區域 (A-Z 自動順序) -->
       <div class="col-12 col-lg-3">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
@@ -697,7 +838,6 @@
         </div>
       </div>
 
-      <!-- 第二層：盤點表 (AA-AZ / 分段 BA-BZ + 跨區移動) -->
       <div class="col-12 col-lg-3">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
@@ -708,7 +848,6 @@
         </div>
       </div>
 
-      <!-- 第三層：儲位明細 (排/位自動跳號 + 分段 + 跨表移動) -->
       <div class="col-12 col-lg-6">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex flex-wrap gap-2 justify-content-between align-items-center py-2">
@@ -739,7 +878,6 @@
   </div>
 </div>
 
-<!-- ==================== 維護用 Modals ==================== -->
 <div class="modal fade" id="userEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
@@ -943,161 +1081,150 @@
 </div>
 
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
-      <div class="modal-content bg-light">
-        <div class="modal-header bg-academic text-white border-0"><h6 class="modal-title fw-bold" id="modal-drug-name"></h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body p-0">
-          <div class="p-2 bg-white border-bottom shadow-sm sticky-top" style="top: 0; z-index: 1050;"><div id="modal-col-toggles" class="d-flex flex-wrap gap-1"></div></div>
-          <div class="p-2"><div class="table-responsive bg-white border rounded shadow-sm"><table class="table table-bordered table-sm table-hover align-middle text-nowrap mb-0" style="font-size: 0.85rem;"><thead class="table-academic-head text-center" id="modal-thead"></thead><tbody id="modal-tbody"></tbody></table></div></div>
-        </div>
-        <div class="modal-footer bg-white border-top p-2"><button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">關閉</button></div>
+  <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+    <div class="modal-content bg-light">
+      <div class="modal-header bg-academic text-white border-0"><h6 class="modal-title fw-bold" id="modal-drug-name"></h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body p-0">
+        <div class="p-2 bg-white border-bottom shadow-sm sticky-top" style="top: 0; z-index: 1050;"><div id="modal-col-toggles" class="d-flex flex-wrap gap-1"></div></div>
+        <div class="p-2"><div class="table-responsive bg-white border rounded shadow-sm"><table class="table table-bordered table-sm table-hover align-middle text-nowrap mb-0" style="font-size: 0.85rem;"><thead class="table-academic-head text-center" id="modal-thead"></thead><tbody id="modal-tbody"></tbody></table></div></div>
       </div>
+      <div class="modal-footer bg-white border-top p-2"><button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">關閉</button></div>
     </div>
   </div>
+</div>
 
 <div class="modal fade" id="barcodeQtyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content shadow-lg border-0">
-        <div class="modal-header bg-academic text-white border-0">
-          <h6 class="modal-title fw-bold"><i class="bi bi-upc-scan"></i> 掃描成功：輸入數量</h6>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-academic text-white border-0">
+        <h6 class="modal-title fw-bold"><i class="bi bi-upc-scan"></i> 掃描成功：輸入數量</h6>
+      </div>
+      <div class="modal-body p-4">
+        <div class="text-center mb-3">
+          <div id="barcode-qty-drug-name" class="fw-bold fs-5 text-dark">藥品名稱</div>
+          <div id="barcode-qty-drug-info" class="small text-secondary">代碼訊息</div>
         </div>
-        <div class="modal-body p-4">
-          <div class="text-center mb-3">
-            <div id="barcode-qty-drug-name" class="fw-bold fs-5 text-dark">藥品名稱</div>
-            <div id="barcode-qty-drug-info" class="small text-secondary">代碼訊息</div>
-          </div>
-          
-          <div class="input-group shadow-sm mt-3 mb-2">
-            <input type="number" id="barcode-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入數量" onkeydown="if(event.key === 'Enter') confirmBarcodeQty()">
-            <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('barcode-qty-input', '掃描數量')">
-              <i class="bi bi-calculator fs-2"></i>
-            </button>
-          </div>
-          </div>
-        <div class="modal-footer border-0 p-3">
-          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelBarcodeQty()">取消</button>
-          <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmBarcodeQty()">確認</button>
+        <div class="input-group shadow-sm mt-3 mb-2">
+          <input type="number" id="barcode-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入數量" onkeydown="if(event.key === 'Enter') confirmBarcodeQty()">
+          <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('barcode-qty-input', '掃描數量')">
+            <i class="bi bi-calculator fs-2"></i>
+          </button>
         </div>
+      </div>
+      <div class="modal-footer border-0 p-3">
+        <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelBarcodeQty()">取消</button>
+        <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmBarcodeQty()">確認</button>
       </div>
     </div>
   </div>
-
-  
+</div>
 
 <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-      <div class="modal-content shadow-lg border-0 bg-light">
-        <div class="modal-header bg-academic text-white border-0 py-2">
-          <h6 class="modal-title fw-bold"><i class="bi bi-calculator"></i> <span id="calc-title" class="text-truncate" style="max-width: 150px; display: inline-block; vertical-align: bottom;">小算盤</span></h6>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content shadow-lg border-0 bg-light">
+      <div class="modal-header bg-academic text-white border-0 py-2">
+        <h6 class="modal-title fw-bold"><i class="bi bi-calculator"></i> <span id="calc-title" class="text-truncate" style="max-width: 150px; display: inline-block; vertical-align: bottom;">小算盤</span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div id="calc-display" class="form-control text-end fs-3 fw-bold mb-3 shadow-sm bg-white text-academic" style="height: 60px; overflow-x: auto; white-space: nowrap; line-height: 45px;">0</div>
+        <div class="row g-2">
+          <div class="col-3"><button class="btn btn-danger w-100 fw-bold fs-4 shadow-sm" onclick="calcClear()">C</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('(')">(</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress(')')">)</button></div>
+          <div class="col-3"><button class="btn btn-warning w-100 fw-bold fs-5 shadow-sm h-100" onclick="calcBackspace()"><i class="bi bi-backspace"></i></button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('7')">7</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('8')">8</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('9')">9</button></div>
+          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('/')">÷</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('4')">4</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('5')">5</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('6')">6</button></div>
+          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('*')">×</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('1')">1</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('2')">2</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('3')">3</button></div>
+          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('-')">-</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('0')">0</button></div>
+          <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('.')">.</button></div>
+          <div class="col-3"><button class="btn btn-success w-100 fw-bold fs-4 shadow-sm" onclick="calcEqual()">=</button></div>
+          <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('+')">+</button></div>
         </div>
-        <div class="modal-body p-3">
-          <div id="calc-display" class="form-control text-end fs-3 fw-bold mb-3 shadow-sm bg-white text-academic" style="height: 60px; overflow-x: auto; white-space: nowrap; line-height: 45px;">0</div>
-          
-          <div class="row g-2">
-            <div class="col-3"><button class="btn btn-danger w-100 fw-bold fs-4 shadow-sm" onclick="calcClear()">C</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('(')">(</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress(')')">)</button></div>
-            <div class="col-3"><button class="btn btn-warning w-100 fw-bold fs-5 shadow-sm h-100" onclick="calcBackspace()"><i class="bi bi-backspace"></i></button></div>
-            
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('7')">7</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('8')">8</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('9')">9</button></div>
-            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('/')">÷</button></div>
-            
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('4')">4</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('5')">5</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('6')">6</button></div>
-            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('*')">×</button></div>
-            
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('1')">1</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('2')">2</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('3')">3</button></div>
-            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('-')">-</button></div>
-            
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('0')">0</button></div>
-            <div class="col-3"><button class="btn btn-outline-secondary w-100 fw-bold fs-4 shadow-sm bg-white" onclick="calcPress('.')">.</button></div>
-            <div class="col-3"><button class="btn btn-success w-100 fw-bold fs-4 shadow-sm" onclick="calcEqual()">=</button></div>
-            <div class="col-3"><button class="btn btn-academic w-100 fw-bold fs-4 shadow-sm" onclick="calcPress('+')">+</button></div>
-          </div>
-          
-          <div class="mt-3">
-            <button class="btn btn-academic w-100 fw-bold fs-5 shadow-sm py-2" onclick="calcConfirm()"><i class="bi bi-check2-circle"></i> 確認帶入</button>
-          </div>
+        <div class="mt-3">
+          <button class="btn btn-academic w-100 fw-bold fs-5 shadow-sm py-2" onclick="calcConfirm()"><i class="bi bi-check2-circle"></i> 確認帶入</button>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="modal fade" id="drugNoteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content bg-light shadow-lg border-0">
-        <div class="modal-header bg-warning text-dark border-0">
-          <h6 class="modal-title fw-bold"><i class="bi bi-journal-check"></i> 交班註記：<span id="note-modal-title-name"></span></h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="drugNoteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-light shadow-lg border-0">
+      <div class="modal-header bg-warning text-dark border-0">
+        <h6 class="modal-title fw-bold"><i class="bi bi-journal-check"></i> 交班註記：<span id="note-modal-title-name"></span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="mb-3 bg-white p-3 rounded shadow-sm border-start border-4 border-warning">
+          <label class="small fw-bold text-secondary mb-1">新增交班事項</label>
+          <textarea id="new-note-text" class="form-control border-secondary mb-2" rows="2" placeholder="請輸入需要交班的內容..."></textarea>
+          <button class="btn btn-warning fw-bold w-100" onclick="submitDrugNote()">新增送出</button>
         </div>
-        <div class="modal-body p-3">
-          <div class="mb-3 bg-white p-3 rounded shadow-sm border-start border-4 border-warning">
-            <label class="small fw-bold text-secondary mb-1">新增交班事項</label>
-            <textarea id="new-note-text" class="form-control border-secondary mb-2" rows="2" placeholder="請輸入需要交班的內容..."></textarea>
-            <button class="btn btn-warning fw-bold w-100" onclick="submitDrugNote()">新增送出</button>
-          </div>
-          <div class="fw-bold text-secondary mb-2 small"><i class="bi bi-clock-history"></i> 歷史交班紀錄</div>
-          <div id="note-list-area" class="d-flex flex-column gap-2"></div>
-        </div>
+        <div class="fw-bold text-secondary mb-2 small"><i class="bi bi-clock-history"></i> 歷史交班紀錄</div>
+        <div id="note-list-area" class="d-flex flex-column gap-2"></div>
       </div>
     </div>
   </div>
+</div>
 
 <div class="modal fade" id="editQtyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content shadow-lg border-0">
-        <div class="modal-header bg-academic text-white border-0">
-          <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square"></i> 修改盤點數量</h6>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-academic text-white border-0">
+        <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square"></i> 修改盤點數量</h6>
+      </div>
+      <div class="modal-body p-4">
+        <div class="text-center mb-3">
+          <div id="edit-qty-drug-name" class="fw-bold fs-5 text-dark mb-2">藥品名稱</div>
+          <div class="small text-secondary">原盤點數量: <span id="edit-qty-old" class="badge bg-secondary fs-6"></span></div>
         </div>
-        <div class="modal-body p-4">
-          <div class="text-center mb-3">
-            <div id="edit-qty-drug-name" class="fw-bold fs-5 text-dark mb-2">藥品名稱</div>
-            <div class="small text-secondary">原盤點數量: <span id="edit-qty-old" class="badge bg-secondary fs-6"></span></div>
-          </div>
-          
-          <div class="input-group shadow-sm mt-3 mb-2">
-            <input type="number" id="edit-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="輸入新數量" onkeydown="if(event.key === 'Enter') confirmEditQty()">
-            <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('edit-qty-input', '修改數量')">
-              <i class="bi bi-calculator fs-2"></i>
-            </button>
-          </div>
+        <div class="input-group shadow-sm mt-3 mb-2">
+          <input type="number" id="edit-qty-input" class="form-control form-control-lg text-center fw-bold fs-2 border-academic" inputmode="numeric" pattern="[0-9]*" placeholder="輸入新數量" onkeydown="if(event.key === 'Enter') confirmEditQty()">
+          <button class="btn btn-outline-secondary px-4 fw-bold bg-light border-academic" type="button" onclick="openCalculator('edit-qty-input', '修改數量')">
+            <i class="bi bi-calculator fs-2"></i>
+          </button>
         </div>
-        <div class="modal-footer border-0 p-3">
-          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelEditQty()">取消</button>
-          <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmEditQty()">確認修改</button>
-        </div>
+      </div>
+      <div class="modal-footer border-0 p-3">
+        <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelEditQty()">取消</button>
+        <button type="button" class="btn btn-academic fw-bold px-5" onclick="confirmEditQty()">確認修改</button>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="modal fade" id="voidConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content shadow-lg border-0">
-        <div class="modal-header bg-danger text-white border-0">
-          <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> 確認識別作廢</h6>
+<div class="modal fade" id="voidConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-danger text-white border-0">
+        <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> 確認識別作廢</h6>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-trash3 text-danger opacity-75" style="font-size: 3.5rem;"></i>
         </div>
-        <div class="modal-body p-4 text-center">
-          <div class="mb-3">
-            <i class="bi bi-trash3 text-danger opacity-75" style="font-size: 3.5rem;"></i>
-          </div>
-          <p class="mb-2 fw-bold text-dark fs-5">確定要將此紀錄作廢嗎？</p>
-          <div id="void-drug-name" class="fw-bold text-danger fs-5 mb-2">藥品名稱</div>
-          <div class="small text-secondary">目前數量: <span id="void-drug-info" class="badge bg-secondary fs-6"></span></div>
-        </div>
-        <div class="modal-footer border-0 p-3 justify-content-center">
-          <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelVoid()">保留返回</button>
-          <button type="button" class="btn btn-danger fw-bold px-5" onclick="confirmVoid()">確定作廢</button>
-        </div>
+        <p class="mb-2 fw-bold text-dark fs-5">確定要將此紀錄作廢嗎？</p>
+        <div id="void-drug-name" class="fw-bold text-danger fs-5 mb-2">藥品名稱</div>
+        <div class="small text-secondary">目前數量: <span id="void-drug-info" class="badge bg-secondary fs-6"></span></div>
+      </div>
+      <div class="modal-footer border-0 p-3 justify-content-center">
+        <button type="button" class="btn btn-secondary fw-bold px-4" onclick="cancelVoid()">保留返回</button>
+        <button type="button" class="btn btn-danger fw-bold px-5" onclick="confirmVoid()">確定作廢</button>
       </div>
     </div>
   </div>
-  
+</div>
 
 <script type="module" src="./js/main.js"></script>
 </body>
