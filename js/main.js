@@ -1,5 +1,5 @@
 import { activeUploads, syncOfflineData } from './api.js'; 
-import { session, DEPT_NAME, DEPT_COLOR, currentDept, MAINTENANCE_LINK_MAP } from './config.js';
+import { session, DEPT_NAME, DEPT_COLOR, currentDept } from './config.js';
 import { switchView } from './ui.js';
 import { handleLogin, handleLogout, backToLobby } from './auth.js';
 
@@ -27,13 +27,17 @@ import {
 import {
   initUserMgmtPortal, autoGenerateUserEmail, loadUsersList, renderUsersTable, openUserEditModal, submitUserEdit,
   initPortalPermPortal, loadPortalPermissions, savePortalPermRow,
-  initDrugMgmtPortal, switchDrugMgmtTab, loadDrugMasterStats, handleMasterFileSelect, submitRebuildDrugMaster,
-  generateDailySnapshotNow, loadDailySnapshots, generateMonthlySnapshotNow, loadMonthlySnapshots,
+  initDrugMgmtPortal, switchDrugMgmtTab, downloadExcelTemplate,
+  loadDrugMasterStats, handleMasterFileSelect, submitRebuildDrugMaster,
+  generateDailySnapshotNow, loadDailySnapshots, exportDailySnapshotsExcel,
+  generateMonthlySnapshotNow, loadMonthlySnapshots, exportMonthlySnapshotsExcel,
   handleSapFileSelectV2, uploadSapWithConfirm, loadSapHistoryList, rollbackSapDate,
-  initHierarchyMaintenance, loadHierarchyData, selectHierArea, selectHierTable, renderLocationsColumn,
-  openAreaModal, autoPreviewAreaId, submitAreaEdit, deleteAreaItem,
-  openTableModal, autoPreviewTableId, submitTableEdit, deleteTableItem,
-  openLocEditModal, autoPreviewLocCode, submitLocEdit, deleteLocItem
+  initHierarchyMaintenance, loadHierarchyData, renumberAndSaveHierarchy,
+  selectHierArea, selectHierTable, toggleTableSection, moveTableToArea,
+  renderLocationsColumn, toggleLocSection, moveLocToTable,
+  openAreaModal, submitAreaEdit, deleteAreaItem,
+  openTableModal, submitTableEdit, deleteTableItem,
+  openLocEditModal, submitLocEdit, deleteLocItem
 } from './maintenance.js';
 
 // ==========================================
@@ -150,13 +154,16 @@ window.savePortalPermRow = savePortalPermRow;
 
 window.initDrugMgmtPortal = initDrugMgmtPortal;
 window.switchDrugMgmtTab = switchDrugMgmtTab;
+window.downloadExcelTemplate = downloadExcelTemplate;
 window.loadDrugMasterStats = loadDrugMasterStats;
 window.handleMasterFileSelect = handleMasterFileSelect;
 window.submitRebuildDrugMaster = submitRebuildDrugMaster;
 window.generateDailySnapshotNow = generateDailySnapshotNow;
 window.loadDailySnapshots = loadDailySnapshots;
+window.exportDailySnapshotsExcel = exportDailySnapshotsExcel;
 window.generateMonthlySnapshotNow = generateMonthlySnapshotNow;
 window.loadMonthlySnapshots = loadMonthlySnapshots;
+window.exportMonthlySnapshotsExcel = exportMonthlySnapshotsExcel;
 window.handleSapFileSelectV2 = handleSapFileSelectV2;
 window.uploadSapWithConfirm = uploadSapWithConfirm;
 window.loadSapHistoryList = loadSapHistoryList;
@@ -164,19 +171,21 @@ window.rollbackSapDate = rollbackSapDate;
 
 window.initHierarchyMaintenance = initHierarchyMaintenance;
 window.loadHierarchyData = loadHierarchyData;
+window.renumberAndSaveHierarchy = renumberAndSaveHierarchy;
 window.selectHierArea = selectHierArea;
 window.selectHierTable = selectHierTable;
+window.toggleTableSection = toggleTableSection;
+window.moveTableToArea = moveTableToArea;
 window.renderLocationsColumn = renderLocationsColumn;
+window.toggleLocSection = toggleLocSection;
+window.moveLocToTable = moveLocToTable;
 window.openAreaModal = openAreaModal;
-window.autoPreviewAreaId = autoPreviewAreaId;
 window.submitAreaEdit = submitAreaEdit;
 window.deleteAreaItem = deleteAreaItem;
 window.openTableModal = openTableModal;
-window.autoPreviewTableId = autoPreviewTableId;
 window.submitTableEdit = submitTableEdit;
 window.deleteTableItem = deleteTableItem;
 window.openLocEditModal = openLocEditModal;
-window.autoPreviewLocCode = autoPreviewLocCode;
 window.submitLocEdit = submitLocEdit;
 window.deleteLocItem = deleteLocItem;
 
