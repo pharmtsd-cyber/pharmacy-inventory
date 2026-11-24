@@ -491,6 +491,13 @@ export function exportMonthlySnapshotsExcel() {
   window.XLSX.writeFile(wb, `月盤點結果_${unitCode}_${monthStr}.xlsx`);
 }
 
+function calcDiffPctNum(diff, sap) {
+  const d = Number(diff) || 0;
+  const s = Number(sap) || 0;
+  if (s === 0) return d === 0 ? 0 : (d > 0 ? 100 : -100);
+  return Math.round((d / Math.abs(s)) * 10000) / 100;
+}
+
 function fmtSignedNum(val) {
   const n = Number(val) || 0;
   if (n > 0) return `<span class="text-danger fw-bold">+${n}</span>`;
