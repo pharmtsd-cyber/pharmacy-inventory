@@ -24,14 +24,14 @@ const DEPT_NAME_MAP = {
 
 // 入口環境主題色對照表
 const DEPT_COLOR_MAP = {
-  opd: "#1A365D",         // 海軍藍
-  ipd: "#1E4D2B",         // 海軍綠
-  erd: "#7A1717",         // 海軍紅
-  comp: "#4E342E",        // 海軍棕
-  drug_mgmt: "#0F5132",   // 藥管深綠
-  user_mgmt: "#2B2D42",   // 權限深靛
-  portal_perm: "#3D405B", // 系統管理藍灰
-  monthly_adj: "#6F42C1"  // 調帳專區紫
+  opd: "#1A365D",
+  ipd: "#1E4D2B",
+  erd: "#7A1717",
+  comp: "#4E342E",
+  drug_mgmt: "#6F42C1",
+  user_mgmt: "#2B2D42",
+  portal_perm: "#3D405B",
+  monthly_adj: "#1A365D"
 };
 
 export const DEPT_NAME = currentDept ? (DEPT_NAME_MAP[currentDept] || '亞東紀念醫院藥學部') : '亞東紀念醫院藥學部';
