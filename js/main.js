@@ -26,25 +26,34 @@ import {
 
 import {
   initUserMgmtPortal, autoGenerateUserEmail, loadUsersList, renderUsersTable, openUserEditModal, submitUserEdit,
-  initPortalPermPortal, loadPortalPermissions, savePortalPermRow,
+  initPortalPermPortal, loadPortalPermissions, savePortalPermRow
+} from './maint_users_portal.js';
+
+import {
   initDrugMgmtPortal, switchDrugMgmtTab, downloadExcelTemplate,
   loadDrugMasterStats, handleMasterFileSelect, submitRebuildDrugMaster,
   generateDailySnapshotNow, loadDailySnapshots, exportDailySnapshotsExcel,
   generateMonthlySnapshotNow, loadMonthlySnapshots, exportMonthlySnapshotsExcel,
-  handleSapFileSelectV2, uploadSapWithConfirm, loadSapHistoryList, rollbackSapDate,
-  initMonthlyAdjPortal, selectAdjUnitCard, confirmAdjUnitAuth, switchAdjTab, toggleAdjColGroup, loadAdjInventoryData,
-  handleAdjSortClick, applyAdjFilters, handleAdjSaveVersion,
-  loadAdjAppRecords, applyAdjAppRecordFilters,
-  loadAdjMarkers, handleAdjMarkerAutocomplete, selectAdjMarkerDrug, saveAdjMarkerItem,
-  applyAdjMarkerFilters, deleteExistingAdjMarker,
-  loadAdjVersionRecords, applyAdjVersionFilters, exportAdjVersionExcel,
+  handleSapFileSelectV2, uploadSapWithConfirm, loadSapHistoryList, rollbackSapDate
+} from './maint_drug_mgmt.js';
+
+import {
   initHierarchyMaintenance, loadHierarchyData, createNewSegmentBox,
   selectHierArea, selectHierTable, toggleTableSection, toggleTableLock, moveTableToArea,
   renderLocationsColumn, toggleLocLock, moveLocToTable,
   openAreaModal, submitAreaEdit, deleteAreaItem,
   openTableModal, submitTableEdit, deleteTableItem,
   openLocEditModal, handleLocDrugFuzzySearch, pickDrugFromMaster, submitLocEdit, deleteLocItem
-} from './maintenance.js';
+} from './maint_hierarchy.js';
+
+import {
+  initMonthlyAdjPortal, selectAdjUnitCard, confirmAdjUnitAuth, switchAdjTab, toggleAdjColGroup, loadAdjInventoryData,
+  handleAdjSortClick, applyAdjFilters, handleAdjSaveVersion,
+  loadAdjAppRecords, applyAdjAppRecordFilters,
+  loadAdjMarkers, handleAdjMarkerAutocomplete, selectAdjMarkerDrug, saveAdjMarkerItem,
+  applyAdjMarkerFilters, deleteExistingAdjMarker,
+  loadAdjVersionRecords, applyAdjVersionFilters, exportAdjVersionExcel
+} from './maint_monthly_adj.js';
 
 window.addEventListener('beforeunload', function (e) {
   const mCount = typeof getMonthlyQueueCount === 'function' ? getMonthlyQueueCount() : 0;
