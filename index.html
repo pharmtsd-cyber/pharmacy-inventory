@@ -1259,6 +1259,25 @@
   </div>
 </div>
 
+<div class="modal fade" id="adjUnitAuthModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-academic text-white py-2">
+        <h6 class="modal-title fw-bold" id="adj-unit-auth-title">調帳權限驗證</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <label class="form-label small fw-bold">請輸入員工編號</label>
+        <input type="text" id="adj-unit-auth-id" name="adj_unit_auth_id" class="form-control border-secondary" onkeydown="if(event.key==='Enter') confirmAdjUnitAuth()">
+      </div>
+      <div class="modal-footer bg-light py-2">
+        <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-sm btn-academic fw-bold px-3" onclick="confirmAdjUnitAuth()">確認進入</button>
+      </div>
+    </div>
+  </div>
+</div>
+  
 <script type="module" src="./js/main.js"></script>
 </body>
 </html>
