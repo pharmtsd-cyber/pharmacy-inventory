@@ -26,17 +26,15 @@ export function handleLogin() {
       const navInfoElement = document.getElementById('nav-info');
       if (navInfoElement) navInfoElement.innerText = session.name;
 
-      // 依入口路由導向對應主畫面
+      // 嚴格使用 if / else if / else，避免藥品管理組被導回一般單位選單
       if (currentDept === 'user_mgmt') {
         if (typeof window.initUserMgmtPortal === 'function') window.initUserMgmtPortal();
       } else if (currentDept === 'drug_mgmt') {
         if (typeof window.initDrugMgmtPortal === 'function') window.initDrugMgmtPortal();
       } else if (currentDept === 'portal_perm') {
         if (typeof window.initPortalPermPortal === 'function') window.initPortalPermPortal();
-      } if (currentDept === 'monthly_adj') {
-        setTimeout(() => {
-          if (typeof window.initMonthlyAdjPortal === 'function') window.initMonthlyAdjPortal();
-        }, 0);
+      } else if (currentDept === 'monthly_adj') {
+        if (typeof window.initMonthlyAdjPortal === 'function') window.initMonthlyAdjPortal();
       } else {
         switchView('view-mode-select');
       }
