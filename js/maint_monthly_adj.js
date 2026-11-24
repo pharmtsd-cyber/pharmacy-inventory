@@ -59,13 +59,15 @@ function setAdjSaveStatus(msg, color = '#6c757d') {
 }
 
 function applyAdjUnitThemeColor(colorHex) {
+  const targetColor = colorHex || '#1A365D';
+  document.documentElement.style.setProperty('--academic-primary', targetColor);
   const root = document.getElementById('view-monthly-adj');
   if (root) {
-    root.style.setProperty('--academic-primary', colorHex || '#1A365D');
+    root.style.setProperty('--academic-primary', targetColor);
   }
   document.querySelectorAll('#adj-workspace-panel .bg-academic, #adj-workspace-panel .btn-academic').forEach(el => {
-    el.style.backgroundColor = colorHex || '#1A365D';
-    el.style.borderColor = colorHex || '#1A365D';
+    el.style.backgroundColor = targetColor;
+    el.style.borderColor = targetColor;
   });
 }
 
