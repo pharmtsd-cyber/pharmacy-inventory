@@ -126,8 +126,8 @@
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('monthly_adj')" style="border-top: 4px solid #1A365D !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-calculator-fill" style="color: #1A365D;"></i></div>
+          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('monthly_adj')" style="border-top: 4px solid #212529 !important;">
+            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-calculator-fill" style="color: #212529;"></i></div>
             <h5 class="fw-bold text-dark mb-1">月盤點調帳專區</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">各單位調帳 / 紀錄 / 標記 / 版本</span>
           </div>
@@ -989,6 +989,12 @@
             <label class="form-label small fw-bold">區域說明</label>
             <input type="text" id="a-area-desc" name="a_area_desc" class="form-control border-secondary">
           </div>
+          <div class="col-12 mt-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="a-is-locked" name="a_is_locked">
+              <label class="form-check-label small fw-bold" for="a-is-locked">🔒 鎖定區域編號（拖拉排序時不自動改碼）</label>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer bg-light">
@@ -1028,6 +1034,12 @@
           <div class="col-12">
             <label class="form-label small fw-bold">盤點表說明</label>
             <input type="text" id="t-table-desc" name="t_table_desc" class="form-control border-secondary">
+          </div>
+          <div class="col-12 mt-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="t-is-locked" name="t_is_locked">
+              <label class="form-check-label small fw-bold" for="t-is-locked">🔒 鎖定盤點表編號（拖拉排序或上層變動時不自動改碼）</label>
+            </div>
           </div>
         </div>
       </div>
@@ -1069,8 +1081,8 @@
         <input type="hidden" id="l-editing-code">
         <div class="row g-2">
           <div class="col-md-4">
-            <label class="form-label small fw-bold">盤點表編號</label>
-            <input type="text" id="l-table-id" name="l_table_id" class="form-control bg-light fw-bold" readonly>
+            <label class="form-label small fw-bold">所屬分段編號 (0 = 暫存 POOL)</label>
+            <input type="number" id="l-segment-no" name="l_segment_no" class="form-control border-secondary" min="0" value="0">
           </div>
           <div class="col-md-4">
             <label class="form-label small fw-bold">所屬分段編號</label>
