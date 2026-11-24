@@ -33,8 +33,10 @@ export function handleLogin() {
         if (typeof window.initDrugMgmtPortal === 'function') window.initDrugMgmtPortal();
       } else if (currentDept === 'portal_perm') {
         if (typeof window.initPortalPermPortal === 'function') window.initPortalPermPortal();
-      } else if (currentDept === 'monthly_adj') {
-        if (typeof window.initMonthlyAdjPortal === 'function') window.initMonthlyAdjPortal();
+      } if (currentDept === 'monthly_adj') {
+        setTimeout(() => {
+          if (typeof window.initMonthlyAdjPortal === 'function') window.initMonthlyAdjPortal();
+        }, 0);
       } else {
         switchView('view-mode-select');
       }
