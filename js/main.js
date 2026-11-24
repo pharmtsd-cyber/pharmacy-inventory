@@ -32,23 +32,20 @@ import {
   generateDailySnapshotNow, loadDailySnapshots, exportDailySnapshotsExcel,
   generateMonthlySnapshotNow, loadMonthlySnapshots, exportMonthlySnapshotsExcel,
   handleSapFileSelectV2, uploadSapWithConfirm, loadSapHistoryList, rollbackSapDate,
-  initMonthlyAdjPortal, switchAdjTab, toggleAdjColGroup, loadAdjInventoryData,
+  initMonthlyAdjPortal, selectAdjUnitCard, confirmAdjUnitAuth, switchAdjTab, toggleAdjColGroup, loadAdjInventoryData,
   handleAdjSortClick, applyAdjFilters, handleAdjSaveVersion,
-  loadAdjAppRecords, toggleAdjAppCol, applyAdjAppRecordFilters,
+  loadAdjAppRecords, applyAdjAppRecordFilters,
   loadAdjMarkers, handleAdjMarkerAutocomplete, selectAdjMarkerDrug, saveAdjMarkerItem,
-  applyAdjMarkerFilters, updateExistingAdjMarker, deleteExistingAdjMarker,
+  applyAdjMarkerFilters, deleteExistingAdjMarker,
   loadAdjVersionRecords, applyAdjVersionFilters, exportAdjVersionExcel,
-  initHierarchyMaintenance, loadHierarchyData, renumberAndSaveHierarchy,
-  selectHierArea, selectHierTable, toggleTableSection, moveTableToArea,
-  renderLocationsColumn, toggleLocSection, moveLocToTable,
+  initHierarchyMaintenance, loadHierarchyData, createNewSegmentBox,
+  selectHierArea, selectHierTable, toggleTableSection, toggleTableLock, moveTableToArea,
+  renderLocationsColumn, toggleLocLock, moveLocToTable,
   openAreaModal, submitAreaEdit, deleteAreaItem,
   openTableModal, submitTableEdit, deleteTableItem,
-  openLocEditModal, submitLocEdit, deleteLocItem
+  openLocEditModal, handleLocDrugFuzzySearch, pickDrugFromMaster, submitLocEdit, deleteLocItem
 } from './maintenance.js';
 
-// ==========================================
-// 🛡️ 瀏覽器與 APP 內部防護網
-// ==========================================
 window.addEventListener('beforeunload', function (e) {
   const mCount = typeof getMonthlyQueueCount === 'function' ? getMonthlyQueueCount() : 0;
   const dCount = typeof getDailyQueueCount === 'function' ? getDailyQueueCount() : 0;
@@ -96,20 +93,12 @@ function safeSilentRefresh() {
   const activeTagName = document.activeElement ? document.activeElement.tagName : '';
   const isTyping = (activeTagName === 'INPUT' || activeTagName === 'TEXTAREA');
   const hasOpenModal = document.querySelector('.modal.show') !== null;
-
   if (isTyping || hasOpenModal) { setTimeout(safeSilentRefresh, 2000); return; }
-
-  if (session.mode === '月盤點') {
-    loadUserRecords(() => { refreshDashboardDataSilently(); });
-  } else if (session.mode === '每日盤點') {
-    if (typeof changeDailyDate === 'function') changeDailyDate();
-  }
+  if (session.mode === '月盤點') loadUserRecords(() => { refreshDashboardDataSilently(); });
+  else if (session.mode === '每日盤點' && typeof changeDailyDate === 'function') changeDailyDate();
 }
 window.addEventListener('offline-sync-complete', safeSilentRefresh);
 
-// ==========================================
-// 🚀 全院多藥局與管理專區路由
-// ==========================================
 (function applyDynamicEnvironment() {
   if (!currentDept) {
     switchView('view-lobby');
@@ -137,88 +126,22 @@ window.selectMode = function(modeName) {
   else if (modeName === '月盤點') initMonthlyMode();
 };
 
-// Daily Exports
 window.initDailyMode = initDailyMode; window.changeDailyDate = changeDailyDate; window.switchDailyTab = switchDailyTab; window.submitDailyOne = submitDailyOne; window.openAdminSort = openAdminSort; window.toggleVisibility = toggleVisibility; window.highlightSearchItem = highlightSearchItem; window.rebuildAdminList = rebuildAdminList; window.saveAdminDataToServer = saveAdminDataToServer; window.renderDailyItems = renderDailyItems; window.flushDailyQueue = flushDailyQueue;
 
-// Monthly Exports
 window.refreshMonthlyData = refreshMonthlyData; window.initMonthlyMode = initMonthlyMode; window.switchMonthlyTab = switchMonthlyTab; window.switchStockSubTab = switchStockSubTab; window.switchDeskSubTab = switchDeskSubTab; window.switchOnlineSubTab = switchOnlineSubTab; window.switchRecordsSubTab = switchRecordsSubTab; window.handleStockSearch = handleStockSearch; window.handleOnlineSearch = handleOnlineSearch; window.selectStockDrug = selectStockDrug; window.selectOnlineDrug = selectOnlineDrug; window.handleTableSelectChange = handleTableSelectChange; window.submitMonthlyDeskOne = submitMonthlyDeskOne; window.flushMonthlyQueue = flushMonthlyQueue; window.submitMonthlyStock = submitMonthlyStock; window.submitMonthlyOnline = submitMonthlyOnline; window.updateOnlineUI = updateOnlineUI; window.startLiveScanner = startLiveScanner; window.closeLiveScanner = closeLiveScanner; window.parseBarcodeAndSubmit = parseBarcodeAndSubmit; window.loadUserRecords = loadUserRecords; window.handleRecordFilterSearch = handleRecordFilterSearch; window.clearRecordFilter = clearRecordFilter; window.applyRecordFilter = applyRecordFilter; window.editRecord = editRecord; window.editDailyQty = editDailyQty; window.toggleDailyStatus = toggleDailyStatus; window.toggleMonthlyRecordStatus = toggleMonthlyRecordStatus; window.refreshDashboardData = refreshDashboardData; window.renderMonthlyDashboard = renderMonthlyDashboard; window.showTableDetailModal = showTableDetailModal; window.enterTableInventory = enterTableInventory;
 
-// History Exports
 window.initHistoryMode = initHistoryMode; window.addHistoryDate = addHistoryDate; window.removeHistoryDate = removeHistoryDate; window.handleDrugSearch = handleDrugSearch; window.selectDrugFilter = selectDrugFilter; window.clearDrugFilter = clearDrugFilter; window.renderHistoryTable = renderHistoryTable; window.toggleModalCol = toggleModalCol; window.addQuickDate = addQuickDate; window.openNoteModal = openNoteModal; window.submitDrugNote = submitDrugNote; window.voidDrugNote = voidDrugNote;
 
-// Maintenance & Portals Exports
-window.initUserMgmtPortal = initUserMgmtPortal;
-window.autoGenerateUserEmail = autoGenerateUserEmail;
-window.loadUsersList = loadUsersList;
-window.renderUsersTable = renderUsersTable;
-window.openUserEditModal = openUserEditModal;
-window.submitUserEdit = submitUserEdit;
+window.initUserMgmtPortal = initUserMgmtPortal; window.autoGenerateUserEmail = autoGenerateUserEmail; window.loadUsersList = loadUsersList; window.renderUsersTable = renderUsersTable; window.openUserEditModal = openUserEditModal; window.submitUserEdit = submitUserEdit;
 
-window.initPortalPermPortal = initPortalPermPortal;
-window.loadPortalPermissions = loadPortalPermissions;
-window.savePortalPermRow = savePortalPermRow;
+window.initPortalPermPortal = initPortalPermPortal; window.loadPortalPermissions = loadPortalPermissions; window.savePortalPermRow = savePortalPermRow;
 
-window.initDrugMgmtPortal = initDrugMgmtPortal;
-window.switchDrugMgmtTab = switchDrugMgmtTab;
-window.downloadExcelTemplate = downloadExcelTemplate;
-window.loadDrugMasterStats = loadDrugMasterStats;
-window.handleMasterFileSelect = handleMasterFileSelect;
-window.submitRebuildDrugMaster = submitRebuildDrugMaster;
-window.generateDailySnapshotNow = generateDailySnapshotNow;
-window.loadDailySnapshots = loadDailySnapshots;
-window.exportDailySnapshotsExcel = exportDailySnapshotsExcel;
-window.generateMonthlySnapshotNow = generateMonthlySnapshotNow;
-window.loadMonthlySnapshots = loadMonthlySnapshots;
-window.exportMonthlySnapshotsExcel = exportMonthlySnapshotsExcel;
-window.handleSapFileSelectV2 = handleSapFileSelectV2;
-window.uploadSapWithConfirm = uploadSapWithConfirm;
-window.loadSapHistoryList = loadSapHistoryList;
-window.rollbackSapDate = rollbackSapDate;
+window.initDrugMgmtPortal = initDrugMgmtPortal; window.switchDrugMgmtTab = switchDrugMgmtTab; window.downloadExcelTemplate = downloadExcelTemplate; window.loadDrugMasterStats = loadDrugMasterStats; window.handleMasterFileSelect = handleMasterFileSelect; window.submitRebuildDrugMaster = submitRebuildDrugMaster; window.generateDailySnapshotNow = generateDailySnapshotNow; window.loadDailySnapshots = loadDailySnapshots; window.exportDailySnapshotsExcel = exportDailySnapshotsExcel; window.generateMonthlySnapshotNow = generateMonthlySnapshotNow; window.loadMonthlySnapshots = loadMonthlySnapshots; window.exportMonthlySnapshotsExcel = exportMonthlySnapshotsExcel; window.handleSapFileSelectV2 = handleSapFileSelectV2; window.uploadSapWithConfirm = uploadSapWithConfirm; window.loadSapHistoryList = loadSapHistoryList; window.rollbackSapDate = rollbackSapDate;
 
-window.initMonthlyAdjPortal = initMonthlyAdjPortal;
-window.switchAdjTab = switchAdjTab;
-window.toggleAdjColGroup = toggleAdjColGroup;
-window.loadAdjInventoryData = loadAdjInventoryData;
-window.handleAdjSortClick = handleAdjSortClick;
-window.applyAdjFilters = applyAdjFilters;
-window.handleAdjSaveVersion = handleAdjSaveVersion;
-window.loadAdjAppRecords = loadAdjAppRecords;
-window.toggleAdjAppCol = toggleAdjAppCol;
-window.applyAdjAppRecordFilters = applyAdjAppRecordFilters;
-window.loadAdjMarkers = loadAdjMarkers;
-window.handleAdjMarkerAutocomplete = handleAdjMarkerAutocomplete;
-window.selectAdjMarkerDrug = selectAdjMarkerDrug;
-window.saveAdjMarkerItem = saveAdjMarkerItem;
-window.applyAdjMarkerFilters = applyAdjMarkerFilters;
-window.updateExistingAdjMarker = updateExistingAdjMarker;
-window.deleteExistingAdjMarker = deleteExistingAdjMarker;
-window.loadAdjVersionRecords = loadAdjVersionRecords;
-window.applyAdjVersionFilters = applyAdjVersionFilters;
-window.exportAdjVersionExcel = exportAdjVersionExcel;
+window.initMonthlyAdjPortal = initMonthlyAdjPortal; window.selectAdjUnitCard = selectAdjUnitCard; window.confirmAdjUnitAuth = confirmAdjUnitAuth; window.switchAdjTab = switchAdjTab; window.toggleAdjColGroup = toggleAdjColGroup; window.loadAdjInventoryData = loadAdjInventoryData; window.handleAdjSortClick = handleAdjSortClick; window.applyAdjFilters = applyAdjFilters; window.handleAdjSaveVersion = handleAdjSaveVersion; window.loadAdjAppRecords = loadAdjAppRecords; window.applyAdjAppRecordFilters = applyAdjAppRecordFilters; window.loadAdjMarkers = loadAdjMarkers; window.handleAdjMarkerAutocomplete = handleAdjMarkerAutocomplete; window.selectAdjMarkerDrug = selectAdjMarkerDrug; window.saveAdjMarkerItem = saveAdjMarkerItem; window.applyAdjMarkerFilters = applyAdjMarkerFilters; window.deleteExistingAdjMarker = deleteExistingAdjMarker; window.loadAdjVersionRecords = loadAdjVersionRecords; window.applyAdjVersionFilters = applyAdjVersionFilters; window.exportAdjVersionExcel = exportAdjVersionExcel;
 
-window.initHierarchyMaintenance = initHierarchyMaintenance;
-window.loadHierarchyData = loadHierarchyData;
-window.renumberAndSaveHierarchy = renumberAndSaveHierarchy;
-window.selectHierArea = selectHierArea;
-window.selectHierTable = selectHierTable;
-window.toggleTableSection = toggleTableSection;
-window.moveTableToArea = moveTableToArea;
-window.renderLocationsColumn = renderLocationsColumn;
-window.toggleLocSection = toggleLocSection;
-window.moveLocToTable = moveLocToTable;
-window.openAreaModal = openAreaModal;
-window.submitAreaEdit = submitAreaEdit;
-window.deleteAreaItem = deleteAreaItem;
-window.openTableModal = openTableModal;
-window.submitTableEdit = submitTableEdit;
-window.deleteTableItem = deleteTableItem;
-window.openLocEditModal = openLocEditModal;
-window.submitLocEdit = submitLocEdit;
-window.deleteLocItem = deleteLocItem;
+window.initHierarchyMaintenance = initHierarchyMaintenance; window.loadHierarchyData = loadHierarchyData; window.createNewSegmentBox = createNewSegmentBox; window.selectHierArea = selectHierArea; window.selectHierTable = selectHierTable; window.toggleTableSection = toggleTableSection; window.toggleTableLock = toggleTableLock; window.moveTableToArea = moveTableToArea; window.renderLocationsColumn = renderLocationsColumn; window.toggleLocLock = toggleLocLock; window.moveLocToTable = moveLocToTable; window.openAreaModal = openAreaModal; window.submitAreaEdit = submitAreaEdit; window.deleteAreaItem = deleteAreaItem; window.openTableModal = openTableModal; window.submitTableEdit = submitTableEdit; window.deleteTableItem = deleteTableItem; window.openLocEditModal = openLocEditModal; window.handleLocDrugFuzzySearch = handleLocDrugFuzzySearch; window.pickDrugFromMaster = pickDrugFromMaster; window.submitLocEdit = submitLocEdit; window.deleteLocItem = deleteLocItem;
 
-// ==========================================
-// ✨ 全域小算盤功能
-// ==========================================
 let calcTargetId = null; let calcExpression = '';
 window.openCalculator = function(targetId, title = '小算盤') { calcTargetId = targetId; const targetInput = document.getElementById(targetId); calcExpression = targetInput ? targetInput.value || '' : ''; document.getElementById('calc-title').innerText = title; updateCalcDisplay(); const calcModal = new window.bootstrap.Modal(document.getElementById('calculatorModal')); calcModal.show(); };
 window.calcPress = function(val) { if (calcExpression === 'Error') calcExpression = ''; calcExpression += val; updateCalcDisplay(); };
@@ -228,9 +151,6 @@ window.calcEqual = function() { if (!calcExpression) return; try { const sanitiz
 window.calcConfirm = function() { calcEqual(); if (calcExpression !== 'Error' && calcExpression !== '') { const target = document.getElementById(calcTargetId); if (target) { target.value = calcExpression; target.dispatchEvent(new Event('input')); } } window.bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide(); };
 function updateCalcDisplay() { const display = document.getElementById('calc-display'); if(display) { display.innerText = calcExpression || '0'; display.scrollLeft = display.scrollWidth; } }
 
-// ==========================================
-// ✨ 鍵盤導航
-// ==========================================
 let globalSearchFocus = -1; let blockSearchKeyup = false;
 window.addEventListener('keyup', function(e) { if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') { if (blockSearchKeyup) { e.stopPropagation(); blockSearchKeyup = false; } } }, true);
 document.addEventListener('keydown', function(e) {
