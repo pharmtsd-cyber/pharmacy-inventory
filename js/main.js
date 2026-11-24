@@ -114,7 +114,7 @@ window.addEventListener('offline-sync-complete', safeSilentRefresh);
     document.title = 'FEMH藥學部盤點APP';
   } else if (currentDept === 'monthly_adj') {
     document.title = `${DEPT_NAME} — FEMH藥學部盤點APP`;
-    document.documentElement.style.setProperty('--academic-primary', '#1A365D');
+    document.documentElement.style.setProperty('--academic-primary', '#212529');
     const brandEl = document.querySelector('.navbar-brand');
     if (brandEl) brandEl.innerHTML = `<i class="bi bi-calculator-fill"></i> ${DEPT_NAME}`;
     initMonthlyAdjPortal();
