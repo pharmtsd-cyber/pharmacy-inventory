@@ -354,3 +354,14 @@ function fmtSignedPct(diff, sap) {
   if (pct < 0) return `<span class="text-success fw-bold">${label}</span>`;
   return `<span class="text-dark fw-bold">0.00%</span>`;
 }
+
+function matchCustomNumericFilter(val, op, minVal, maxVal) {
+  if (op === 'NONE' || isNaN(minVal)) return true;
+  if (op === 'GT') return val > minVal;
+  if (op === 'GTE') return val >= minVal;
+  if (op === 'LT') return val < minVal;
+  if (op === 'LTE') return val <= minVal;
+  if (op === 'EQ') return val === minVal;
+  if (op === 'BETWEEN') return isNaN(maxVal) ? val >= minVal : (val >= minVal && val <= maxVal);
+  return true;
+}
