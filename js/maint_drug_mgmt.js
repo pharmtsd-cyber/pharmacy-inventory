@@ -490,3 +490,20 @@ export function exportMonthlySnapshotsExcel() {
   }
   window.XLSX.writeFile(wb, `月盤點結果_${unitCode}_${monthStr}.xlsx`);
 }
+
+function fmtSignedNum(val) {
+  const n = Number(val) || 0;
+  if (n > 0) return `<span class="text-danger fw-bold">+${n}</span>`;
+  if (n < 0) return `<span class="text-success fw-bold">${n}</span>`;
+  return `<span class="text-dark fw-bold">0</span>`;
+}
+
+function fmtSignedPct(diff, sap) {
+  const d = Number(diff) || 0;
+  const s = Number(sap) || 0;
+  const pct = s === 0 ? (d === 0 ? 0 : (d > 0 ? 100 : -100)) : (d / Math.abs(s)) * 100;
+  const label = `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  if (pct > 0) return `<span class="text-danger fw-bold">${label}</span>`;
+  if (pct < 0) return `<span class="text-success fw-bold">${label}</span>`;
+  return `<span class="text-dark fw-bold">0.00%</span>`;
+}
