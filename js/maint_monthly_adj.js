@@ -337,3 +337,20 @@ export function exportAdjVersionExcel() {
   window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet([adjVerHeaders, ...adjVerFiltered]), '盤點表版本紀錄');
   window.XLSX.writeFile(wb, `盤點表版本紀錄_${document.getElementById('adj-ver-month-filter')?.value || 'ALL'}.xlsx`);
 }
+
+function fmtSignedNum(val) {
+  const n = Number(val) || 0;
+  if (n > 0) return `<span class="text-danger fw-bold">+${n}</span>`;
+  if (n < 0) return `<span class="text-success fw-bold">${n}</span>`;
+  return `<span class="text-dark fw-bold">0</span>`;
+}
+
+function fmtSignedPct(diff, sap) {
+  const d = Number(diff) || 0;
+  const s = Number(sap) || 0;
+  const pct = s === 0 ? (d === 0 ? 0 : (d > 0 ? 100 : -100)) : (d / Math.abs(s)) * 100;
+  const label = `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  if (pct > 0) return `<span class="text-danger fw-bold">${label}</span>`;
+  if (pct < 0) return `<span class="text-success fw-bold">${label}</span>`;
+  return `<span class="text-dark fw-bold">0.00%</span>`;
+}
