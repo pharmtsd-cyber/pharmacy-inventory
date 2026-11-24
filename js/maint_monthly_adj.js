@@ -22,6 +22,7 @@ let adjMarkerData = { masterList: [], trackedItems: [], availableSymbols: [] };
 let activeAdjUnitCode = null;
 let pendingAdjUnitTarget = null;
 let adjAuditLogs = [];
+let adjAuthModalInstance = null;
 
 function recordAdjAudit(actionType, summary) {
   const now = new Date();
@@ -74,13 +75,55 @@ export function initMonthlyAdjPortal() {
   document.getElementById('adj-workspace-panel')?.classList.add('d-none');
 }
 
+function openAdjAuthModalEl() {
+  const modalEl = document.getElementById('adjUnitAuthModal');
+  if (!modalEl) {
+    alert('找不到調帳權限驗證視窗（#adjUnitAuthModal）');
+    return;
+  }
+
+  if (window.bootstrap && typeof window.bootstrap.Modal === 'function') {
+    if (!adjAuthModalInstance) {
+      adjAuthModalInstance = new window.bootstrap.Modal(modalEl, {
+        backdrop: true,
+        keyboard: true
+      });
+    }
+    adjAuthModalInstance.show();
+  } else {
+    modalEl.classList.add('show');
+    modalEl.style.display = 'block';
+    modalEl.removeAttribute('aria-hidden');
+  }
+}
+
+function closeAdjAuthModalEl() {
+  const modalEl = document.getElementById('adjUnitAuthModal');
+  if (!modalEl) return;
+
+  if (adjAuthModalInstance && typeof adjAuthModalInstance.hide === 'function') {
+    adjAuthModalInstance.hide();
+  } else if (window.bootstrap && window.bootstrap.Modal) {
+    const inst = window.bootstrap.Modal.getInstance(modalEl);
+    if (inst) inst.hide();
+  }
+
+  modalEl.classList.remove('show');
+  modalEl.style.display = 'none';
+  modalEl.setAttribute('aria-hidden', 'true');
+  document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('padding-right');
+  document.body.style.removeProperty('overflow');
+}
+
 export function selectAdjUnitCard(uCode, uName, portalKey) {
   pendingAdjUnitTarget = { uCode, uName, portalKey };
   const empInput = document.getElementById('adj-unit-auth-id');
   const titleEl = document.getElementById('adj-unit-auth-title');
   if (titleEl) titleEl.innerText = `【${uName}】調帳權限驗證`;
   if (empInput) empInput.value = session.id || '';
-  new window.bootstrap.Modal(document.getElementById('adjUnitAuthModal')).show();
+  openAdjAuthModalEl();
 }
 
 export function confirmAdjUnitAuth() {
