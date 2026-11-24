@@ -54,6 +54,7 @@
   </div>
 </nav>
 
+<!-- 1. 主頁面入口：桌面版兩個區塊皆為一行 4 個入口卡片對齊 -->
 <div id="view-lobby" class="view-section" style="background-color: #f4f6f9; overflow-y: auto;">
   <div class="container py-4 py-md-5 d-flex flex-column justify-content-center align-items-center min-vh-100 px-3">
     <div class="text-center mb-4">
@@ -66,31 +67,31 @@
       </div>
     </div>
 
-    <div class="w-100 mb-2" style="max-width: 1000px;">
+    <div class="w-100 mb-3" style="max-width: 1140px;">
       <div class="small fw-bold text-secondary mb-2 ps-1"><i class="bi bi-building"></i> 調劑單位盤點入口</div>
-      <div class="row g-3 g-md-4 justify-content-center">
-        <div class="col-6 col-md-3">
+      <div class="row g-3 row-cols-2 row-cols-md-4">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('opd')" style="border-top: 4px solid #1A365D !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-shop" style="color: #1A365D;"></i></div>
             <h5 class="fw-bold text-dark mb-1">門診藥局</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Outpatient Pharmacy</span>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('ipd')" style="border-top: 4px solid #1E4D2B !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-building" style="color: #1E4D2B;"></i></div>
             <h5 class="fw-bold text-dark mb-1">住院藥局</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Inpatient Pharmacy</span>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('erd')" style="border-top: 4px solid #7A1717 !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-heart-pulse" style="color: #7A1717;"></i></div>
             <h5 class="fw-bold text-dark mb-1">急診藥局</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Emergency Pharmacy</span>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('comp')" style="border-top: 4px solid #4E342E !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-capsule" style="color: #4E342E;"></i></div>
             <h5 class="fw-bold text-dark mb-1">調配藥局</h5>
@@ -100,35 +101,35 @@
       </div>
     </div>
 
-    <div class="w-100 mt-4" style="max-width: 1000px;">
+    <div class="w-100 mt-4" style="max-width: 1140px;">
       <div class="small fw-bold text-secondary mb-2 ps-1"><i class="bi bi-shield-check"></i> 全院藥檔與權限管理入口</div>
-      <div class="row g-3 g-md-4 justify-content-center">
-        <div class="col-12 col-md-4">
+      <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-4">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('drug_mgmt')" style="border-top: 4px solid #0F5132 !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-box-seam" style="color: #0F5132;"></i></div>
             <h5 class="fw-bold text-dark mb-1">藥品管理組</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">藥品主檔 / SAP上傳 / 盤點結果</span>
           </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('user_mgmt')" style="border-top: 4px solid #2B2D42 !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-people-fill" style="color: #2B2D42;"></i></div>
             <h5 class="fw-bold text-dark mb-1">藥師權限管理</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">藥師生命週期與角色權限維護</span>
           </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('portal_perm')" style="border-top: 4px solid #3D405B !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-key-fill" style="color: #3D405B;"></i></div>
             <h5 class="fw-bold text-dark mb-1">網站權限管理</h5>
             <span class="text-muted tracking-wide" style="font-size: 0.75rem;">各入口登入權限規則設定</span>
           </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col">
           <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('monthly_adj')" style="border-top: 4px solid #6F42C1 !important;">
             <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-calculator-fill" style="color: #6F42C1;"></i></div>
             <h5 class="fw-bold text-dark mb-1">月盤點調帳專區</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">調帳總表 / 盤點紀錄 / 標記追蹤 / 版本存檔</span>
+            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">各單位調帳 / 紀錄 / 標記 / 版本</span>
           </div>
         </div>
       </div>
@@ -581,42 +582,31 @@
     </div>
   </div>
 
-  <div id="dm-tab-daily-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
-    <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
-      <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-          <select id="dm-daily-unit" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
-            <option value="ALL" selected>全部單位</option>
-            <option value="BF">住院藥局 (BF)</option>
-            <option value="BA">門診藥局 (BA)</option>
-            <option value="BE">急診藥局 (BE)</option>
-            <option value="BG">調配藥局 (BG)</option>
-          </select>
-          <input type="date" id="dm-daily-date" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
-          <button class="btn btn-sm btn-academic fw-bold" onclick="generateDailySnapshotNow()"><i class="bi bi-lock-fill"></i> 結算並存檔結果</button>
-        </div>
-        <button class="btn btn-sm btn-success fw-bold" onclick="exportDailySnapshotsExcel()">
-          <i class="bi bi-file-earmark-excel"></i> 下載 Excel
-        </button>
+<!-- 2. 藥品管理組：每日盤點結果分頁 (與月盤點結果一致分色呈現 + 帳差百分比) -->
+<div id="dm-tab-daily-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+  <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+    <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <select id="dm-daily-unit" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
+          <option value="ALL" selected>全部單位 (分色總表)</option>
+          <option value="BF">住院藥局 (BF)</option>
+          <option value="BA">門診藥局 (BA)</option>
+          <option value="BE">急診藥局 (BE)</option>
+          <option value="BG">調配藥局 (BG)</option>
+        </select>
+        <input type="date" id="dm-daily-date" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadDailySnapshots()">
+        <button class="btn btn-sm btn-academic fw-bold" onclick="generateDailySnapshotNow()"><i class="bi bi-lock-fill"></i> 結算並存檔結果</button>
       </div>
-    </div>
-    <div class="table-responsive bg-white border rounded shadow-sm">
-      <table class="table table-hover table-sm align-middle mb-0">
-        <thead class="table-academic-head">
-          <tr>
-            <th class="text-center">單位</th>
-            <th class="text-center">藥品代碼</th>
-            <th>藥品名稱 (鎖存快照)</th>
-            <th class="text-end">SAP數量</th>
-            <th class="text-end">實際盤點</th>
-            <th class="text-end">差異</th>
-            <th class="text-center">存檔時間</th>
-          </tr>
-        </thead>
-        <tbody id="dm-daily-tbody"></tbody>
-      </table>
+      <button class="btn btn-sm btn-success fw-bold" onclick="exportDailySnapshotsExcel()"><i class="bi bi-file-earmark-excel"></i> 下載 Excel</button>
     </div>
   </div>
+  <div class="table-responsive bg-white border rounded shadow-sm">
+    <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size: 0.85rem;">
+      <thead class="table-academic-head" id="dm-daily-thead"></thead>
+      <tbody id="dm-daily-tbody"></tbody>
+    </table>
+  </div>
+</div>
 
   <div id="dm-tab-monthly-res" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
@@ -646,74 +636,171 @@
   </div>
 </div>
 
+<!-- 3. 月盤點調帳專區：進入後先點選各單位色塊面板（分開設權限） -->
 <div id="view-monthly-adj" class="container-fluid view-section">
-  <div class="card card-academic p-2 shadow-sm mb-2 bg-white flex-shrink-0">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-      <div class="d-flex align-items-center gap-2">
-        <h6 class="fw-bold text-academic mb-0"><i class="bi bi-calculator-fill"></i> 月盤點調帳專區</h6>
-        <select id="adj-unit-select" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="loadAdjInventoryData()">
-          <option value="BF" selected>住院藥局 (BF)</option>
-          <option value="BA">門診藥局 (BA)</option>
-          <option value="BE">急診藥局 (BE)</option>
-          <option value="BG">調配藥局 (BG)</option>
-        </select>
+  <div id="adj-unit-picker-panel" class="container py-4">
+    <div class="card border-0 shadow-sm p-4 bg-white">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <div>
+          <h5 class="fw-bold text-academic mb-1"><i class="bi bi-calculator-fill"></i> 月盤點調帳專區 — 請選擇藥局單位</h5>
+          <div class="small text-muted">各單位採獨立權限面板，點擊對應單位面板進行權限驗證與作業</div>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
       </div>
-      <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
+      <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-4">
+        <div class="col">
+          <div class="card h-100 text-center p-3 text-white shadow-sm" style="background-color:#1A365D; cursor:pointer;" onclick="selectAdjUnitCard('BA', '門診藥局', 'monthly_adj_opd')">
+            <i class="bi bi-shop fs-2 mb-2"></i>
+            <h5 class="fw-bold mb-1">門診藥局 (BA)</h5>
+            <span class="small opacity-75">點擊進入調帳作業</span>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100 text-center p-3 text-white shadow-sm" style="background-color:#1E4D2B; cursor:pointer;" onclick="selectAdjUnitCard('BF', '住院藥局', 'monthly_adj_ipd')">
+            <i class="bi bi-building fs-2 mb-2"></i>
+            <h5 class="fw-bold mb-1">住院藥局 (BF)</h5>
+            <span class="small opacity-75">點擊進入調帳作業</span>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100 text-center p-3 text-white shadow-sm" style="background-color:#7A1717; cursor:pointer;" onclick="selectAdjUnitCard('BE', '急診藥局', 'monthly_adj_erd')">
+            <i class="bi bi-heart-pulse fs-2 mb-2"></i>
+            <h5 class="fw-bold mb-1">急診藥局 (BE)</h5>
+            <span class="small opacity-75">點擊進入調帳作業</span>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100 text-center p-3 text-white shadow-sm" style="background-color:#4E342E; cursor:pointer;" onclick="selectAdjUnitCard('BG', '調配藥局', 'monthly_adj_comp')">
+            <i class="bi bi-capsule fs-2 mb-2"></i>
+            <h5 class="fw-bold mb-1">調配藥局 (BG)</h5>
+            <span class="small opacity-75">點擊進入調帳作業</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <ul class="nav nav-pills nav-fill gap-1" id="adj-main-tabs">
-      <li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white py-2 small" data-target="adj-tab-inventory" onclick="switchAdjTab('adj-tab-inventory')">調帳專區</button></li>
-      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-records" onclick="switchAdjTab('adj-tab-records')">APP盤點紀錄</button></li>
-      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-marker" onclick="switchAdjTab('adj-tab-marker')">標記追蹤藥品</button></li>
-      <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-version" onclick="switchAdjTab('adj-tab-version')">盤點表版本紀錄</button></li>
-    </ul>
   </div>
 
-  <div id="adj-tab-inventory" class="flex-grow-1 overflow-auto px-1 pb-4">
-    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
-      <div class="d-flex flex-wrap gap-2 align-items-center mb-2 p-2 rounded" style="background:#e3f2fd;">
-        <div class="d-flex align-items-center gap-1">
-          <label class="small fw-bold text-secondary mb-0">預測日(起):</label>
-          <input type="date" id="adj-param-forecast" class="form-control form-control-sm border-secondary w-auto">
+  <div id="adj-workspace-panel" class="d-none">
+    <div class="card card-academic p-2 shadow-sm mb-2 bg-white flex-shrink-0">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <h6 class="fw-bold text-academic mb-0"><i class="bi bi-calculator-fill"></i> 月盤點調帳專區</h6>
+          <span id="adj-active-unit-badge" class="badge text-white"></span>
+          <button class="btn btn-sm btn-outline-primary py-0 fw-bold" onclick="initMonthlyAdjPortal()">切換單位</button>
         </div>
-        <div class="d-flex align-items-center gap-1">
-          <label class="small fw-bold text-primary mb-0">基準日(迄):</label>
-          <input type="date" id="adj-param-reference" class="form-control form-control-sm border-primary w-auto fw-bold">
-        </div>
-        <button class="btn btn-sm btn-primary fw-bold" onclick="loadAdjInventoryData()">🔍 依日期載入</button>
-        <button class="btn btn-sm btn-success fw-bold" onclick="handleAdjSaveVersion()">💾 存檔版本</button>
-        <span id="adj-save-status" class="small fw-bold ms-1"></span>
+        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
       </div>
+      <ul class="nav nav-pills nav-fill gap-1" id="adj-main-tabs">
+        <li class="nav-item"><button class="nav-link active fw-bold border bg-academic text-white py-2 small" data-target="adj-tab-inventory" onclick="switchAdjTab('adj-tab-inventory')">調帳專區</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-records" onclick="switchAdjTab('adj-tab-records')">APP盤點紀錄</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-marker" onclick="switchAdjTab('adj-tab-marker')">標記追蹤藥品</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold border text-academic bg-white py-2 small" data-target="adj-tab-version" onclick="switchAdjTab('adj-tab-version')">盤點表版本紀錄</button></li>
+      </ul>
+    </div>
 
-      <div class="d-flex flex-wrap gap-2 align-items-center">
-        <input type="text" id="adj-search-input" class="form-control form-control-sm border-secondary" style="max-width:210px;" placeholder="藥品代碼/名稱搜尋..." oninput="applyAdjFilters()">
-        <select id="adj-filter-symbol" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
-          <option value="ALL">全部符號</option>
-        </select>
-        <select id="adj-filter-prev" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
-          <option value="ALL">前日: 全部</option>
-          <option value="HAS_VALUE">前日: 其一不為0</option>
-          <option value="EMPTY">前日: 都為0</option>
-        </select>
-        <select id="adj-filter-curr" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
-          <option value="HAS_VALUE" selected>當日: 其一不為0</option>
-          <option value="EMPTY">當日: 都為0</option>
-          <option value="ALL">當日: 全部</option>
-        </select>
-        <div class="btn-group ms-auto">
-          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(1)">前日結存欄</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(2)">當日盤點欄</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(3)">申報調帳欄</button>
+    <div id="adj-tab-inventory" class="flex-grow-1 overflow-auto px-1 pb-4">
+      <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2 p-2 rounded" style="background:#e3f2fd;">
+          <div class="d-flex align-items-center gap-1">
+            <label class="small fw-bold text-secondary mb-0">預測日(起):</label>
+            <input type="date" id="adj-param-forecast" class="form-control form-control-sm border-secondary w-auto">
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <label class="small fw-bold text-primary mb-0">基準日(迄):</label>
+            <input type="date" id="adj-param-reference" class="form-control form-control-sm border-primary w-auto fw-bold">
+          </div>
+          <button class="btn btn-sm btn-primary fw-bold" onclick="loadAdjInventoryData()">🔍 依日期載入</button>
+          <button class="btn btn-sm btn-success fw-bold" onclick="handleAdjSaveVersion()">💾 存檔版本</button>
+          <span id="adj-save-status" class="small fw-bold ms-1"></span>
         </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <input type="text" id="adj-search-input" class="form-control form-control-sm border-secondary" style="max-width:210px;" placeholder="藥品代碼/名稱搜尋..." oninput="applyAdjFilters()">
+          <select id="adj-filter-symbol" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()"><option value="ALL">全部符號</option></select>
+          <select id="adj-filter-prev" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
+            <option value="ALL">前日: 全部</option><option value="HAS_VALUE">前日: 其一不為0</option><option value="EMPTY">前日: 都為0</option>
+          </select>
+          <select id="adj-filter-curr" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjFilters()">
+            <option value="HAS_VALUE" selected>當日: 其一不為0</option><option value="EMPTY">當日: 都為0</option><option value="ALL">當日: 全部</option>
+          </select>
+          <div class="btn-group ms-auto">
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(1)">前日結存欄</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(2)">當日盤點欄</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdjColGroup(3)">申報調帳欄</button>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
+        <table class="table table-bordered table-hover table-sm align-middle mb-0" id="adj-data-table" style="font-size:0.85rem;">
+          <thead class="table-academic-head sticky-top" id="adj-thead"></thead>
+          <tbody id="adj-tbody"></tbody>
+        </table>
       </div>
     </div>
 
-    <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
-      <table class="table table-bordered table-hover table-sm align-middle mb-0" id="adj-data-table" style="font-size:0.85rem;">
-        <thead class="table-academic-head sticky-top" id="adj-thead"></thead>
-        <tbody id="adj-tbody"></tbody>
-      </table>
+    <div id="adj-tab-records" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+      <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+          <label class="small fw-bold">日期區間:</label>
+          <input type="date" id="adj-rec-start" class="form-control form-control-sm border-secondary w-auto">
+          <span>~</span>
+          <input type="date" id="adj-rec-end" class="form-control form-control-sm border-secondary w-auto">
+          <input type="text" id="adj-rec-search" class="form-control form-control-sm border-secondary" style="max-width:200px;" placeholder="代碼/名稱/儲位搜尋" oninput="applyAdjAppRecordFilters()">
+          <button class="btn btn-sm btn-success fw-bold ms-auto" onclick="loadAdjAppRecords()">🔍 依區間載入</button>
+        </div>
+      </div>
+      <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
+        <table class="table table-bordered table-hover table-sm align-middle text-nowrap mb-0" style="font-size:0.85rem;">
+          <thead class="table-academic-head sticky-top" id="adj-rec-thead"></thead>
+          <tbody id="adj-rec-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adj-tab-marker" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+      <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+        <div class="row g-2 mb-3">
+          <div class="col-md-3 position-relative">
+            <input type="text" id="adj-mk-code" class="form-control form-control-sm border-secondary" placeholder="輸入藥品代碼/名稱" oninput="handleAdjMarkerAutocomplete()" autocomplete="off">
+            <div id="adj-mk-autocomplete" class="search-dropdown"></div>
+          </div>
+          <div class="col-md-3"><input type="text" id="adj-mk-name" class="form-control form-control-sm bg-light" placeholder="藥品名稱" readonly></div>
+          <div class="col-md-2"><input type="text" id="adj-mk-symbol" class="form-control form-control-sm border-secondary" placeholder="標記 (如 $)"></div>
+          <div class="col-md-2"><input type="text" id="adj-mk-note" class="form-control form-control-sm border-secondary" placeholder="追蹤備註"></div>
+          <div class="col-md-2"><button class="btn btn-sm btn-primary fw-bold w-100" onclick="saveAdjMarkerItem()">儲存標記</button></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center border-top pt-2">
+          <input type="text" id="adj-marker-search" class="form-control form-control-sm border-secondary" style="max-width:220px;" placeholder="搜尋代碼/名稱" oninput="applyAdjMarkerFilters()">
+          <select id="adj-marker-sym-filter" class="form-select form-select-sm border-secondary w-auto" onchange="applyAdjMarkerFilters()"><option value="ALL">全部顯示</option></select>
+          <button class="btn btn-sm btn-outline-primary fw-bold ms-auto" onclick="loadAdjMarkers()">🔄 重新載入</button>
+        </div>
+      </div>
+      <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:55vh; overflow:auto;">
+        <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size:0.85rem;">
+          <thead class="table-academic-head sticky-top"><tr><th>藥品代碼</th><th>藥品名稱</th><th>標記符號</th><th>追蹤備註</th><th>更新者</th><th>最後更新時間</th><th class="text-center">操作</th></tr></thead>
+          <tbody id="adj-marker-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adj-tab-version" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+      <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <label class="small fw-bold">版本月份:</label>
+          <select id="adj-ver-month-filter" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="applyAdjVersionFilters()"><option value="ALL">全部月份</option></select>
+          <input type="text" id="adj-ver-search" class="form-control form-control-sm border-secondary" style="max-width:220px;" placeholder="代碼/名稱搜尋" oninput="applyAdjVersionFilters()">
+          <button class="btn btn-sm btn-success fw-bold ms-auto" onclick="exportAdjVersionExcel()">📥 下載此版本 EXCEL</button>
+          <button class="btn btn-sm btn-outline-primary fw-bold" onclick="loadAdjVersionRecords()">🔄 重新載入</button>
+        </div>
+      </div>
+      <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
+        <table class="table table-bordered table-hover table-sm align-middle text-nowrap mb-0" style="font-size:0.85rem;">
+          <thead class="table-academic-head sticky-top" id="adj-ver-thead"></thead>
+          <tbody id="adj-ver-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
+</div>
 
   <div id="adj-tab-records" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
@@ -805,24 +892,15 @@
   </div>
 </div>
 
+<!-- 4. 分層儲位維護：每次更動立即存檔 + 分段框拖拉 + 鎖定儲位碼 -->
 <div id="view-maintenance" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div>
         <h6 class="fw-bold text-academic mb-0" id="maint-dept-title"><i class="bi bi-diagram-3"></i> 分層儲位維護</h6>
-        <div class="small text-muted">支援拖拉排序、跨區/跨表移動、第二/三層分段，調整完畢後點擊右側按鈕自動重編碼</div>
+        <div class="small text-muted">每次新增/修改/拖拉/分段/鎖定皆會立即存檔並自動重編未鎖定儲位</div>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm" onclick="renumberAndSaveHierarchy()">
-          <i class="bi bi-check2-all"></i> 儲存並全部重新編碼
-        </button>
-        <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')">
-          <i class="bi bi-chevron-left"></i> 返回模式選單
-        </button>
-      </div>
-    </div>
-    <div id="hier-dirty-banner" class="alert alert-warning py-1 px-2 mt-2 mb-0 small fw-bold d-none">
-      ⚠️ 順序或分段已變更（黃色標記為預覽新編號），請務必點擊右上角「儲存並全部重新編碼」才會正式寫入資料庫！
+      <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')"><i class="bi bi-chevron-left"></i> 返回模式選單</button>
     </div>
   </div>
 
@@ -831,47 +909,34 @@
       <div class="col-12 col-lg-3">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-            <span class="fw-bold small text-dark">第一層：區域 (拖拉排 A-Z)</span>
+            <span class="fw-bold small text-dark">第一層：區域 (A-Z)</span>
             <button class="btn btn-sm btn-academic py-0 fw-bold" onclick="openAreaModal('')">+ 新增區域</button>
           </div>
-          <div id="hier-area-list" class="list-group list-group-flush" style="max-height: 65vh; overflow-y: auto;"></div>
+          <div id="hier-area-list" class="list-group list-group-flush" style="max-height: 68vh; overflow-y: auto;"></div>
         </div>
       </div>
 
       <div class="col-12 col-lg-3">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-            <span class="fw-bold small text-dark">第二層：盤點表 (拖拉/分段)</span>
+            <span class="fw-bold small text-dark">第二層：盤點表</span>
             <button class="btn btn-sm btn-academic py-0 fw-bold" onclick="openTableModal('')">+ 新增盤點表</button>
           </div>
-          <div id="hier-table-list" class="list-group list-group-flush" style="max-height: 65vh; overflow-y: auto;"></div>
+          <div id="hier-table-list" class="list-group list-group-flush" style="max-height: 68vh; overflow-y: auto;"></div>
         </div>
       </div>
 
       <div class="col-12 col-lg-6">
         <div class="card border-0 shadow-sm bg-white h-100">
           <div class="card-header bg-light d-flex flex-wrap gap-2 justify-content-between align-items-center py-2">
-            <span id="hier-loc-header" class="fw-bold small text-dark">第三層：儲位明細</span>
-            <div class="d-flex gap-1">
-              <input type="text" id="hier-loc-search" class="form-control form-control-sm border-secondary" style="max-width: 140px;" placeholder="搜尋儲位/藥品..." onkeyup="renderLocationsColumn()">
+            <span id="hier-loc-header" class="fw-bold small text-dark">第三層：分段框與儲位</span>
+            <div class="d-flex flex-wrap gap-1">
+              <input type="text" id="hier-loc-search" class="form-control form-control-sm border-secondary" style="max-width: 130px;" placeholder="搜尋儲位/藥品..." onkeyup="renderLocationsColumn()">
+              <button class="btn btn-sm btn-outline-primary py-0 fw-bold text-nowrap" onclick="createNewSegmentBox()">+ 新增分段框</button>
               <button class="btn btn-sm btn-academic py-0 fw-bold text-nowrap" onclick="openLocEditModal('')">+ 新增儲位</button>
             </div>
           </div>
-          <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
-            <table class="table table-hover table-sm align-middle mb-0">
-              <thead class="table-academic-head sticky-top">
-                <tr>
-                  <th class="text-center">排/位</th>
-                  <th>儲位碼</th>
-                  <th>藥品代碼</th>
-                  <th>藥品名稱</th>
-                  <th>說明/備註/注意</th>
-                  <th class="text-center">操作 / 分段 / 跨表</th>
-                </tr>
-              </thead>
-              <tbody id="hier-loc-tbody"></tbody>
-            </table>
-          </div>
+          <div id="hier-segments-container" class="p-2" style="max-height: 68vh; overflow-y: auto;"></div>
         </div>
       </div>
     </div>
@@ -1025,11 +1090,32 @@
   </div>
 </div>
 
+<!-- 5. 調帳單位專屬權限驗證 Modal -->
+<div class="modal fade" id="adjUnitAuthModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-academic text-white py-2">
+        <h6 class="modal-title fw-bold" id="adj-unit-auth-title">調帳權限驗證</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <label class="form-label small fw-bold">請輸入員工編號</label>
+        <input type="text" id="adj-unit-auth-id" class="form-control border-secondary" onkeydown="if(event.key==='Enter') confirmAdjUnitAuth()">
+      </div>
+      <div class="modal-footer bg-light py-2">
+        <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-sm btn-academic fw-bold px-3" onclick="confirmAdjUnitAuth()">確認進入</button>
+      </div>
+    </div>
+  </div>
+</div>
+  
+<!-- 6. 儲位新增/編輯 Modal (支援從藥品主檔模糊篩選帶入代碼與名稱 + 鎖定儲位碼) -->
 <div class="modal fade" id="locEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-academic text-white">
-        <h6 class="modal-title fw-bold">第三層：儲位資料維護 (排/位依拖拉與分段自動重編)</h6>
+        <h6 class="modal-title fw-bold">第三層：儲位資料維護</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
@@ -1040,23 +1126,29 @@
             <input type="text" id="l-table-id" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-bold">排 / 位 (自動順序)</label>
-            <div class="input-group">
-              <input type="text" id="l-row-no" class="form-control bg-light text-center" readonly>
-              <input type="text" id="l-pos-no" class="form-control bg-light text-center" readonly>
+            <label class="form-label small fw-bold">所屬分段編號</label>
+            <input type="number" id="l-segment-no" class="form-control border-secondary" min="1" value="1">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="l-is-locked">
+              <label class="form-check-label small fw-bold" for="l-is-locked">🔒 鎖定儲位碼（不隨排序重編）</label>
             </div>
           </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">儲位碼編號</label>
-            <input type="text" id="l-loc-code" class="form-control bg-light fw-bold" readonly>
+
+          <div class="col-12 position-relative">
+            <label class="form-label small fw-bold text-primary">從藥品主檔模糊搜尋（輸入代碼、批價碼或藥名）</label>
+            <input type="text" id="l-drug-search" class="form-control border-primary" placeholder="輸入關鍵字篩選藥品主檔..." oninput="handleLocDrugFuzzySearch()" autocomplete="off">
+            <div id="l-drug-dropdown" class="search-dropdown shadow"></div>
           </div>
+
           <div class="col-md-4">
             <label class="form-label small fw-bold">藥品代碼 (加P碼)</label>
-            <input type="text" id="l-drug-code" class="form-control border-secondary">
+            <input type="text" id="l-drug-code" class="form-control border-secondary fw-bold">
           </div>
           <div class="col-md-8">
             <label class="form-label small fw-bold">藥品名稱</label>
-            <input type="text" id="l-drug-name" class="form-control border-secondary">
+            <input type="text" id="l-drug-name" class="form-control border-secondary fw-bold">
           </div>
           <div class="col-md-4">
             <label class="form-label small fw-bold">月盤點說明</label>
@@ -1074,7 +1166,7 @@
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitLocEdit()">確定</button>
+        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitLocEdit()">立即存檔</button>
       </div>
     </div>
   </div>
