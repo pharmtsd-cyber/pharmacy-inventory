@@ -20,12 +20,26 @@ function normalizeExcelDate(v) {
   return m ? `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` : s.substring(0, 10);
 }
 
-function calcDiffPct(diff, sap) {
+function calcDiffPctNum(diff, sap) {
   const d = Number(diff) || 0;
   const s = Number(sap) || 0;
-  if (s === 0) return d === 0 ? '0.00%' : (d > 0 ? '+100.00%' : '-100.00%');
-  const pct = (d / Math.abs(s)) * 100;
-  return `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  if (s === 0) return d === 0 ? 0 : (d > 0 ? 100 : -100);
+  return Math.round((d / Math.abs(s)) * 10000) / 100;
+}
+
+function fmtSignedNum(val) {
+  const n = Number(val) || 0;
+  if (n > 0) return `<span class="text-danger fw-bold">+${n}</span>`;
+  if (n < 0) return `<span class="text-success fw-bold">${n}</span>`;
+  return `<span class="text-dark fw-bold">0</span>`;
+}
+
+function fmtSignedPct(diff, sap) {
+  const pct = calcDiffPctNum(diff, sap);
+  const label = `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  if (pct > 0) return `<span class="text-danger fw-bold">${label}</span>`;
+  if (pct < 0) return `<span class="text-success fw-bold">${label}</span>`;
+  return `<span class="text-dark fw-bold">0.00%</span>`;
 }
 
 export function initDrugMgmtPortal() {
@@ -209,6 +223,130 @@ export function rollbackSapDate(sapType, sapDate) {
   });
 }
 
+function renderSnapshotComparisonTable(thead, tbody, list, unitCode, mode) {
+  const actKey = mode === 'daily' ? 'actual_qty' : 'total_actual_qty';
+  const emptyMsg = mode === 'daily' ? '此日期尚無每日盤點結果存檔' : '此月份尚無月盤點結果存檔';
+
+  if (unitCode === 'ALL') {
+    thead.innerHTML = `
+      <tr>
+        <th class="text-center align-middle" rowspan="2">藥品代碼</th>
+        <th class="align-middle" rowspan="2">藥品名稱 (鎖存快照)</th>
+        <th class="text-center text-white" colspan="4" style="background-color:#1A365D;">門診藥局 (BA)</th>
+        <th class="text-center text-white" colspan="4" style="background-color:#1E4D2B;">住院藥局 (BF)</th>
+        <th class="text-center text-white" colspan="4" style="background-color:#7A1717;">急診藥局 (BE)</th>
+        <th class="text-center text-white" colspan="4" style="background-color:#4E342E;">調配藥局 (BG)</th>
+        <th class="text-center bg-dark text-white" colspan="4">全院加總</th>
+      </tr>
+      <tr>
+        <th class="text-end small" style="background-color:#e8eef7;">SAP</th><th class="text-end small" style="background-color:#e8eef7;">實盤</th><th class="text-end small" style="background-color:#e8eef7;">帳差</th><th class="text-end small" style="background-color:#e8eef7;">帳差%</th>
+        <th class="text-end small" style="background-color:#e8f3ec;">SAP</th><th class="text-end small" style="background-color:#e8f3ec;">實盤</th><th class="text-end small" style="background-color:#e8f3ec;">帳差</th><th class="text-end small" style="background-color:#e8f3ec;">帳差%</th>
+        <th class="text-end small" style="background-color:#f9eaea;">SAP</th><th class="text-end small" style="background-color:#f9eaea;">實盤</th><th class="text-end small" style="background-color:#f9eaea;">帳差</th><th class="text-end small" style="background-color:#f9eaea;">帳差%</th>
+        <th class="text-end small" style="background-color:#f2ecea;">SAP</th><th class="text-end small" style="background-color:#f2ecea;">實盤</th><th class="text-end small" style="background-color:#f2ecea;">帳差</th><th class="text-end small" style="background-color:#f2ecea;">帳差%</th>
+        <th class="text-end small bg-light">總SAP</th><th class="text-end small bg-light">總實盤</th><th class="text-end small bg-light">總帳差</th><th class="text-end small bg-light">總帳差%</th>
+      </tr>`;
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="22" class="text-center py-4 text-muted">${emptyMsg}</td></tr>`;
+      return;
+    }
+
+    const pivot = {};
+    for (const r of list) {
+      if (!pivot[r.drug_code]) pivot[r.drug_code] = { drug_code: r.drug_code, drug_name: r.drug_name, units: {} };
+      pivot[r.drug_code].units[r.unit_code] = r;
+    }
+
+    const fmtCell4 = (obj, bg) => {
+      if (!obj) {
+        return `<td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td>`;
+      }
+      const sapVal = Number(obj.sap_qty) || 0;
+      const actVal = Number(obj[actKey]) || 0;
+      const diffVal = Number(obj.diff_qty) || 0;
+      return `
+        <td class="text-end" style="background-color:${bg};">${sapVal}</td>
+        <td class="text-end fw-bold" style="background-color:${bg};">${actVal}</td>
+        <td class="text-end" style="background-color:${bg};">${fmtSignedNum(diffVal)}</td>
+        <td class="text-end" style="background-color:${bg};">${fmtSignedPct(diffVal, sapVal)}</td>`;
+    };
+
+    tbody.innerHTML = Object.values(pivot).sort((a, b) => a.drug_code.localeCompare(b.drug_code)).map(item => {
+      let totSap = 0, totAct = 0, totDiff = 0;
+      ['BA', 'BF', 'BE', 'BG'].forEach(u => {
+        if (item.units[u]) {
+          totSap += Number(item.units[u].sap_qty) || 0;
+          totAct += Number(item.units[u][actKey]) || 0;
+          totDiff += Number(item.units[u].diff_qty) || 0;
+        }
+      });
+      return `
+        <tr>
+          <td class="text-center fw-bold text-nowrap">${item.drug_code}</td>
+          <td class="fw-bold text-nowrap">${item.drug_name}</td>
+          ${fmtCell4(item.units['BA'], '#f4f7fc')}
+          ${fmtCell4(item.units['BF'], '#f3faf5')}
+          ${fmtCell4(item.units['BE'], '#fdf4f4')}
+          ${fmtCell4(item.units['BG'], '#f8f5f4')}
+          <td class="text-end bg-light">${totSap}</td>
+          <td class="text-end fw-bold bg-light">${totAct}</td>
+          <td class="text-end bg-light">${fmtSignedNum(totDiff)}</td>
+          <td class="text-end bg-light">${fmtSignedPct(totDiff, totSap)}</td>
+        </tr>`;
+    }).join('');
+  } else {
+    if (mode === 'daily') {
+      thead.innerHTML = `
+        <tr>
+          <th class="text-center">藥品代碼</th>
+          <th>藥品名稱 (鎖存快照)</th>
+          <th class="text-end">SAP數量</th>
+          <th class="text-end">實際盤點</th>
+          <th class="text-end">帳差</th>
+          <th class="text-end">帳差百分比</th>
+          <th class="text-center">存檔時間</th>
+        </tr>`;
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">${emptyMsg}</td></tr>`; return; }
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td class="text-center fw-bold">${r.drug_code}</td>
+          <td class="fw-bold">${r.drug_name}</td>
+          <td class="text-end">${Number(r.sap_qty) || 0}</td>
+          <td class="text-end fw-bold">${Number(r.actual_qty) || 0}</td>
+          <td class="text-end">${fmtSignedNum(r.diff_qty)}</td>
+          <td class="text-end">${fmtSignedPct(r.diff_qty, r.sap_qty)}</td>
+          <td class="text-center small text-muted">${r.created_at || ''}</td>
+        </tr>`).join('');
+    } else {
+      thead.innerHTML = `
+        <tr>
+          <th class="text-center">藥品代碼</th>
+          <th>藥品名稱 (鎖存快照)</th>
+          <th class="text-end">月SAP</th>
+          <th class="text-end">調劑台</th>
+          <th class="text-end">庫存</th>
+          <th class="text-end">線上調整</th>
+          <th class="text-end">盤點總量</th>
+          <th class="text-end">帳差</th>
+          <th class="text-end">帳差百分比</th>
+        </tr>`;
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">${emptyMsg}</td></tr>`; return; }
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td class="text-center fw-bold">${r.drug_code}</td>
+          <td class="fw-bold">${r.drug_name}</td>
+          <td class="text-end">${Number(r.sap_qty) || 0}</td>
+          <td class="text-end fw-bold">${Number(r.desk_qty) || 0}</td>
+          <td class="text-end fw-bold">${Number(r.stock_qty) || 0}</td>
+          <td class="text-end fw-bold">${Number(r.online_qty) || 0}</td>
+          <td class="text-end fw-bold">${Number(r.total_actual_qty) || 0}</td>
+          <td class="text-end">${fmtSignedNum(r.diff_qty)}</td>
+          <td class="text-end">${fmtSignedPct(r.diff_qty, r.sap_qty)}</td>
+        </tr>`).join('');
+    }
+  }
+}
+
 export function generateDailySnapshotNow() {
   const unitCode = document.getElementById('dm-daily-unit').value;
   const dateStr = document.getElementById('dm-daily-date').value;
@@ -231,91 +369,7 @@ export function loadDailySnapshots() {
 
   fetchBackend('getDailySnapshotsAll', { unitCode, dateStr }).then(res => {
     dailySnapCache = res?.data || [];
-    if (unitCode === 'ALL') {
-      thead.innerHTML = `
-        <tr>
-          <th class="text-center align-middle" rowspan="2">藥品代碼</th>
-          <th class="align-middle" rowspan="2">藥品名稱 (鎖存快照)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#1A365D;">門診藥局 (BA)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#1E4D2B;">住院藥局 (BF)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#7A1717;">急診藥局 (BE)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#4E342E;">調配藥局 (BG)</th>
-          <th class="text-center bg-dark text-white" colspan="4">全院加總</th>
-        </tr>
-        <tr>
-          <th class="text-end small" style="background-color:#e8eef7;">SAP</th><th class="text-end small" style="background-color:#e8eef7;">實盤</th><th class="text-end small" style="background-color:#e8eef7;">帳差</th><th class="text-end small" style="background-color:#e8eef7;">帳差%</th>
-          <th class="text-end small" style="background-color:#e8f3ec;">SAP</th><th class="text-end small" style="background-color:#e8f3ec;">實盤</th><th class="text-end small" style="background-color:#e8f3ec;">帳差</th><th class="text-end small" style="background-color:#e8f3ec;">帳差%</th>
-          <th class="text-end small" style="background-color:#f9eaea;">SAP</th><th class="text-end small" style="background-color:#f9eaea;">實盤</th><th class="text-end small" style="background-color:#f9eaea;">帳差</th><th class="text-end small" style="background-color:#f9eaea;">帳差%</th>
-          <th class="text-end small" style="background-color:#f2ecea;">SAP</th><th class="text-end small" style="background-color:#f2ecea;">實盤</th><th class="text-end small" style="background-color:#f2ecea;">帳差</th><th class="text-end small" style="background-color:#f2ecea;">帳差%</th>
-          <th class="text-end small bg-light">總SAP</th><th class="text-end small bg-light">總實盤</th><th class="text-end small bg-light">總帳差</th><th class="text-end small bg-light">總帳差%</th>
-        </tr>`;
-      if (!dailySnapCache.length) {
-        tbody.innerHTML = '<tr><td colspan="22" class="text-center py-4 text-muted">此日期尚無每日盤點結果存檔</td></tr>';
-        return;
-      }
-      const pivot = {};
-      for (const r of dailySnapCache) {
-        if (!pivot[r.drug_code]) pivot[r.drug_code] = { drug_code: r.drug_code, drug_name: r.drug_name, units: {} };
-        pivot[r.drug_code].units[r.unit_code] = r;
-      }
-      const fmtCell4 = (obj, bg) => {
-        if (!obj) return `<td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td>`;
-        const dc = obj.diff_qty === 0 ? 'text-success' : (obj.diff_qty > 0 ? 'text-primary' : 'text-danger');
-        return `<td class="text-end" style="background-color:${bg};">${obj.sap_qty}</td><td class="text-end fw-bold" style="background-color:${bg};">${obj.actual_qty}</td><td class="text-end fw-bold ${dc}" style="background-color:${bg};">${obj.diff_qty > 0 ? '+' + obj.diff_qty : obj.diff_qty}</td><td class="text-end fw-bold ${dc}" style="background-color:${bg};">${calcDiffPct(obj.diff_qty, obj.sap_qty)}</td>`;
-      };
-      tbody.innerHTML = Object.values(pivot).sort((a, b) => a.drug_code.localeCompare(b.drug_code)).map(item => {
-        let totSap = 0, totAct = 0, totDiff = 0;
-        ['BA', 'BF', 'BE', 'BG'].forEach(u => {
-          if (item.units[u]) {
-            totSap += Number(item.units[u].sap_qty) || 0;
-            totAct += Number(item.units[u].actual_qty) || 0;
-            totDiff += Number(item.units[u].diff_qty) || 0;
-          }
-        });
-        const tdc = totDiff === 0 ? 'text-success' : (totDiff > 0 ? 'text-primary' : 'text-danger');
-        return `
-          <tr>
-            <td class="text-center fw-bold text-nowrap">${item.drug_code}</td>
-            <td class="fw-bold text-nowrap">${item.drug_name}</td>
-            ${fmtCell4(item.units['BA'], '#f4f7fc')}
-            ${fmtCell4(item.units['BF'], '#f3faf5')}
-            ${fmtCell4(item.units['BE'], '#fdf4f4')}
-            ${fmtCell4(item.units['BG'], '#f8f5f4')}
-            <td class="text-end bg-light">${totSap}</td>
-            <td class="text-end fw-bold bg-light">${totAct}</td>
-            <td class="text-end fw-bold bg-light ${tdc}">${totDiff > 0 ? '+' + totDiff : totDiff}</td>
-            <td class="text-end fw-bold bg-light ${tdc}">${calcDiffPct(totDiff, totSap)}</td>
-          </tr>`;
-      }).join('');
-    } else {
-      thead.innerHTML = `
-        <tr>
-          <th class="text-center">藥品代碼</th>
-          <th>藥品名稱 (鎖存快照)</th>
-          <th class="text-end">SAP數量</th>
-          <th class="text-end">實際盤點</th>
-          <th class="text-end">帳差</th>
-          <th class="text-end">帳差百分比</th>
-          <th class="text-center">存檔時間</th>
-        </tr>`;
-      if (!dailySnapCache.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">此日期尚無每日盤點結果存檔</td></tr>';
-        return;
-      }
-      tbody.innerHTML = dailySnapCache.map(r => {
-        const diffCls = r.diff_qty === 0 ? 'text-success' : (r.diff_qty > 0 ? 'text-primary' : 'text-danger');
-        return `
-          <tr>
-            <td class="text-center fw-bold">${r.drug_code}</td>
-            <td class="fw-bold">${r.drug_name}</td>
-            <td class="text-end">${r.sap_qty}</td>
-            <td class="text-end fw-bold">${r.actual_qty}</td>
-            <td class="text-end fw-bold ${diffCls}">${r.diff_qty > 0 ? '+' + r.diff_qty : r.diff_qty}</td>
-            <td class="text-end fw-bold ${diffCls}">${calcDiffPct(r.diff_qty, r.sap_qty)}</td>
-            <td class="text-center small text-muted">${r.created_at || ''}</td>
-          </tr>`;
-      }).join('');
-    }
+    renderSnapshotComparisonTable(thead, tbody, dailySnapCache, unitCode, 'daily');
   });
 }
 
@@ -337,12 +391,12 @@ export function exportDailySnapshotsExcel() {
       const ts = (ba.sap_qty||0)+(bf.sap_qty||0)+(be.sap_qty||0)+(bg.sap_qty||0);
       const ta = (ba.actual_qty||0)+(bf.actual_qty||0)+(be.actual_qty||0)+(bg.actual_qty||0);
       const td = (ba.diff_qty||0)+(bf.diff_qty||0)+(be.diff_qty||0)+(bg.diff_qty||0);
-      rows.push([item.drug_code, item.drug_name, ba.sap_qty, ba.actual_qty, ba.diff_qty, calcDiffPct(ba.diff_qty, ba.sap_qty), bf.sap_qty, bf.actual_qty, bf.diff_qty, calcDiffPct(bf.diff_qty, bf.sap_qty), be.sap_qty, be.actual_qty, be.diff_qty, calcDiffPct(be.diff_qty, be.sap_qty), bg.sap_qty, bg.actual_qty, bg.diff_qty, calcDiffPct(bg.diff_qty, bg.sap_qty), ts, ta, td, calcDiffPct(td, ts)]);
+      rows.push([item.drug_code, item.drug_name, ba.sap_qty, ba.actual_qty, ba.diff_qty, calcDiffPctNum(ba.diff_qty, ba.sap_qty) + '%', bf.sap_qty, bf.actual_qty, bf.diff_qty, calcDiffPctNum(bf.diff_qty, bf.sap_qty) + '%', be.sap_qty, be.actual_qty, be.diff_qty, calcDiffPctNum(be.diff_qty, be.sap_qty) + '%', bg.sap_qty, bg.actual_qty, bg.diff_qty, calcDiffPctNum(bg.diff_qty, bg.sap_qty) + '%', ts, ta, td, calcDiffPctNum(td, ts) + '%']);
     });
     window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), '全院每日盤點結果');
   } else {
     const rows = [['單位代碼', '單位名稱', '盤點日期', '藥品代碼', '藥品名稱', 'SAP數量', '實際盤點', '帳差', '帳差百分比', '存檔時間']];
-    dailySnapCache.forEach(r => rows.push([r.unit_code, UNIT_LABEL_MAP[r.unit_code] || r.unit_code, r.record_date, r.drug_code, r.drug_name, r.sap_qty, r.actual_qty, r.diff_qty, calcDiffPct(r.diff_qty, r.sap_qty), r.created_at || '']));
+    dailySnapCache.forEach(r => rows.push([r.unit_code, UNIT_LABEL_MAP[r.unit_code] || r.unit_code, r.record_date, r.drug_code, r.drug_name, r.sap_qty, r.actual_qty, r.diff_qty, calcDiffPctNum(r.diff_qty, r.sap_qty) + '%', r.created_at || '']));
     window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), '每日盤點結果');
   }
   window.XLSX.writeFile(wb, `每日盤點結果_${unitCode}_${dateStr}.xlsx`);
@@ -370,95 +424,7 @@ export function loadMonthlySnapshots() {
 
   fetchBackend('getMonthlySnapshotsAll', { unitCode, monthStr }).then(res => {
     monthlySnapCache = res?.data || [];
-    if (unitCode === 'ALL') {
-      thead.innerHTML = `
-        <tr>
-          <th class="text-center align-middle" rowspan="2">藥品代碼</th>
-          <th class="align-middle" rowspan="2">藥品名稱 (鎖存快照)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#1A365D;">門診藥局 (BA)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#1E4D2B;">住院藥局 (BF)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#7A1717;">急診藥局 (BE)</th>
-          <th class="text-center text-white" colspan="4" style="background-color:#4E342E;">調配藥局 (BG)</th>
-          <th class="text-center bg-dark text-white" colspan="4">全院加總</th>
-        </tr>
-        <tr>
-          <th class="text-end small" style="background-color:#e8eef7;">SAP</th><th class="text-end small" style="background-color:#e8eef7;">實盤</th><th class="text-end small" style="background-color:#e8eef7;">帳差</th><th class="text-end small" style="background-color:#e8eef7;">帳差%</th>
-          <th class="text-end small" style="background-color:#e8f3ec;">SAP</th><th class="text-end small" style="background-color:#e8f3ec;">實盤</th><th class="text-end small" style="background-color:#e8f3ec;">帳差</th><th class="text-end small" style="background-color:#e8f3ec;">帳差%</th>
-          <th class="text-end small" style="background-color:#f9eaea;">SAP</th><th class="text-end small" style="background-color:#f9eaea;">實盤</th><th class="text-end small" style="background-color:#f9eaea;">帳差</th><th class="text-end small" style="background-color:#f9eaea;">帳差%</th>
-          <th class="text-end small" style="background-color:#f2ecea;">SAP</th><th class="text-end small" style="background-color:#f2ecea;">實盤</th><th class="text-end small" style="background-color:#f2ecea;">帳差</th><th class="text-end small" style="background-color:#f2ecea;">帳差%</th>
-          <th class="text-end small bg-light">總SAP</th><th class="text-end small bg-light">總實盤</th><th class="text-end small bg-light">總帳差</th><th class="text-end small bg-light">總帳差%</th>
-        </tr>`;
-      if (!monthlySnapCache.length) {
-        tbody.innerHTML = '<tr><td colspan="22" class="text-center py-4 text-muted">此月份尚無月盤點結果存檔</td></tr>';
-        return;
-      }
-      const pivot = {};
-      for (const r of monthlySnapCache) {
-        if (!pivot[r.drug_code]) pivot[r.drug_code] = { drug_code: r.drug_code, drug_name: r.drug_name, units: {} };
-        pivot[r.drug_code].units[r.unit_code] = r;
-      }
-      const fmtCell4 = (obj, bg) => {
-        if (!obj) return `<td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td><td class="text-end text-muted" style="background-color:${bg};">-</td>`;
-        const dc = obj.diff_qty === 0 ? 'text-success' : (obj.diff_qty > 0 ? 'text-primary' : 'text-danger');
-        return `<td class="text-end" style="background-color:${bg};">${obj.sap_qty}</td><td class="text-end fw-bold" style="background-color:${bg};">${obj.total_actual_qty}</td><td class="text-end fw-bold ${dc}" style="background-color:${bg};">${obj.diff_qty > 0 ? '+' + obj.diff_qty : obj.diff_qty}</td><td class="text-end fw-bold ${dc}" style="background-color:${bg};">${calcDiffPct(obj.diff_qty, obj.sap_qty)}</td>`;
-      };
-      tbody.innerHTML = Object.values(pivot).sort((a, b) => a.drug_code.localeCompare(b.drug_code)).map(item => {
-        let totSap = 0, totAct = 0, totDiff = 0;
-        ['BA', 'BF', 'BE', 'BG'].forEach(u => {
-          if (item.units[u]) {
-            totSap += Number(item.units[u].sap_qty) || 0;
-            totAct += Number(item.units[u].total_actual_qty) || 0;
-            totDiff += Number(item.units[u].diff_qty) || 0;
-          }
-        });
-        const tdc = totDiff === 0 ? 'text-success' : (totDiff > 0 ? 'text-primary' : 'text-danger');
-        return `
-          <tr>
-            <td class="text-center fw-bold text-nowrap">${item.drug_code}</td>
-            <td class="fw-bold text-nowrap">${item.drug_name}</td>
-            ${fmtCell4(item.units['BA'], '#f4f7fc')}
-            ${fmtCell4(item.units['BF'], '#f3faf5')}
-            ${fmtCell4(item.units['BE'], '#fdf4f4')}
-            ${fmtCell4(item.units['BG'], '#f8f5f4')}
-            <td class="text-end bg-light">${totSap}</td>
-            <td class="text-end fw-bold bg-light">${totAct}</td>
-            <td class="text-end fw-bold bg-light ${tdc}">${totDiff > 0 ? '+' + totDiff : totDiff}</td>
-            <td class="text-end fw-bold bg-light ${tdc}">${calcDiffPct(totDiff, totSap)}</td>
-          </tr>`;
-      }).join('');
-    } else {
-      thead.innerHTML = `
-        <tr>
-          <th class="text-center">藥品代碼</th>
-          <th>藥品名稱 (鎖存快照)</th>
-          <th class="text-end">月SAP</th>
-          <th class="text-end">調劑台</th>
-          <th class="text-end">庫存</th>
-          <th class="text-end">線上調整</th>
-          <th class="text-end">盤點總量</th>
-          <th class="text-end">帳差</th>
-          <th class="text-end">帳差百分比</th>
-        </tr>`;
-      if (!monthlySnapCache.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">此月份尚無月盤點結果存檔</td></tr>';
-        return;
-      }
-      tbody.innerHTML = monthlySnapCache.map(r => {
-        const diffCls = r.diff_qty === 0 ? 'text-success' : (r.diff_qty > 0 ? 'text-primary' : 'text-danger');
-        return `
-          <tr>
-            <td class="text-center fw-bold">${r.drug_code}</td>
-            <td class="fw-bold">${r.drug_name}</td>
-            <td class="text-end">${r.sap_qty}</td>
-            <td class="text-end">${r.desk_qty}</td>
-            <td class="text-end">${r.stock_qty}</td>
-            <td class="text-end">${r.online_qty}</td>
-            <td class="text-end fw-bold">${r.total_actual_qty}</td>
-            <td class="text-end fw-bold ${diffCls}">${r.diff_qty > 0 ? '+' + r.diff_qty : r.diff_qty}</td>
-            <td class="text-end fw-bold ${diffCls}">${calcDiffPct(r.diff_qty, r.sap_qty)}</td>
-          </tr>`;
-      }).join('');
-    }
+    renderSnapshotComparisonTable(thead, tbody, monthlySnapCache, unitCode, 'monthly');
   });
 }
 
@@ -480,37 +446,13 @@ export function exportMonthlySnapshotsExcel() {
       const ts = (ba.sap_qty||0)+(bf.sap_qty||0)+(be.sap_qty||0)+(bg.sap_qty||0);
       const ta = (ba.total_actual_qty||0)+(bf.total_actual_qty||0)+(be.total_actual_qty||0)+(bg.total_actual_qty||0);
       const td = (ba.diff_qty||0)+(bf.diff_qty||0)+(be.diff_qty||0)+(bg.diff_qty||0);
-      rows.push([item.drug_code, item.drug_name, ba.sap_qty, ba.total_actual_qty, ba.diff_qty, calcDiffPct(ba.diff_qty, ba.sap_qty), bf.sap_qty, bf.total_actual_qty, bf.diff_qty, calcDiffPct(bf.diff_qty, bf.sap_qty), be.sap_qty, be.total_actual_qty, be.diff_qty, calcDiffPct(be.diff_qty, be.sap_qty), bg.sap_qty, bg.total_actual_qty, bg.diff_qty, calcDiffPct(bg.diff_qty, bg.sap_qty), ts, ta, td, calcDiffPct(td, ts)]);
+      rows.push([item.drug_code, item.drug_name, ba.sap_qty, ba.total_actual_qty, ba.diff_qty, calcDiffPctNum(ba.diff_qty, ba.sap_qty) + '%', bf.sap_qty, bf.total_actual_qty, bf.diff_qty, calcDiffPctNum(bf.diff_qty, bf.sap_qty) + '%', be.sap_qty, be.total_actual_qty, be.diff_qty, calcDiffPctNum(be.diff_qty, be.sap_qty) + '%', bg.sap_qty, bg.total_actual_qty, bg.diff_qty, calcDiffPctNum(bg.diff_qty, bg.sap_qty) + '%', ts, ta, td, calcDiffPctNum(td, ts) + '%']);
     });
     window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), '全院月盤點總表');
   } else {
     const rows = [['單位代碼', '單位名稱', '盤點月份', '藥品代碼', '藥品名稱', '月SAP', '調劑台', '庫存', '線上調整', '盤點總量', '帳差', '帳差百分比']];
-    monthlySnapCache.forEach(r => rows.push([r.unit_code, UNIT_LABEL_MAP[r.unit_code] || r.unit_code, r.record_month, r.drug_code, r.drug_name, r.sap_qty, r.desk_qty, r.stock_qty, r.online_qty, r.total_actual_qty, r.diff_qty, calcDiffPct(r.diff_qty, r.sap_qty)]));
+    monthlySnapCache.forEach(r => rows.push([r.unit_code, UNIT_LABEL_MAP[r.unit_code] || r.unit_code, r.record_month, r.drug_code, r.drug_name, r.sap_qty, r.desk_qty, r.stock_qty, r.online_qty, r.total_actual_qty, r.diff_qty, calcDiffPctNum(r.diff_qty, r.sap_qty) + '%']));
     window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), '月盤點結果');
   }
   window.XLSX.writeFile(wb, `月盤點結果_${unitCode}_${monthStr}.xlsx`);
-}
-
-function calcDiffPctNum(diff, sap) {
-  const d = Number(diff) || 0;
-  const s = Number(sap) || 0;
-  if (s === 0) return d === 0 ? 0 : (d > 0 ? 100 : -100);
-  return Math.round((d / Math.abs(s)) * 10000) / 100;
-}
-
-function fmtSignedNum(val) {
-  const n = Number(val) || 0;
-  if (n > 0) return `<span class="text-danger fw-bold">+${n}</span>`;
-  if (n < 0) return `<span class="text-success fw-bold">${n}</span>`;
-  return `<span class="text-dark fw-bold">0</span>`;
-}
-
-function fmtSignedPct(diff, sap) {
-  const d = Number(diff) || 0;
-  const s = Number(sap) || 0;
-  const pct = s === 0 ? (d === 0 ? 0 : (d > 0 ? 100 : -100)) : (d / Math.abs(s)) * 100;
-  const label = `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
-  if (pct > 0) return `<span class="text-danger fw-bold">${label}</span>`;
-  if (pct < 0) return `<span class="text-success fw-bold">${label}</span>`;
-  return `<span class="text-dark fw-bold">0.00%</span>`;
 }
