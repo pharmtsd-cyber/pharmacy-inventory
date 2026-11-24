@@ -79,3 +79,38 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.05) !important;
 }
+
+/* ==========================================
+   📊 月盤點調帳專區 & 藥品管理組盤點結果 專用樣式
+   ========================================== */
+
+/* 3. 欄位群組一鍵隱藏/顯示 */
+#adj-data-table.hide-g1 .col-g1 { display: none !important; }
+#adj-data-table.hide-g2 .col-g2 { display: none !important; }
+#adj-data-table.hide-g3 .col-g3 { display: none !important; }
+
+/* 3. 欄位群組標題與底色區分 */
+#adj-data-table thead th.head-g1 { background-color: #dbeafe !important; color: #1e3a8a !important; }
+#adj-data-table thead th.head-g2 { background-color: #dcfce7 !important; color: #14532d !important; }
+#adj-data-table thead th.head-g3 { background-color: #f3e8ff !important; color: #581c87 !important; }
+
+/* 4. 整個月盤點調帳專區字體放大與行距舒展 */
+#view-monthly-adj {
+  font-size: 1.02rem;
+}
+#view-monthly-adj table th,
+#view-monthly-adj table td {
+  font-size: 1rem !important;
+  padding: 0.55rem 0.65rem !important;
+  vertical-align: middle;
+}
+
+/* 6. 藥品管理組：每日與月盤點結果比照放大字體與間距 */
+#dm-tab-daily-res table th,
+#dm-tab-daily-res table td,
+#dm-tab-monthly-res table th,
+#dm-tab-monthly-res table td {
+  font-size: 0.98rem !important;
+  padding: 0.5rem 0.6rem !important;
+  vertical-align: middle;
+}
