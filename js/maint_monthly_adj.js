@@ -365,3 +365,21 @@ function matchCustomNumericFilter(val, op, minVal, maxVal) {
   if (op === 'BETWEEN') return isNaN(maxVal) ? val >= minVal : (val >= minVal && val <= maxVal);
   return true;
 }
+
+const UNIT_COLOR_MAP = {
+  BA: '#1A365D', // 門診藥局：海軍藍
+  BF: '#1E4D2B', // 住院藥局：海軍綠
+  BE: '#7A1717', // 急診藥局：海軍紅
+  BG: '#4E342E'  // 調配藥局：海軍棕
+};
+
+function applyAdjUnitThemeColor(colorHex) {
+  const root = document.getElementById('view-monthly-adj');
+  if (root) {
+    root.style.setProperty('--academic-primary', colorHex || '#1A365D');
+  }
+  document.querySelectorAll('#adj-workspace-panel .bg-academic, #adj-workspace-panel .btn-academic').forEach(el => {
+    el.style.backgroundColor = colorHex || '#1A365D';
+    el.style.borderColor = colorHex || '#1A365D';
+  });
+}
