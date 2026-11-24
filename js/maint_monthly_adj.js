@@ -59,22 +59,16 @@ function setAdjSaveStatus(msg, color = '#6c757d') {
 }
 
 function applyAdjUnitThemeColor(colorHex) {
-  const targetColor = colorHex || '#1A365D';
+  const targetColor = colorHex || '#212529';
   document.documentElement.style.setProperty('--academic-primary', targetColor);
   const root = document.getElementById('view-monthly-adj');
-  if (root) {
-    root.style.setProperty('--academic-primary', targetColor);
-  }
-  document.querySelectorAll('#adj-workspace-panel .bg-academic, #adj-workspace-panel .btn-academic').forEach(el => {
-    el.style.backgroundColor = targetColor;
-    el.style.borderColor = targetColor;
-  });
+  if (root) root.style.setProperty('--academic-primary', targetColor);
 }
 
 export function initMonthlyAdjPortal() {
   activeAdjUnitCode = null;
   pendingAdjUnitTarget = null;
-  applyAdjUnitThemeColor('#1A365D');
+  applyAdjUnitThemeColor('#212529'); // 預設黑白色
   switchView('view-monthly-adj');
   document.getElementById('adj-unit-picker-panel')?.classList.remove('d-none');
   document.getElementById('adj-workspace-panel')?.classList.add('d-none');
@@ -122,15 +116,19 @@ export function switchAdjTab(tabId) {
     const sec = document.getElementById(id);
     if (sec) sec.classList.toggle('d-none', id !== tabId);
   });
-  const activeColor = UNIT_COLOR_MAP[activeAdjUnitCode] || '#1A365D';
+
+  // 正確切換 bg-academic / text-white / bg-white / text-academic，避免 !important 卡住舊分頁
   document.querySelectorAll('#adj-main-tabs .nav-link').forEach(btn => {
     const active = btn.getAttribute('data-target') === tabId;
-    btn.classList.toggle('active', active);
-    btn.classList.toggle('text-white', active);
-    btn.classList.toggle('bg-white', !active);
-    btn.style.backgroundColor = active ? activeColor : '#ffffff';
-    btn.style.borderColor = activeColor;
-    btn.style.color = active ? '#ffffff' : activeColor;
+    btn.classList.remove('active', 'bg-academic', 'text-white', 'bg-white', 'text-academic');
+    btn.style.backgroundColor = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    if (active) {
+      btn.classList.add('active', 'bg-academic', 'text-white');
+    } else {
+      btn.classList.add('bg-white', 'text-academic');
+    }
   });
 
   if (tabId === 'adj-tab-inventory' && adjNeedsRefresh) { adjNeedsRefresh = false; loadAdjInventoryData(true); }
