@@ -22,7 +22,6 @@ let adjMarkerData = { masterList: [], trackedItems: [], availableSymbols: [] };
 let activeAdjUnitCode = null;
 let pendingAdjUnitTarget = null;
 let adjAuditLogs = [];
-let adjAuthModalInstance = null;
 
 function recordAdjAudit(actionType, summary) {
   const now = new Date();
@@ -60,20 +59,26 @@ function setAdjSaveStatus(msg, color = '#6c757d') {
 }
 
 function applyAdjUnitThemeColor(colorHex) {
-  const targetColor = colorHex || '#212529';
-  document.documentElement.style.setProperty('--academic-primary', targetColor);
   const root = document.getElementById('view-monthly-adj');
-  if (root) root.style.setProperty('--academic-primary', targetColor);
+  if (root) {
+    root.style.setProperty('--academic-primary', colorHex || '#1A365D');
+  }
+  document.querySelectorAll('#adj-workspace-panel .bg-academic, #adj-workspace-panel .btn-academic').forEach(el => {
+    el.style.backgroundColor = colorHex || '#1A365D';
+    el.style.borderColor = colorHex || '#1A365D';
+  });
 }
 
 export function initMonthlyAdjPortal() {
   activeAdjUnitCode = null;
   pendingAdjUnitTarget = null;
-  applyAdjUnitThemeColor('#212529'); // 預設黑白色
+  applyAdjUnitThemeColor('#212529');
   switchView('view-monthly-adj');
   document.getElementById('adj-unit-picker-panel')?.classList.remove('d-none');
   document.getElementById('adj-workspace-panel')?.classList.add('d-none');
 }
+
+let adjAuthModalInstance = null;
 
 function openAdjAuthModalEl() {
   const modalEl = document.getElementById('adjUnitAuthModal');
@@ -81,13 +86,9 @@ function openAdjAuthModalEl() {
     alert('找不到調帳權限驗證視窗（#adjUnitAuthModal）');
     return;
   }
-
   if (window.bootstrap && typeof window.bootstrap.Modal === 'function') {
     if (!adjAuthModalInstance) {
-      adjAuthModalInstance = new window.bootstrap.Modal(modalEl, {
-        backdrop: true,
-        keyboard: true
-      });
+      adjAuthModalInstance = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
     }
     adjAuthModalInstance.show();
   } else {
@@ -100,14 +101,12 @@ function openAdjAuthModalEl() {
 function closeAdjAuthModalEl() {
   const modalEl = document.getElementById('adjUnitAuthModal');
   if (!modalEl) return;
-
   if (adjAuthModalInstance && typeof adjAuthModalInstance.hide === 'function') {
     adjAuthModalInstance.hide();
   } else if (window.bootstrap && window.bootstrap.Modal) {
     const inst = window.bootstrap.Modal.getInstance(modalEl);
     if (inst) inst.hide();
   }
-
   modalEl.classList.remove('show');
   modalEl.style.display = 'none';
   modalEl.setAttribute('aria-hidden', 'true');
@@ -136,7 +135,7 @@ export function confirmAdjUnitAuth() {
     toggleLoader(false);
     if (!res || !res.success) return alert('❌ 權限驗證失敗：' + (res?.message || '無權限'));
 
-    window.bootstrap.Modal.getInstance(document.getElementById('adjUnitAuthModal'))?.hide();
+    closeAdjAuthModalEl();
     activeAdjUnitCode = pendingAdjUnitTarget.uCode;
     const themeColor = UNIT_COLOR_MAP[activeAdjUnitCode] || '#1A365D';
     applyAdjUnitThemeColor(themeColor);
@@ -159,19 +158,15 @@ export function switchAdjTab(tabId) {
     const sec = document.getElementById(id);
     if (sec) sec.classList.toggle('d-none', id !== tabId);
   });
-
-  // 正確切換 bg-academic / text-white / bg-white / text-academic，避免 !important 卡住舊分頁
+  const activeColor = UNIT_COLOR_MAP[activeAdjUnitCode] || '#212529';
   document.querySelectorAll('#adj-main-tabs .nav-link').forEach(btn => {
     const active = btn.getAttribute('data-target') === tabId;
-    btn.classList.remove('active', 'bg-academic', 'text-white', 'bg-white', 'text-academic');
-    btn.style.backgroundColor = '';
-    btn.style.color = '';
-    btn.style.borderColor = '';
-    if (active) {
-      btn.classList.add('active', 'bg-academic', 'text-white');
-    } else {
-      btn.classList.add('bg-white', 'text-academic');
-    }
+    btn.classList.toggle('active', active);
+    btn.classList.toggle('text-white', active);
+    btn.classList.toggle('bg-white', !active);
+    btn.style.backgroundColor = active ? activeColor : '#ffffff';
+    btn.style.borderColor = activeColor;
+    btn.style.color = active ? '#ffffff' : activeColor;
   });
 
   if (tabId === 'adj-tab-inventory' && adjNeedsRefresh) { adjNeedsRefresh = false; loadAdjInventoryData(true); }
@@ -335,15 +330,9 @@ function renderAdjTable(rowsToRender) {
         td.style.backgroundColor = '#faf5ff';
       }
 
-      // SAP 一般字體；實盤為粗體
-      if (i === 2 || i === 9 || i === 16) {
-        td.style.fontWeight = '400';
-      }
-      if (i === 5 || i === 8 || i === 15) {
-        td.style.fontWeight = '700';
-      }
+      if (i === 2 || i === 9 || i === 16) td.style.fontWeight = '400';
+      if (i === 5 || i === 8 || i === 15) td.style.fontWeight = '700';
 
-      // 差異百分比與結存帳差：正數紅字、負數綠字、持平黑字
       if (i === 6 || i === 10 || i === 17) {
         const num = Number(cellData) || 0;
         td.style.fontWeight = '700';
