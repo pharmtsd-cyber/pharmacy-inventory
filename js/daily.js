@@ -331,13 +331,13 @@ export function renderDailyItems() {
 
     html += `
       <div id="daily-sec-${table.id}" class="mb-3">
-        <div class="d-flex justify-content-between align-items-center bg-white border-start border-4 border-primary rounded shadow-sm px-2 py-2 mb-2">
+        <div class="d-flex justify-content-between align-items-center bg-academic text-white rounded shadow-sm px-3 py-2 mb-2">
           <div>
-            <span class="fw-bold text-dark">${table.name}</span>
-            <span class="badge bg-secondary ms-1">${tCnt}/${tTot}</span>
+            <span class="fw-bold fs-6">${table.name}</span>
+            <span class="badge bg-white text-dark ms-1">${tCnt}/${tTot}</span>
             ${descHtml}
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary fw-bold py-0" onclick="showDailyTableDetailModal('${table.id}', '${safeName}')">
+          <button type="button" class="btn btn-sm btn-light text-dark fw-bold py-0 shadow-sm" onclick="showDailyTableDetailModal('${table.id}', '${safeName}')">
             <i class="bi bi-list-ul"></i> 明細
           </button>
         </div>`;
