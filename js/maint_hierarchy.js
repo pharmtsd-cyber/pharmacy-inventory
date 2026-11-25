@@ -75,21 +75,57 @@ export function loadHierarchyData(silent = false) {
   });
 }
 
+function findNextAvailableAreaCode(usedIdsSet) {
+  for (let i = 0; i < ALPHABET.length; i++) {
+    const code = ALPHABET[i];
+    const id = `${unitPrefix}${code}`.toUpperCase();
+    if (!usedIdsSet.has(id)) return { code, id };
+  }
+  return { code: 'Z', id: `${unitPrefix}Z` };
+}
+
+function findNextAvailableTableCode(areaId, startMajorIdx, startMinorIdx, usedIdsSet) {
+  let maj = startMajorIdx;
+  let min = startMinorIdx;
+  while (maj < ALPHABET.length) {
+    while (min < ALPHABET.length) {
+      const tCode = indexToTwoLetters(maj, min);
+      const tId = `${areaId}${tCode}`.toUpperCase();
+      if (!usedIdsSet.has(tId)) {
+        return { tCode, tId, nextMajor: maj, nextMinor: min + 1 };
+      }
+      min++;
+    }
+    maj++;
+    min = 0;
+  }
+  return { tCode: 'ZZ', tId: `${areaId}ZZ`, nextMajor: maj, nextMinor: min };
+}
+
 function commitImmediateHierarchy(toastMsg = '已即時儲存並更新編碼') {
   const areaIdMap = {};
   const tableIdMap = {};
 
-  let areaSeq = 0;
+  // 1. 第一層：先保留所有上鎖的區域編號，未上鎖的依序跳過已佔用編號
+  const usedAreaIds = new Set(
+    hierAreas.filter(a => a.is_locked && a.area_id).map(a => String(a.area_id).toUpperCase())
+  );
+
   const newAreas = hierAreas.map(a => {
     if (a.is_locked && a.area_id) {
       areaIdMap[a.area_id] = a.area_id;
       return { ...a, is_locked: true };
     }
-    const newCode = indexToAlpha(areaSeq++);
-    const newId = `${unitPrefix}${newCode}`;
+    const { code: newCode, id: newId } = findNextAvailableAreaCode(usedAreaIds);
+    usedAreaIds.add(newId);
     areaIdMap[a.area_id] = newId;
     return { ...a, area_code: newCode, area_id: newId, is_locked: false };
   });
+
+  // 2. 第二層：先保留所有上鎖的盤點表編號，未上鎖的依序跳過已佔用編號
+  const usedTableIds = new Set(
+    hierTables.filter(t => t.is_locked && t.table_id).map(t => String(t.table_id).toUpperCase())
+  );
 
   const newTables = [];
   for (const a of newAreas) {
@@ -104,11 +140,12 @@ function commitImmediateHierarchy(toastMsg = '已即時儲存並更新編碼') {
         return;
       }
       if (idx > 0 && t.is_section_start) { majorIdx++; minorIdx = 0; }
-      const newTCode = indexToTwoLetters(majorIdx, minorIdx);
-      minorIdx++;
-      const newTId = `${a.area_id}${newTCode}`;
-      tableIdMap[t.table_id] = newTId;
-      newTables.push({ ...t, area_code: a.area_id, table_code: newTCode, table_id: newTId, is_locked: false });
+      const picked = findNextAvailableTableCode(a.area_id, majorIdx, minorIdx, usedTableIds);
+      usedTableIds.add(picked.tId);
+      majorIdx = picked.nextMajor;
+      minorIdx = picked.nextMinor;
+      tableIdMap[t.table_id] = picked.tId;
+      newTables.push({ ...t, area_code: a.area_id, table_code: picked.tCode, table_id: picked.tId, is_locked: false });
     });
   }
 
@@ -121,6 +158,11 @@ function commitImmediateHierarchy(toastMsg = '已即時儲存並更新編碼') {
       }
     }
   });
+
+  // 3. 第三層：先保留所有上鎖的儲位碼，未上鎖的依序跳過已佔用儲位碼
+  const usedLocCodes = new Set(
+    hierLocations.filter(l => l.is_locked && l.loc_code).map(l => String(l.loc_code).toUpperCase())
+  );
 
   const newLocations = [];
   const newSegments = [];
@@ -148,7 +190,7 @@ function commitImmediateHierarchy(toastMsg = '已即時儲存並更新編碼') {
       });
     });
 
-    let posSeq = 1001;
+    const posSeqBySeg = {};
     groupLocs.forEach(l => {
       const rawSeg = Number(l.segment_no ?? l.row_no) || 0;
       const mappedSegNo = rawSeg > 0 && segNoRemap[rawSeg] ? segNoRemap[rawSeg] : 0;
@@ -165,15 +207,21 @@ function commitImmediateHierarchy(toastMsg = '已即時儲存並更新編碼') {
           is_locked: true
         });
       } else {
-        const posStr = String(posSeq);
-        posSeq += 2;
+        let posSeq = posSeqBySeg[mappedSegNo] || 1001;
+        while (usedLocCodes.has(`${t.table_id}${rowNoStr}${posSeq}`.toUpperCase())) {
+          posSeq += 2;
+        }
+        const newCode = `${t.table_id}${rowNoStr}${posSeq}`.toUpperCase();
+        usedLocCodes.add(newCode);
+        posSeqBySeg[mappedSegNo] = posSeq + 2;
+
         newLocations.push({
           ...l,
           table_id: t.table_id,
           row_no: rowNoStr,
-          pos_no: posStr,
+          pos_no: String(posSeq),
           segment_no: mappedSegNo,
-          loc_code: `${t.table_id}${rowNoStr}${posStr}`,
+          loc_code: newCode,
           is_locked: false
         });
       }
