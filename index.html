@@ -191,9 +191,10 @@
         <button type="button" class="btn btn-academic btn-sm shadow-sm py-2 px-3 fw-bold" onclick="changeDailyDate()"><i class="bi bi-arrow-clockwise"></i></button>
       </div>
     </div>
-    <ul class="nav nav-pills nav-fill gap-2 mt-1" id="daily-main-tabs">
+
+    <ul class="nav nav-pills nav-fill gap-2 mb-2" id="daily-main-tabs">
       <li class="nav-item">
-        <button type="button" class="nav-link active fw-bold border border-secondary shadow-sm bg-academic text-white py-2" id="btn-daily-tab-dashboard" onclick="handleDailyBack(true)">
+        <button type="button" class="nav-link active fw-bold border border-secondary shadow-sm bg-academic text-white py-2" id="btn-daily-tab-dashboard">
           <i class="bi bi-kanban"></i> 進度看板
         </button>
       </li>
@@ -203,34 +204,23 @@
         </button>
       </li>
     </ul>
+
+    <!-- 盤點進度統一小卡 -->
+    <div id="daily-summary-card" class="mb-2"></div>
+
+    <!-- 未盤 / 已盤 分頁籤 + 搜尋框 -->
+    <ul class="nav nav-pills nav-fill gap-2 mb-2" id="daily-tabs">
+      <li class="nav-item"><button type="button" class="nav-link active fw-bold border bg-academic shadow-sm text-white py-2" id="btn-tab-uncounted" onclick="switchDailyTab('未盤')">未盤點 (<span id="count-uncounted">0</span>)</button></li>
+      <li class="nav-item"><button type="button" class="nav-link fw-bold border text-success shadow-sm bg-white py-2" id="btn-tab-counted" onclick="switchDailyTab('已盤')">已盤點 (<span id="count-counted">0</span>)</button></li>
+    </ul>
+    <div class="input-group shadow-sm">
+      <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
+      <input type="text" id="daily-search-input" name="daily_search_input" class="form-control py-2 border-secondary fw-bold" placeholder="輸入藥名、代碼或儲位快速尋找..." onkeyup="renderDailyItems()">
+    </div>
   </div>
 
-  <!-- 進度看板（比照月盤點進度看板） -->
-  <div id="daily-tab-dashboard" class="flex-grow-1 overflow-auto px-1 pb-4">
-    <div class="dashboard-group mb-4 mt-2">
-      <h6 class="fw-bold text-danger border-start border-4 border-danger ps-2 mb-3">🕒 未完成 (點擊進入盤點)</h6>
-      <div id="daily-dashboard-unfinished"></div>
-    </div>
-    <div class="dashboard-group mb-5">
-      <h6 class="fw-bold text-success border-start border-4 border-success ps-2 mb-3">✅ 已完成</h6>
-      <div id="daily-dashboard-finished"></div>
-    </div>
-  </div>
-
-  <!-- 單一藥架盤點作業區 -->
-  <div id="daily-tab-desk" class="flex-grow-1 d-flex flex-column overflow-hidden d-none">
-    <div class="card p-2 border-0 shadow-sm mb-2 bg-white flex-shrink-0">
-      <ul class="nav nav-pills nav-fill gap-2 mb-2" id="daily-tabs">
-        <li class="nav-item"><button type="button" class="nav-link active fw-bold border bg-academic shadow-sm text-white py-2" id="btn-tab-uncounted" onclick="switchDailyTab('未盤')">未盤點 (<span id="count-uncounted">0</span>)</button></li>
-        <li class="nav-item"><button type="button" class="nav-link fw-bold border text-success shadow-sm bg-white py-2" id="btn-tab-counted" onclick="switchDailyTab('已盤')">已盤點 (<span id="count-counted">0</span>)</button></li>
-      </ul>
-      <div class="input-group shadow-sm">
-        <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
-        <input type="text" id="daily-search-input" name="daily_search_input" class="form-control py-2 border-secondary fw-bold" placeholder="輸入藥名、代碼或儲位快速尋找..." onkeyup="renderDailyItems()">
-      </div>
-    </div>
-    <div id="daily-list-area" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
-  </div>
+  <!-- 直接展開的各盤點表分段清單 -->
+  <div id="daily-list-area" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
 </div>
 
 <div id="view-monthly-app" class="container-fluid view-section">
