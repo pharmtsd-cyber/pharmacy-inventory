@@ -5,6 +5,7 @@ import { DEPT_NAME, currentDept } from './config.js';
 const UNIT_PREFIX_MAP = { opd: 'BA', ipd: 'BF', erd: 'BE', comp: 'BG' };
 const unitPrefix = UNIT_PREFIX_MAP[currentDept] || 'BF';
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const AREA_SEG_PREFIX = 'AREA::';
 
 let drugMasterSelectList = [];
 let hierAreas = [];
@@ -13,15 +14,22 @@ let hierLocations = [];
 let hierSegments = [];
 let selectedAreaId = null;
 let selectedTableId = null;
-let selectedSegmentNo = 0; // 0 = POOL 暫存池, >= 1 = 指定分段框
+let selectedTableSegmentNo = 0; // 第二層目前選中的新增分段 (0 = POOL)
+let selectedSegmentNo = 0;      // 第三層目前選中的新增分段 (0 = POOL)
 let areaSortable = null;
-let tableSortable = null;
 let areaModalInstance = null;
 let tableModalInstance = null;
 let locModalInstance = null;
+let hasUnsavedHierChanges = false;
 
-function indexToTwoLetters(majorIdx, minorIdx) {
-  return `${ALPHABET[majorIdx] || 'Z'}${ALPHABET[minorIdx] || 'Z'}`;
+// 跨層拖拉狀態（子層拖拉至父層）
+let draggingTableId = null;
+let draggingLocCode = null;
+let droppedOnParent = false;
+
+function segNoToLetter(segNo) {
+  const n = Number(segNo) || 0;
+  return n > 0 ? (ALPHABET[n - 1] || 'Z') : '0';
 }
 
 function findNextAvailableAreaCode(usedIdsSet) {
@@ -33,25 +41,20 @@ function findNextAvailableAreaCode(usedIdsSet) {
   return { code: 'Z', id: `${unitPrefix}Z` };
 }
 
-function findNextAvailableTableCode(areaId, startMajorIdx, startMinorIdx, usedIdsSet) {
-  let maj = startMajorIdx;
+function findNextAvailableTableCodeInSeg(areaId, segNo, usedIdsSet, startMinorIdx = 0) {
+  const majorChar = segNoToLetter(segNo);
   let min = startMinorIdx;
-  while (maj < ALPHABET.length) {
-    while (min < ALPHABET.length) {
-      const tCode = indexToTwoLetters(maj, min);
-      const tId = `${areaId}${tCode}`.toUpperCase();
-      if (!usedIdsSet.has(tId)) {
-        return { tCode, tId, nextMajor: maj, nextMinor: min + 1 };
-      }
-      min++;
+  while (min < ALPHABET.length) {
+    const tCode = `${majorChar}${ALPHABET[min]}`;
+    const tId = `${areaId}${tCode}`.toUpperCase();
+    if (!usedIdsSet.has(tId)) {
+      return { tCode, tId, nextMinor: min + 1 };
     }
-    maj++;
-    min = 0;
+    min++;
   }
-  return { tCode: 'ZZ', tId: `${areaId}ZZ`, nextMajor: maj, nextMinor: min };
+  return { tCode: `${majorChar}Z`, tId: `${areaId}${majorChar}Z`.toUpperCase(), nextMinor: ALPHABET.length };
 }
 
-// 儲位碼規則：盤點表編號 + 分段碼(0-9) + 3碼流水號(001起)
 function findNextAvailableLocCode(tableId, segNo, usedLocSet, startSeq = 1) {
   const segChar = String(Math.max(0, Math.min(9, Number(segNo) || 0)));
   let seq = startSeq;
@@ -64,6 +67,21 @@ function findNextAvailableLocCode(tableId, segNo, usedLocSet, startSeq = 1) {
     seq++;
   }
   return { locCode: `${tableId}${segChar}999`.toUpperCase(), posStr: '999', nextSeq: 1000 };
+}
+
+function setHierDirtyState(isDirty) {
+  hasUnsavedHierChanges = isDirty;
+  const badge = document.getElementById('hier-dirty-badge');
+  const saveBtn = document.getElementById('btn-hier-manual-save');
+  if (badge) badge.classList.toggle('d-none', !isDirty);
+  if (saveBtn) {
+    saveBtn.className = isDirty
+      ? 'btn btn-danger btn-sm fw-bold shadow-sm'
+      : 'btn btn-success btn-sm fw-bold shadow-sm';
+    saveBtn.innerHTML = isDirty
+      ? '<i class="bi bi-exclamation-circle-fill"></i> 存檔並更新*'
+      : '<i class="bi bi-cloud-arrow-up"></i> 存檔並更新';
+  }
 }
 
 export function initHierarchyMaintenance() {
@@ -85,9 +103,21 @@ export function loadHierarchyData(silent = false) {
     if (!res || !res.success) return alert('載入失敗：' + (res?.message || '未知錯誤'));
 
     hierAreas = (res.areas || []).map(a => ({ ...a, is_locked: !!a.is_locked }));
-    hierTables = (res.tables || []).map(t => ({ ...t, is_locked: !!t.is_locked, is_section_start: !!t.is_section_start }));
-    hierLocations = (res.locations || []).map(l => ({ ...l, is_locked: !!l.is_locked, segment_no: Number(l.row_no) || 0 }));
-    hierSegments = (res.segments || []).map(s => ({ ...s, segment_no: Number(s.segment_no) || 1 }));
+    hierTables = (res.tables || []).map(t => ({
+      ...t,
+      is_locked: !!t.is_locked,
+      is_section_start: Number(t.is_section_start) || 0,
+      segment_no: Number(t.is_section_start) || 0
+    }));
+    hierLocations = (res.locations || []).map(l => ({
+      ...l,
+      is_locked: !!l.is_locked,
+      segment_no: Number(l.row_no) || 0
+    }));
+    hierSegments = (res.segments || []).map(s => ({
+      ...s,
+      segment_no: Number(s.segment_no) || 1
+    }));
 
     if (!selectedAreaId || !hierAreas.some(a => a.area_id === selectedAreaId)) {
       selectedAreaId = hierAreas[0]?.area_id || null;
@@ -100,36 +130,22 @@ export function loadHierarchyData(silent = false) {
   });
 }
 
-let hasUnsavedHierChanges = false;
-
-function setHierDirtyState(isDirty) {
-  hasUnsavedHierChanges = isDirty;
-  const badge = document.getElementById('hier-dirty-badge');
-  const saveBtn = document.getElementById('btn-hier-manual-save');
-  if (badge) badge.classList.toggle('d-none', !isDirty);
-  if (saveBtn) {
-    saveBtn.className = isDirty
-      ? 'btn btn-danger btn-sm fw-bold shadow-sm'
-      : 'btn btn-success btn-sm fw-bold shadow-sm';
-    saveBtn.innerHTML = isDirty
-      ? '<i class="bi bi-exclamation-circle-fill"></i> 存檔並更新*'
-      : '<i class="bi bi-cloud-arrow-up"></i> 存檔並更新';
-  }
-}
-
-// 改為本地即時更新畫面，不直接呼叫後端，避免操作卡頓
 function saveHierarchyOnly(toastMsg = '') {
   setHierDirtyState(true);
   renderAreasColumn();
   if (toastMsg) showToast(`${toastMsg}（尚未寫入資料庫）`, 'delete');
 }
 
-// 手動存檔並更新按鈕
 export function saveHierarchyManual() {
   toggleLoader(true, '正在存檔並更新分層儲位...');
+  const tablesPayload = hierTables.map(t => ({
+    ...t,
+    is_section_start: Number(t.segment_no ?? t.is_section_start) || 0
+  }));
+
   fetchBackend('saveFullHierarchy', {
     areas: JSON.stringify(hierAreas),
-    tables: JSON.stringify(hierTables),
+    tables: JSON.stringify(tablesPayload),
     locations: JSON.stringify(hierLocations),
     segments: JSON.stringify(hierSegments)
   }).then(res => {
@@ -144,12 +160,12 @@ export function saveHierarchyManual() {
   });
 }
 
-// 按下「自動編碼」：先在畫面預覽新編碼，確認無誤再按「存檔並更新」
 export function runAutoEncodeHierarchy() {
-  if (!confirm('確定要執行「自動編碼」嗎？\n\n• 未上鎖的區域、盤點表與儲位將依目前排序重新編碼\n• 已上鎖 (🔒) 的項目將維持原始編碼，系統會自動避開重複\n• 執行後請記得點擊「存檔並更新」寫入資料庫')) return;
+  if (!confirm('確定要執行「自動編碼」嗎？\n\n• 未上鎖的區域、盤點表與儲位將依目前分段與排序重新編碼\n• 已上鎖 (🔒) 的項目將維持原始編碼，系統會自動避開重複\n• 執行後請記得點擊「存檔並更新」寫入資料庫')) return;
 
   const areaIdMap = {};
   const tableIdMap = {};
+  const newSegments = [];
 
   // 1. 第一層：區域 (前綴2碼 + A-Z)
   const usedAreaIds = new Set(
@@ -166,29 +182,65 @@ export function runAutoEncodeHierarchy() {
     return { ...a, area_code: picked.code, area_id: picked.id, is_locked: false };
   });
 
-  // 2. 第二層：盤點表 (區域編號 + 分段碼A-Z + 代號A-Z)
+  // 2. 第二層：盤點表 (區域編號 + 分段碼A-Z(或0=POOL) + 代號A-Z)
   const usedTableIds = new Set(
     hierTables.filter(t => t.is_locked && t.table_id).map(t => String(t.table_id).toUpperCase())
   );
   const newTables = [];
+
   for (const a of newAreas) {
     const oldAreaIds = Object.keys(areaIdMap).filter(k => areaIdMap[k] === a.area_id);
-    const groupTables = hierTables.filter(t => oldAreaIds.includes(t.area_code) || t.area_code === a.area_id);
+    const oldAreaSegKeys = new Set(oldAreaIds.map(id => `${AREA_SEG_PREFIX}${id}`));
+    oldAreaSegKeys.add(`${AREA_SEG_PREFIX}${a.area_id}`);
 
-    let majorIdx = 0, minorIdx = 0;
-    groupTables.forEach((t, idx) => {
+    const areaSegs = hierSegments.filter(s => oldAreaSegKeys.has(s.table_id));
+    const segNos = Array.from(new Set(areaSegs.map(s => Number(s.segment_no)).filter(n => n > 0))).sort((x, y) => x - y);
+    const areaSegRemap = {};
+    segNos.forEach((sNo, sIdx) => {
+      const targetSegNo = sIdx + 1;
+      areaSegRemap[sNo] = targetSegNo;
+      const segObj = areaSegs.find(x => Number(x.segment_no) === sNo);
+      newSegments.push({
+        segment_id: `AREA_${a.area_id}_SEG_${targetSegNo}`,
+        unit_code: unitPrefix,
+        table_id: `${AREA_SEG_PREFIX}${a.area_id}`,
+        segment_no: targetSegNo,
+        segment_name: segObj?.segment_name || `分段 ${segNoToLetter(targetSegNo)}`
+      });
+    });
+
+    const groupTables = hierTables.filter(t => oldAreaIds.includes(t.area_code) || t.area_code === a.area_id);
+    const minorIdxBySeg = {};
+
+    groupTables.forEach(t => {
+      const rawSeg = Number(t.segment_no ?? t.is_section_start) || 0;
+      const mappedSegNo = rawSeg > 0 && areaSegRemap[rawSeg] ? areaSegRemap[rawSeg] : 0;
+
       if (t.is_locked && t.table_id) {
         tableIdMap[t.table_id] = t.table_id;
-        newTables.push({ ...t, area_code: a.area_id, is_locked: true });
-        return;
+        newTables.push({
+          ...t,
+          area_code: a.area_id,
+          segment_no: mappedSegNo,
+          is_section_start: mappedSegNo,
+          is_locked: true
+        });
+      } else {
+        const startMinor = minorIdxBySeg[mappedSegNo] || 0;
+        const picked = findNextAvailableTableCodeInSeg(a.area_id, mappedSegNo, usedTableIds, startMinor);
+        usedTableIds.add(picked.tId);
+        minorIdxBySeg[mappedSegNo] = picked.nextMinor;
+        tableIdMap[t.table_id] = picked.tId;
+        newTables.push({
+          ...t,
+          area_code: a.area_id,
+          table_code: picked.tCode,
+          table_id: picked.tId,
+          segment_no: mappedSegNo,
+          is_section_start: mappedSegNo,
+          is_locked: false
+        });
       }
-      if (idx > 0 && t.is_section_start) { majorIdx++; minorIdx = 0; }
-      const picked = findNextAvailableTableCode(a.area_id, majorIdx, minorIdx, usedTableIds);
-      usedTableIds.add(picked.tId);
-      majorIdx = picked.nextMajor;
-      minorIdx = picked.nextMinor;
-      tableIdMap[t.table_id] = picked.tId;
-      newTables.push({ ...t, area_code: a.area_id, table_code: picked.tCode, table_id: picked.tId, is_locked: false });
     });
   }
 
@@ -197,14 +249,13 @@ export function runAutoEncodeHierarchy() {
     hierLocations.filter(l => l.is_locked && l.loc_code).map(l => String(l.loc_code).toUpperCase())
   );
   const newLocations = [];
-  const newSegments = [];
 
   for (const t of newTables) {
     const oldTblIds = Object.keys(tableIdMap).filter(k => tableIdMap[k] === t.table_id);
     const groupLocs = hierLocations.filter(l => oldTblIds.includes(l.table_id) || l.table_id === t.table_id);
-    const segsForTbl = hierSegments.filter(s => oldTblIds.includes(s.table_id) || s.table_id === t.table_id);
+    const segsForTbl = hierSegments.filter(s => !s.table_id.startsWith(AREA_SEG_PREFIX) && (oldTblIds.includes(s.table_id) || s.table_id === t.table_id));
 
-    const segNos = Array.from(new Set(segsForTbl.map(s => Number(s.segment_no)).filter(n => n > 0))).sort((a, b) => a - b);
+    const segNos = Array.from(new Set(segsForTbl.map(s => Number(s.segment_no)).filter(n => n > 0))).sort((x, y) => x - y);
     const segNoRemap = {};
     segNos.forEach((sNo, sIdx) => {
       const targetSegNo = sIdx + 1;
@@ -264,6 +315,63 @@ export function runAutoEncodeHierarchy() {
   showToast('已完成自動編碼預覽，請點擊「存檔並更新」寫入資料庫', 'delete');
 }
 
+// ==========================================
+// 跨層拖拉事件（子層拖拉至父層 -> 進入該父層未分配池）
+// ==========================================
+export function handleAreaDragOver(e) {
+  if (!draggingTableId) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('border-warning', 'border-3');
+}
+
+export function handleAreaDragLeave(e) {
+  e.currentTarget.classList.remove('border-warning', 'border-3');
+}
+
+export function handleAreaDrop(e, targetAreaId) {
+  e.currentTarget.classList.remove('border-warning', 'border-3');
+  if (!draggingTableId) return;
+  e.preventDefault();
+  const t = hierTables.find(x => x.table_id === draggingTableId);
+  if (t && t.area_code !== targetAreaId) {
+    droppedOnParent = true;
+    t.area_code = targetAreaId;
+    t.segment_no = 0;
+    t.is_section_start = 0;
+    if (selectedTableId === t.table_id) selectedTableId = null;
+    draggingTableId = null;
+    saveHierarchyOnly(`已將盤點表移至區域 ${targetAreaId} 的未分配池 (POOL)`);
+  }
+}
+
+export function handleTableDragOver(e) {
+  if (!draggingLocCode) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('border-warning', 'border-3');
+}
+
+export function handleTableDragLeave(e) {
+  e.currentTarget.classList.remove('border-warning', 'border-3');
+}
+
+export function handleTableDrop(e, targetTableId) {
+  e.currentTarget.classList.remove('border-warning', 'border-3');
+  if (!draggingLocCode) return;
+  e.preventDefault();
+  const l = hierLocations.find(x => x.loc_code === draggingLocCode);
+  if (l && l.table_id !== targetTableId) {
+    droppedOnParent = true;
+    l.table_id = targetTableId;
+    l.segment_no = 0;
+    l.row_no = '0';
+    draggingLocCode = null;
+    saveHierarchyOnly(`已將儲位移至盤點表 ${targetTableId} 的未分配池 (POOL)`);
+  }
+}
+
+// ==========================================
+// 第一層：區域
+// ==========================================
 export function renderAreasColumn() {
   const areaListEl = document.getElementById('hier-area-list');
   if (!areaListEl) return;
@@ -279,7 +387,12 @@ export function renderAreasColumn() {
     const tblCount = hierTables.filter(t => t.area_code === a.area_id).length;
 
     return `
-      <div class="list-group-item list-group-item-action p-2 hier-area-item ${active ? 'active bg-academic border-academic' : ''}" data-area-id="${a.area_id}" style="cursor:pointer;" onclick="selectHierArea('${a.area_id}')">
+      <div class="list-group-item list-group-item-action p-2 hier-area-item ${active ? 'active bg-academic border-academic' : ''}"
+           data-area-id="${a.area_id}" style="cursor:pointer;"
+           onclick="selectHierArea('${a.area_id}')"
+           ondragover="handleAreaDragOver(event)"
+           ondragleave="handleAreaDragLeave(event)"
+           ondrop="handleAreaDrop(event, '${a.area_id}')">
         <div class="d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center gap-1">
             <i class="bi bi-grip-vertical area-drag-handle opacity-75" style="cursor:grab;"></i>
@@ -307,7 +420,7 @@ export function renderAreasColumn() {
       onEnd: () => {
         const orderedIds = Array.from(areaListEl.querySelectorAll('.hier-area-item')).map(el => el.getAttribute('data-area-id'));
         hierAreas.sort((a, b) => orderedIds.indexOf(a.area_id) - orderedIds.indexOf(b.area_id));
-        saveHierarchyOnly('已儲存區域排序（按下「自動編碼」才會重編代碼）');
+        saveHierarchyOnly('已更新區域排序');
       }
     });
   }
@@ -318,6 +431,7 @@ export function renderAreasColumn() {
 export function selectHierArea(areaId) {
   selectedAreaId = areaId;
   selectedTableId = null;
+  selectedTableSegmentNo = 0;
   renderAreasColumn();
 }
 
@@ -328,63 +442,190 @@ export function toggleAreaLock(areaId) {
   saveHierarchyOnly(a.is_locked ? `已鎖定區域 ${areaId} 原始編碼` : `已解除區域 ${areaId} 鎖定`);
 }
 
+// ==========================================
+// 第二層：盤點表（POOL 暫存池 + 分段框 + 取消分段）
+// ==========================================
+export function createNewTableSegmentBox() {
+  if (!selectedAreaId) return alert('請先選擇所屬區域');
+  const segKey = `${AREA_SEG_PREFIX}${selectedAreaId}`;
+  const existingSegs = hierSegments.filter(s => s.table_id === segKey);
+  const usedNos = new Set(existingSegs.map(s => Number(s.segment_no) || 0));
+
+  let nextNo = 1;
+  while (usedNos.has(nextNo) && nextNo <= 26) nextNo++;
+  if (nextNo > 26) return alert('單一區域最多支援 A～Z 分段');
+
+  const letter = segNoToLetter(nextNo);
+  const customName = prompt(`建立盤點表分段【${letter}】，請輸入分段名稱（可留空）:`, `分段 ${letter}`);
+  if (customName === null) return;
+
+  hierSegments.push({
+    segment_id: `AREA_${selectedAreaId}_SEG_${Date.now()}`,
+    unit_code: unitPrefix,
+    table_id: segKey,
+    segment_no: nextNo,
+    segment_name: customName.trim() || `分段 ${letter}`
+  });
+  selectedTableSegmentNo = nextNo;
+  saveHierarchyOnly(`已建立盤點表「分段 ${letter}」`);
+}
+
+export function deleteTableSegmentBox(segNo) {
+  if (!selectedAreaId) return;
+  const letter = segNoToLetter(segNo);
+  if (!confirm(`確定要取消盤點表「分段 ${letter}」嗎？\n此分段內的盤點表將全部退回未分配池 (POOL)。`)) return;
+
+  const segKey = `${AREA_SEG_PREFIX}${selectedAreaId}`;
+  hierSegments = hierSegments.filter(s => !(s.table_id === segKey && Number(s.segment_no) === Number(segNo)));
+  hierTables.forEach(t => {
+    if (t.area_code === selectedAreaId && Number(t.segment_no ?? t.is_section_start) === Number(segNo)) {
+      t.segment_no = 0;
+      t.is_section_start = 0;
+    }
+  });
+  if (Number(selectedTableSegmentNo) === Number(segNo)) selectedTableSegmentNo = 0;
+  saveHierarchyOnly(`已取消分段 ${letter}，盤點表已退回未分配池`);
+}
+
+export function selectTableSegment(segNo) {
+  selectedTableSegmentNo = Number(segNo) || 0;
+  renderTablesColumn();
+}
+
 export function renderTablesColumn() {
   const tblListEl = document.getElementById('hier-table-list');
   if (!tblListEl) return;
-  const filteredTables = selectedAreaId ? hierTables.filter(t => t.area_code === selectedAreaId) : [];
-  if (!filteredTables.length) {
-    tblListEl.innerHTML = '<div class="text-center text-muted small py-4">此區域尚無盤點表</div>';
+
+  if (!selectedAreaId) {
+    tblListEl.innerHTML = '<div class="text-center text-muted small py-4">請先於左側選擇區域</div>';
     selectedTableId = null;
     renderLocationsColumn();
     return;
   }
 
-  if (!selectedTableId || !filteredTables.some(t => t.table_id === selectedTableId)) {
-    selectedTableId = filteredTables[0].table_id;
+  const areaTables = hierTables.filter(t => t.area_code === selectedAreaId);
+  if (areaTables.length > 0 && (!selectedTableId || !areaTables.some(t => t.table_id === selectedTableId))) {
+    selectedTableId = areaTables[0].table_id;
+  } else if (areaTables.length === 0) {
+    selectedTableId = null;
   }
 
-  tblListEl.innerHTML = filteredTables.map((t, idx) => {
-    const active = t.table_id === selectedTableId;
-    const locCount = hierLocations.filter(l => l.table_id === t.table_id).length;
+  const segKey = `${AREA_SEG_PREFIX}${selectedAreaId}`;
+  const segs = hierSegments
+    .filter(s => s.table_id === segKey && Number(s.segment_no) > 0)
+    .sort((a, b) => Number(a.segment_no) - Number(b.segment_no));
+  const validSegNos = new Set(segs.map(s => Number(s.segment_no)));
 
-    return `
-      <div class="list-group-item list-group-item-action p-2 hier-table-item ${active ? 'active bg-academic border-academic' : ''}" data-table-id="${t.table_id}" style="cursor:pointer;" onclick="selectHierTable('${t.table_id}')">
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center gap-1">
-            <i class="bi bi-grip-vertical table-drag-handle opacity-75" style="cursor:grab;"></i>
-            <span class="badge ${active ? 'bg-light text-dark' : 'bg-secondary'} me-1">${t.is_locked ? '🔒 ' : ''}${t.table_id}</span>
-            <span class="fw-bold">${t.table_name}</span>
+  const poolTables = areaTables.filter(t => {
+    const sNo = Number(t.segment_no ?? t.is_section_start) || 0;
+    return sNo === 0 || !validSegNos.has(sNo);
+  });
+
+  const renderTableCards = (items) => {
+    if (!items.length) return '<div class="text-center text-muted small py-2">無盤點表（可拖拉至此）</div>';
+    return items.map(t => {
+      const active = t.table_id === selectedTableId;
+      const locCount = hierLocations.filter(l => l.table_id === t.table_id).length;
+      return `
+        <div class="list-group-item list-group-item-action p-2 hier-table-item ${active ? 'active bg-academic border-academic' : ''}"
+             data-table-id="${t.table_id}" style="cursor:pointer;"
+             onclick="selectHierTable('${t.table_id}')"
+             ondragover="handleTableDragOver(event)"
+             ondragleave="handleTableDragLeave(event)"
+             ondrop="handleTableDrop(event, '${t.table_id}')">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-1 text-truncate">
+              <i class="bi bi-grip-vertical table-drag-handle opacity-75" style="cursor:grab;"></i>
+              <span class="badge ${active ? 'bg-light text-dark' : 'bg-secondary'} me-1">${t.is_locked ? '🔒 ' : ''}${t.table_id}</span>
+              <span class="fw-bold text-truncate">${t.table_name}</span>
+            </div>
+            <span class="badge ${active ? 'bg-light text-dark' : 'bg-light text-dark border'}">${locCount} 儲</span>
           </div>
-          <span class="badge ${active ? 'bg-light text-dark' : 'bg-light text-dark border'}">${locCount} 儲</span>
-        </div>
-        <div class="d-flex justify-content-between align-items-center mt-1 ps-3">
-          <div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
-            <select class="form-select form-select-sm py-0 px-1" style="font-size:0.72rem; width:auto;" onchange="moveTableToArea('${t.table_id}', this.value)">
+          <div class="d-flex justify-content-between align-items-center mt-1 ps-3">
+            <select class="form-select form-select-sm py-0 px-1" style="font-size:0.7rem; width:auto;" onclick="event.stopPropagation()" onchange="moveTableToArea('${t.table_id}', this.value)">
               ${hierAreas.map(a => `<option value="${a.area_id}" ${a.area_id === selectedAreaId ? 'selected' : ''}>移至 ${a.area_id}</option>`).join('')}
             </select>
-            ${idx > 0 && !t.is_locked ? `<button class="btn btn-sm ${t.is_section_start ? 'btn-warning text-dark' : 'btn-outline-secondary'} py-0 px-1" style="font-size:0.7rem;" onclick="toggleTableSection('${t.table_id}')">${t.is_section_start ? '取消分段' : '分段'}</button>` : ''}
+            <div onclick="event.stopPropagation()">
+              <button class="btn btn-sm ${t.is_locked ? 'btn-dark' : (active ? 'btn-outline-light' : 'btn-outline-secondary')} py-0 px-1" title="鎖定/解鎖盤點表編號" onclick="toggleTableLock('${t.table_id}')">${t.is_locked ? '🔒' : '🔓'}</button>
+              <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-primary'} py-0 px-1" onclick="openTableModal('${t.table_id}')">編</button>
+              <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-danger'} py-0 px-1" onclick="deleteTableItem('${t.table_id}')">刪</button>
+            </div>
           </div>
-          <div onclick="event.stopPropagation()">
-            <button class="btn btn-sm ${t.is_locked ? 'btn-dark' : (active ? 'btn-outline-light' : 'btn-outline-secondary')} py-0 px-1" title="鎖定/解鎖盤點表編號" onclick="toggleTableLock('${t.table_id}')">${t.is_locked ? '🔒' : '🔓'}</button>
-            <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-primary'} py-0 px-1" onclick="openTableModal('${t.table_id}')">編</button>
-            <button class="btn btn-sm ${active ? 'btn-outline-light' : 'btn-outline-danger'} py-0 px-1" onclick="deleteTableItem('${t.table_id}')">刪</button>
+        </div>`;
+    }).join('');
+  };
+
+  const poolHtml = `
+    <div class="card border ${selectedTableSegmentNo === 0 ? 'border-warning border-2' : 'border-warning'} mb-2 shadow-xs">
+      <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center bg-warning bg-opacity-25" style="cursor:pointer;" onclick="selectTableSegment(0)">
+        <div class="fw-bold small text-dark">
+          <span class="badge bg-warning text-dark me-1">POOL</span>未分配分段暫存池 (${poolTables.length})
+        </div>
+        <span class="small ${selectedTableSegmentNo === 0 ? 'text-dark fw-bold' : 'text-muted'}">${selectedTableSegmentNo === 0 ? '● 新增目標' : ''}</span>
+      </div>
+      <div class="list-group list-group-flush hier-tbl-seg-list" data-seg-no="0">
+        ${renderTableCards(poolTables)}
+      </div>
+    </div>`;
+
+  const segsHtml = segs.map((seg, idx) => {
+    const sNo = Number(seg.segment_no);
+    const letter = segNoToLetter(idx + 1);
+    const isSel = Number(selectedTableSegmentNo) === sNo;
+    const itemsInSeg = areaTables.filter(t => (Number(t.segment_no ?? t.is_section_start) || 0) === sNo);
+    return `
+      <div class="card border ${isSel ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs">
+        <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSel ? 'bg-primary bg-opacity-10' : 'bg-light'}" style="cursor:pointer;" onclick="selectTableSegment(${sNo})">
+          <div class="fw-bold small text-dark text-truncate">
+            <span class="badge bg-primary me-1">段 ${letter}</span>${seg.segment_name || `分段 ${letter}`} (${itemsInSeg.length})
           </div>
+          <div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.7rem;" onclick="deleteTableSegmentBox(${sNo})">取消分段</button>
+          </div>
+        </div>
+        <div class="list-group list-group-flush hier-tbl-seg-list" data-seg-no="${sNo}">
+          ${renderTableCards(itemsInSeg)}
         </div>
       </div>`;
   }).join('');
 
-  if (tableSortable) tableSortable.destroy();
+  tblListEl.innerHTML = poolHtml + segsHtml;
+
   if (window.Sortable) {
-    tableSortable = new window.Sortable(tblListEl, {
-      handle: '.table-drag-handle',
-      animation: 150,
-      onEnd: () => {
-        const orderedIds = Array.from(tblListEl.querySelectorAll('.hier-table-item')).map(el => el.getAttribute('data-table-id'));
-        const others = hierTables.filter(t => t.area_code !== selectedAreaId);
-        const reordered = orderedIds.map(id => hierTables.find(t => t.table_id === id)).filter(Boolean);
-        hierTables = [...others, ...reordered];
-        saveHierarchyOnly('已儲存盤點表排序（按下「自動編碼」才會重編代碼）');
-      }
+    tblListEl.querySelectorAll('.hier-tbl-seg-list').forEach(listEl => {
+      new window.Sortable(listEl, {
+        group: 'hier-table-group',
+        handle: '.table-drag-handle',
+        draggable: '.hier-table-item',
+        animation: 150,
+        onStart: (evt) => {
+          draggingTableId = evt.item.getAttribute('data-table-id');
+          droppedOnParent = false;
+        },
+        onEnd: (evt) => {
+          draggingTableId = null;
+          if (droppedOnParent) {
+            droppedOnParent = false;
+            return;
+          }
+          const newOrderedInArea = [];
+          tblListEl.querySelectorAll('.hier-tbl-seg-list').forEach(box => {
+            const sNo = Number(box.getAttribute('data-seg-no')) || 0;
+            box.querySelectorAll('.hier-table-item').forEach(itemEl => {
+              const id = itemEl.getAttribute('data-table-id');
+              const found = hierTables.find(t => t.table_id === id);
+              if (found) {
+                found.segment_no = sNo;
+                found.is_section_start = sNo;
+                newOrderedInArea.push(found);
+              }
+            });
+          });
+          const others = hierTables.filter(t => t.area_code !== selectedAreaId);
+          hierTables = [...others, ...newOrderedInArea];
+          saveHierarchyOnly('已更新盤點表分段與排序');
+        }
+      });
     });
   }
 
@@ -393,14 +634,8 @@ export function renderTablesColumn() {
 
 export function selectHierTable(tableId) {
   selectedTableId = tableId;
+  selectedSegmentNo = 0;
   renderTablesColumn();
-}
-
-export function toggleTableSection(tableId) {
-  const t = hierTables.find(x => x.table_id === tableId);
-  if (!t) return;
-  t.is_section_start = !t.is_section_start;
-  saveHierarchyOnly('已更新盤點表分段設定');
 }
 
 export function toggleTableLock(tableId) {
@@ -414,14 +649,23 @@ export function moveTableToArea(tableId, newAreaId) {
   const t = hierTables.find(x => x.table_id === tableId);
   if (!t || t.area_code === newAreaId) return;
   t.area_code = newAreaId;
-  saveHierarchyOnly(`已將盤點表移至 ${newAreaId}`);
+  t.segment_no = 0;
+  t.is_section_start = 0;
+  if (selectedTableId === tableId) selectedTableId = null;
+  saveHierarchyOnly(`已將盤點表移至區域 ${newAreaId} 的未分配池 (POOL)`);
 }
 
+// ==========================================
+// 第三層：儲位（POOL 暫存池 + 分段框 + 取消分段 + 複製儲位）
+// ==========================================
 export function createNewSegmentBox() {
   if (!selectedTableId) return alert('請先選擇盤點表');
   const segs = hierSegments.filter(s => s.table_id === selectedTableId);
-  const nextNo = segs.length > 0 ? Math.max(...segs.map(s => Number(s.segment_no) || 0)) + 1 : 1;
+  const usedNos = new Set(segs.map(s => Number(s.segment_no) || 0));
+  let nextNo = 1;
+  while (usedNos.has(nextNo) && nextNo <= 9) nextNo++;
   if (nextNo > 9) return alert('單一盤點表最多支援 1～9 分段');
+
   const customName = prompt(`建立第 ${nextNo} 分段框，請輸入分段名稱（可留空）:`, `第 ${nextNo} 分段`);
   if (customName === null) return;
 
@@ -436,6 +680,49 @@ export function createNewSegmentBox() {
   saveHierarchyOnly(`已建立「第 ${nextNo} 分段框」`);
 }
 
+export function deleteLocSegmentBox(segNo) {
+  if (!selectedTableId) return;
+  if (!confirm(`確定要取消「第 ${segNo} 分段」嗎？\n此分段內的儲位將全部退回未分配池 (POOL)。`)) return;
+
+  hierSegments = hierSegments.filter(s => !(s.table_id === selectedTableId && Number(s.segment_no) === Number(segNo)));
+  hierLocations.forEach(l => {
+    if (l.table_id === selectedTableId && Number(l.segment_no ?? l.row_no) === Number(segNo)) {
+      l.segment_no = 0;
+      l.row_no = '0';
+    }
+  });
+  if (Number(selectedSegmentNo) === Number(segNo)) selectedSegmentNo = 0;
+  saveHierarchyOnly(`已取消分段 #${segNo}，儲位已退回未分配池`);
+}
+
+export function selectLocSegment(segNo) {
+  selectedSegmentNo = Number(segNo) || 0;
+  renderLocationsColumn();
+}
+
+export function duplicateLocItem(locCode) {
+  const orig = hierLocations.find(l => l.loc_code === locCode);
+  if (!orig) return;
+  const usedLocSet = new Set(hierLocations.map(l => String(l.loc_code || '').toUpperCase()));
+  const picked = findNextAvailableLocCode(orig.table_id, 0, usedLocSet, 1);
+
+  hierLocations.push({
+    loc_code: picked.locCode,
+    unit_code: unitPrefix,
+    table_id: orig.table_id,
+    row_no: '0',
+    pos_no: picked.posStr,
+    segment_no: 0,
+    is_locked: false,
+    drug_code: orig.drug_code,
+    drug_name: orig.drug_name,
+    monthly_desc: orig.monthly_desc || '',
+    drug_remark: orig.drug_remark || '',
+    daily_notice: orig.daily_notice || ''
+  });
+  saveHierarchyOnly(`已複製儲位至未分配池 (${picked.locCode})`);
+}
+
 export function renderLocationsColumn() {
   const container = document.getElementById('hier-segments-container');
   const titleEl = document.getElementById('hier-loc-header');
@@ -443,7 +730,7 @@ export function renderLocationsColumn() {
 
   const tblObj = hierTables.find(t => t.table_id === selectedTableId);
   if (titleEl) {
-    titleEl.innerText = tblObj ? `第三層：POOL 暫存池、分段框與儲位（${tblObj.table_id} - ${tblObj.table_name}）` : '第三層：POOL 暫存池、分段框與儲位';
+    titleEl.innerText = tblObj ? `第三層：POOL、分段框與儲位（${tblObj.table_id} - ${tblObj.table_name}）` : '第三層：POOL、分段框與儲位';
   }
 
   if (!selectedTableId) {
@@ -452,7 +739,9 @@ export function renderLocationsColumn() {
   }
 
   const kw = (document.getElementById('hier-loc-search')?.value || '').toLowerCase().trim();
-  const segs = hierSegments.filter(s => s.table_id === selectedTableId && Number(s.segment_no) > 0).sort((a, b) => Number(a.segment_no) - Number(b.segment_no));
+  const segs = hierSegments
+    .filter(s => s.table_id === selectedTableId && Number(s.segment_no) > 0)
+    .sort((a, b) => Number(a.segment_no) - Number(b.segment_no));
   const validSegNos = new Set(segs.map(s => Number(s.segment_no)));
   const tableLocs = hierLocations.filter(l => l.table_id === selectedTableId);
 
@@ -489,6 +778,7 @@ export function renderLocationsColumn() {
               ${hierTables.map(t => `<option value="${t.table_id}" ${t.table_id === selectedTableId ? 'selected' : ''}>表 ${t.table_id}</option>`).join('')}
             </select>
             <button class="btn btn-sm ${l.is_locked ? 'btn-dark' : 'btn-outline-secondary'} py-0 px-1" style="font-size:0.7rem;" title="鎖定/解鎖儲位碼" onclick="toggleLocLock('${l.loc_code}')">${l.is_locked ? '🔒' : '🔓'}</button>
+            <button class="btn btn-sm btn-outline-success py-0 px-1" title="複製儲位至未分配池" onclick="duplicateLocItem('${l.loc_code}')">複</button>
             <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="openLocEditModal('${l.loc_code}')">編</button>
             <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteLocItem('${l.loc_code}')">刪</button>
           </div>
@@ -497,14 +787,14 @@ export function renderLocationsColumn() {
   };
 
   const poolCardHtml = `
-    <div class="card border border-warning mb-3 shadow-xs">
-      <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center bg-warning bg-opacity-25">
+    <div class="card border ${selectedSegmentNo === 0 ? 'border-warning border-2' : 'border-warning'} mb-3 shadow-xs">
+      <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center bg-warning bg-opacity-25" style="cursor:pointer;" onclick="selectLocSegment(0)">
         <div class="fw-bold small text-dark">
           <span class="badge bg-warning text-dark me-1">POOL</span>
           <span>未分配分段暫存池（分段碼 0）</span>
           <span class="text-muted ms-1">(${poolItems.length} 筆)</span>
         </div>
-        <span class="small text-dark fw-semibold">暫存區</span>
+        <span class="small text-dark fw-semibold">${selectedSegmentNo === 0 ? '● 目前新增目標' : '暫存區'}</span>
       </div>
       <div class="table-responsive">
         <table class="table table-hover table-sm align-middle mb-0">
@@ -526,14 +816,17 @@ export function renderLocationsColumn() {
         const itemsInSeg = filterKw(tableLocs.filter(l => (Number(l.segment_no ?? l.row_no) || 0) === segNo));
 
         return `
-          <div class="card border ${isSelSeg ? 'border-primary' : 'border-secondary-subtle'} mb-2 shadow-xs">
-            <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSelSeg ? 'bg-primary bg-opacity-10' : 'bg-light'}" onclick="selectedSegmentNo=${segNo}; renderLocationsColumn();" style="cursor:pointer;">
+          <div class="card border ${isSelSeg ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs">
+            <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSelSeg ? 'bg-primary bg-opacity-10' : 'bg-light'}" onclick="selectLocSegment(${segNo})" style="cursor:pointer;">
               <div class="fw-bold small text-dark">
                 <span class="badge bg-primary me-1">分段 #${displaySegNum}</span>
                 <span>${seg.segment_name || `第 ${displaySegNum} 分段`}</span>
                 <span class="text-muted ms-1">(${itemsInSeg.length} 筆)</span>
               </div>
-              <span class="small ${isSelSeg ? 'text-primary fw-bold' : 'text-muted'}">${isSelSeg ? '● 目前新增目標分段' : '點擊選為新增分段'}</span>
+              <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
+                <span class="small ${isSelSeg ? 'text-primary fw-bold' : 'text-muted'}">${isSelSeg ? '● 新增目標' : ''}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.7rem;" onclick="deleteLocSegmentBox(${segNo})">取消分段</button>
+              </div>
             </div>
             <div class="table-responsive">
               <table class="table table-hover table-sm align-middle mb-0">
@@ -556,16 +849,18 @@ export function renderLocationsColumn() {
       new window.Sortable(tb, {
         group: 'hier-loc-group',
         handle: '.loc-drag-handle',
+        draggable: '.hier-loc-row',
         animation: 150,
+        onStart: (evt) => {
+          draggingLocCode = evt.item.getAttribute('data-loc-code');
+          droppedOnParent = false;
+        },
         onEnd: (evt) => {
-          const movedCode = evt.item.getAttribute('data-loc-code');
-          const targetSegNo = Number(evt.to.getAttribute('data-seg-no')) || 0;
-          const locObj = hierLocations.find(x => x.loc_code === movedCode);
-          if (locObj) {
-            locObj.segment_no = targetSegNo;
-            locObj.row_no = String(targetSegNo);
+          draggingLocCode = null;
+          if (droppedOnParent) {
+            droppedOnParent = false;
+            return;
           }
-
           const newOrderedInTable = [];
           container.querySelectorAll('.hier-seg-tbody').forEach(box => {
             const sNo = Number(box.getAttribute('data-seg-no')) || 0;
@@ -582,7 +877,7 @@ export function renderLocationsColumn() {
 
           const others = hierLocations.filter(l => l.table_id !== selectedTableId);
           hierLocations = [...others, ...newOrderedInTable];
-          saveHierarchyOnly('已儲存儲位排序（按下「自動編碼」才會重編代碼）');
+          saveHierarchyOnly('已更新儲位分段與排序');
         }
       });
     });
@@ -600,9 +895,14 @@ export function moveLocToTable(locCode, newTableId) {
   const l = hierLocations.find(x => x.loc_code === locCode);
   if (!l || l.table_id === newTableId) return;
   l.table_id = newTableId;
-  saveHierarchyOnly(`已將儲位移至 ${newTableId}`);
+  l.segment_no = 0;
+  l.row_no = '0';
+  saveHierarchyOnly(`已將儲位移至盤點表 ${newTableId} 的未分配池 (POOL)`);
 }
 
+// ==========================================
+// Modals（區域 / 盤點表 / 儲位）
+// ==========================================
 export function syncAreaIdPreview() {
   const code = (document.getElementById('a-area-code')?.value || '').trim().toUpperCase();
   const idEl = document.getElementById('a-area-id');
@@ -651,6 +951,7 @@ export function submitAreaEdit() {
       t.is_locked = isLocked;
       if (editingId !== areaId) {
         hierTables.forEach(tb => { if (tb.area_code.toUpperCase() === editingId) tb.area_code = areaId; });
+        hierSegments.forEach(s => { if (s.table_id === `${AREA_SEG_PREFIX}${editingId}`) s.table_id = `${AREA_SEG_PREFIX}${areaId}`; });
         if (selectedAreaId === editingId) selectedAreaId = areaId;
       }
     }
@@ -666,15 +967,16 @@ export function submitAreaEdit() {
     selectedAreaId = areaId;
   }
   if (areaModalInstance) areaModalInstance.hide();
-  saveHierarchyOnly('已即時儲存區域設定');
+  saveHierarchyOnly('已更新區域設定');
 }
 
 export function deleteAreaItem(areaId) {
   if (hierTables.some(t => t.area_code === areaId)) return alert('此區域底下尚有盤點表，請先移走或刪除盤點表');
   if (!confirm(`確定要刪除區域「${areaId}」嗎？`)) return;
   hierAreas = hierAreas.filter(a => a.area_id !== areaId);
+  hierSegments = hierSegments.filter(s => s.table_id !== `${AREA_SEG_PREFIX}${areaId}`);
   if (selectedAreaId === areaId) selectedAreaId = hierAreas[0]?.area_id || null;
-  saveHierarchyOnly('已刪除區域並即時存檔');
+  saveHierarchyOnly('已刪除區域');
 }
 
 export function syncTableIdPreview() {
@@ -693,7 +995,7 @@ export function openTableModal(tableId = '') {
   const usedIds = new Set(hierTables.map(t => String(t.table_id || '').toUpperCase()));
   const nextObj = existing
     ? { tCode: existing.table_code, tId: existing.table_id }
-    : findNextAvailableTableCode(areaId, 0, 0, usedIds);
+    : findNextAvailableTableCodeInSeg(areaId, selectedTableSegmentNo, usedIds, 0);
   document.getElementById('t-table-code').value = nextObj.tCode;
   document.getElementById('t-table-id').value = nextObj.tId;
   document.getElementById('t-table-name').value = existing ? existing.table_name : '';
@@ -744,20 +1046,23 @@ export function submitTableEdit() {
       table_code: tableCode,
       table_name: tableName,
       table_desc: tableDesc,
+      segment_no: selectedTableSegmentNo,
+      is_section_start: selectedTableSegmentNo,
       is_locked: isLocked
     });
     selectedTableId = tableId;
   }
   if (tableModalInstance) tableModalInstance.hide();
-  saveHierarchyOnly('已即時儲存盤點表設定');
+  saveHierarchyOnly('已更新盤點表設定');
 }
 
 export function deleteTableItem(tableId) {
   if (hierLocations.some(l => l.table_id === tableId)) return alert('此盤點表底下尚有儲位，請先移走或刪除儲位');
   if (!confirm(`確定要刪除盤點表「${tableId}」嗎？`)) return;
   hierTables = hierTables.filter(t => t.table_id !== tableId);
+  hierSegments = hierSegments.filter(s => s.table_id !== tableId);
   if (selectedTableId === tableId) selectedTableId = null;
-  saveHierarchyOnly('已刪除盤點表並即時存檔');
+  saveHierarchyOnly('已刪除盤點表');
 }
 
 export function openLocEditModal(locCode = '') {
@@ -875,11 +1180,11 @@ export function submitLocEdit() {
   }
 
   if (locModalInstance) locModalInstance.hide();
-  saveHierarchyOnly(segNo === 0 ? '已儲存儲位至 POOL 暫存池' : '已即時儲存儲位資料');
+  saveHierarchyOnly(segNo === 0 ? '已新增儲位至未分配池' : '已更新儲位資料');
 }
 
 export function deleteLocItem(locCode) {
   if (!confirm(`確定要刪除儲位「${locCode}」嗎？`)) return;
   hierLocations = hierLocations.filter(l => l.loc_code !== locCode);
-  saveHierarchyOnly('已刪除儲位並即時存檔');
+  saveHierarchyOnly('已刪除儲位');
 }
