@@ -772,12 +772,10 @@
     <div id="adj-tab-records" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
       <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-          <label class="small fw-bold">日期區間:</label>
-          <input type="date" id="adj-rec-start" name="adj_rec_start" class="form-control form-control-sm border-secondary w-auto">
-          <span>~</span>
-          <input type="date" id="adj-rec-end" name="adj_rec_end" class="form-control form-control-sm border-secondary w-auto">
-          <input type="text" id="adj-rec-search" name="adj_rec_search" class="form-control form-control-sm border-secondary" style="max-width:200px;" placeholder="代碼/名稱/儲位搜尋" oninput="applyAdjAppRecordFilters()">
-          <button type="button" class="btn btn-sm btn-success fw-bold ms-auto" onclick="loadAdjAppRecords()">🔍 依區間載入</button>
+          <label class="small fw-bold">盤點月份:</label>
+          <input type="month" id="adj-rec-month" name="adj_rec_month" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadAdjAppRecords()">
+          <input type="text" id="adj-rec-search" name="adj_rec_search" class="form-control form-control-sm border-secondary" style="max-width:220px;" placeholder="代碼/名稱/儲位搜尋" oninput="applyAdjAppRecordFilters()">
+          <button type="button" class="btn btn-sm btn-success fw-bold ms-auto" onclick="loadAdjAppRecords()">🔍 依月份載入</button>
         </div>
       </div>
       <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
