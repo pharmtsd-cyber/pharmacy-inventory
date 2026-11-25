@@ -43,7 +43,7 @@ import {
   renderLocationsColumn, toggleLocLock, moveLocToTable,
   openAreaModal, submitAreaEdit, deleteAreaItem,
   openTableModal, submitTableEdit, deleteTableItem,
-  openLocEditModal, handleLocDrugFuzzySearch, pickDrugFromMaster, submitLocEdit, deleteLocItem, runAutoEncodeHierarchy, toggleAreaLock, syncAreaIdPreview, syncTableIdPreview
+  openLocEditModal, handleLocDrugFuzzySearch, pickDrugFromMaster, submitLocEdit, deleteLocItem, runAutoEncodeHierarchy, toggleAreaLock, syncAreaIdPreview, syncTableIdPreview, saveHierarchyManual
 } from './maint_hierarchy.js';
 
 import {
@@ -160,7 +160,7 @@ window.initMonthlyAdjPortal = initMonthlyAdjPortal; window.selectAdjUnitCard = s
 
 window.initHierarchyMaintenance = initHierarchyMaintenance; window.loadHierarchyData = loadHierarchyData; window.createNewSegmentBox = createNewSegmentBox; window.selectHierArea = selectHierArea; window.selectHierTable = selectHierTable; window.toggleTableSection = toggleTableSection; window.toggleTableLock = toggleTableLock; window.moveTableToArea = moveTableToArea; window.renderLocationsColumn = renderLocationsColumn; window.toggleLocLock = toggleLocLock; window.moveLocToTable = moveLocToTable; window.openAreaModal = openAreaModal; window.submitAreaEdit = submitAreaEdit; window.deleteAreaItem = deleteAreaItem; window.openTableModal = openTableModal; window.submitTableEdit = submitTableEdit; window.deleteTableItem = deleteTableItem; window.openLocEditModal = openLocEditModal; window.handleLocDrugFuzzySearch = handleLocDrugFuzzySearch; window.pickDrugFromMaster = pickDrugFromMaster; window.submitLocEdit = submitLocEdit; window.deleteLocItem = deleteLocItem;
 
-window.runAutoEncodeHierarchy = runAutoEncodeHierarchy;
+window.runAutoEncodeHierarchy = runAutoEncodeHierarchy; window.saveHierarchyManual = saveHierarchyManual;
 window.toggleAreaLock = toggleAreaLock;
 window.syncAreaIdPreview = syncAreaIdPreview;
 window.syncTableIdPreview = syncTableIdPreview;
