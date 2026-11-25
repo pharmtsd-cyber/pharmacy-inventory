@@ -499,7 +499,7 @@
         <strong>用途</strong>：每日盤點比對參考的帳面 SAP 數量；<strong>必備欄位</strong>：<code>SAP日期</code>、<code>物料</code>、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。
       </div>
       <div class="row g-2 mb-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label small fw-bold">目標單位</label>
           <select id="dm-sap-daily-unit" name="dm_sap_daily_unit" class="form-select border-secondary fw-bold" onchange="loadSapHistoryList('daily')">
             <option value="BF">住院藥局 (BF)</option>
@@ -508,7 +508,11 @@
             <option value="BG">調配藥局 (BG)</option>
           </select>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">歸屬 SAP 日期（預設今日）</label>
+          <input type="date" id="dm-sap-daily-date" name="dm_sap_daily_date" class="form-control border-primary fw-bold">
+        </div>
+        <div class="col-md-6">
           <label class="form-label small fw-bold">選擇每日 SAP Excel 檔案</label>
           <input type="file" id="dm-sap-daily-file" name="dm_sap_daily_file" class="form-control border-secondary" accept=".xlsx,.xls" onchange="handleSapFileSelectV2('daily', event)">
         </div>
@@ -523,7 +527,7 @@
       <div class="table-responsive border rounded">
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light">
-            <tr><th>SAP日期</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">操作</th></tr>
+            <tr><th>SAP日期</th><th class="text-center">版本 / 狀態</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">上傳時間</th><th class="text-center">操作</th></tr>
           </thead>
           <tbody id="dm-sap-daily-tbody"></tbody>
         </table>
@@ -543,7 +547,7 @@
         <strong>用途</strong>：當月份盤點結果比對參考的帳面 SAP 數量；<strong>必備欄位</strong>：<code>SAP日期</code>、<code>物料</code>、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。
       </div>
       <div class="row g-2 mb-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label small fw-bold">目標單位</label>
           <select id="dm-sap-monthly-unit" name="dm_sap_monthly_unit" class="form-select border-secondary fw-bold" onchange="loadSapHistoryList('monthly')">
             <option value="BF">住院藥局 (BF)</option>
@@ -552,7 +556,11 @@
             <option value="BG">調配藥局 (BG)</option>
           </select>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">歸屬 SAP 日期（預設今日）</label>
+          <input type="date" id="dm-sap-monthly-date" name="dm_sap_monthly_date" class="form-control border-success fw-bold">
+        </div>
+        <div class="col-md-6">
           <label class="form-label small fw-bold">選擇月 SAP Excel 檔案</label>
           <input type="file" id="dm-sap-monthly-file" name="dm_sap_monthly_file" class="form-control border-secondary" accept=".xlsx,.xls" onchange="handleSapFileSelectV2('monthly', event)">
         </div>
@@ -567,7 +575,7 @@
       <div class="table-responsive border rounded">
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light">
-            <tr><th>SAP日期</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">操作</th></tr>
+            <tr><th>SAP日期</th><th class="text-center">版本 / 狀態</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">上傳時間</th><th class="text-center">操作</th></tr>
           </thead>
           <tbody id="dm-sap-monthly-tbody"></tbody>
         </table>
