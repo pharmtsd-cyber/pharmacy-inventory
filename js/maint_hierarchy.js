@@ -102,6 +102,17 @@ function setHierDirtyState(isDirty) {
   }
 }
 
+export function hasUnsavedHierarchyChanges() {
+  return hasUnsavedHierChanges;
+}
+
+export function confirmLeaveHierarchy() {
+  if (!hasUnsavedHierChanges) return true;
+  const ok = confirm('⚠️ 分層儲位維護尚有「未存檔」的變更！\n確定要離開嗎？（未存檔的修改將會遺失）');
+  if (ok) setHierDirtyState(false);
+  return ok;
+}
+
 export function initHierarchyMaintenance() {
   switchView('view-maintenance');
   const titleEl = document.getElementById('maint-dept-title');
