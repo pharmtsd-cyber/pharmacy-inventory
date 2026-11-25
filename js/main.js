@@ -6,7 +6,7 @@ import { handleLogin, handleLogout, backToLobby } from './auth.js';
 import { 
   initDailyMode, changeDailyDate, switchDailyTab, submitDailyOne, 
   editDailyQty, toggleDailyStatus, flushDailyQueue, getDailyQueueCount,
-  openAdminSort, toggleVisibility, highlightSearchItem, rebuildAdminList, saveAdminDataToServer, renderDailyItems 
+  renderDailyItems, enterDailyTable, handleDailyBack, showDailyTableDetailModal
 } from './daily.js';
 
 import { 
@@ -144,7 +144,7 @@ window.selectMode = function(modeName) {
   else if (modeName === '月盤點') initMonthlyMode();
 };
 
-window.initDailyMode = initDailyMode; window.changeDailyDate = changeDailyDate; window.switchDailyTab = switchDailyTab; window.submitDailyOne = submitDailyOne; window.openAdminSort = openAdminSort; window.toggleVisibility = toggleVisibility; window.highlightSearchItem = highlightSearchItem; window.rebuildAdminList = rebuildAdminList; window.saveAdminDataToServer = saveAdminDataToServer; window.renderDailyItems = renderDailyItems; window.flushDailyQueue = flushDailyQueue;
+window.initDailyMode = initDailyMode; window.changeDailyDate = changeDailyDate; window.switchDailyTab = switchDailyTab; window.submitDailyOne = submitDailyOne; window.renderDailyItems = renderDailyItems; window.flushDailyQueue = flushDailyQueue; window.enterDailyTable = enterDailyTable; window.handleDailyBack = handleDailyBack; window.showDailyTableDetailModal = showDailyTableDetailModal;
 
 window.refreshMonthlyData = refreshMonthlyData; window.initMonthlyMode = initMonthlyMode; window.switchMonthlyTab = switchMonthlyTab; window.switchStockSubTab = switchStockSubTab; window.switchDeskSubTab = switchDeskSubTab; window.switchOnlineSubTab = switchOnlineSubTab; window.switchRecordsSubTab = switchRecordsSubTab; window.handleStockSearch = handleStockSearch; window.handleOnlineSearch = handleOnlineSearch; window.selectStockDrug = selectStockDrug; window.selectOnlineDrug = selectOnlineDrug; window.handleTableSelectChange = handleTableSelectChange; window.submitMonthlyDeskOne = submitMonthlyDeskOne; window.flushMonthlyQueue = flushMonthlyQueue; window.submitMonthlyStock = submitMonthlyStock; window.submitMonthlyOnline = submitMonthlyOnline; window.updateOnlineUI = updateOnlineUI; window.startLiveScanner = startLiveScanner; window.closeLiveScanner = closeLiveScanner; window.parseBarcodeAndSubmit = parseBarcodeAndSubmit; window.loadUserRecords = loadUserRecords; window.handleRecordFilterSearch = handleRecordFilterSearch; window.clearRecordFilter = clearRecordFilter; window.applyRecordFilter = applyRecordFilter; window.editRecord = editRecord; window.editDailyQty = editDailyQty; window.toggleDailyStatus = toggleDailyStatus; window.toggleMonthlyRecordStatus = toggleMonthlyRecordStatus; window.refreshDashboardData = refreshDashboardData; window.renderMonthlyDashboard = renderMonthlyDashboard; window.showTableDetailModal = showTableDetailModal; window.enterTableInventory = enterTableInventory;
 
