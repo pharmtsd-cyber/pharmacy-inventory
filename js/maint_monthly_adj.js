@@ -125,58 +125,83 @@ export function selectAdjUnitCard(uCode, uName, portalKey) {
   openAdjAuthModalEl();
 }
 
-function getAdjDateLockKey(uCode) {
-  return `femh_adj_locked_dates_${uCode || activeAdjUnitCode || unitPrefix}`;
+let activeAdjTabId = 'adj-tab-inventory';
+
+function getCurrentMonthStr() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function applyAdjDateLockUI() {
+function getAdjMonthLockKey(uCode) {
+  return `femh_adj_locked_month_${uCode || activeAdjUnitCode || unitPrefix}`;
+}
+
+function getAdjGlobalMonth() {
+  const el = document.getElementById('adj-global-month');
+  if (el && el.value) return el.value.substring(0, 7);
+  return getCurrentMonthStr();
+}
+
+function applyAdjMonthLockUI() {
   const uCode = activeAdjUnitCode || unitPrefix;
-  const raw = localStorage.getItem(getAdjDateLockKey(uCode));
-  const fEl = document.getElementById('adj-param-forecast');
-  const rEl = document.getElementById('adj-param-reference');
-  const btn = document.getElementById('adj-btn-lock-dates');
+  const raw = localStorage.getItem(getAdjMonthLockKey(uCode));
+  const mEl = document.getElementById('adj-global-month');
+  const btn = document.getElementById('adj-btn-lock-month');
 
   let lockedObj = null;
   try { lockedObj = raw ? JSON.parse(raw) : null; } catch (e) {}
 
-  if (lockedObj && lockedObj.locked) {
-    if (fEl) { if (lockedObj.forecastDate) fEl.value = lockedObj.forecastDate; fEl.disabled = true; }
-    if (rEl) { if (lockedObj.referenceDate) rEl.value = lockedObj.referenceDate; rEl.disabled = true; }
+  if (lockedObj && lockedObj.locked && lockedObj.month) {
+    if (mEl) { mEl.value = lockedObj.month; mEl.disabled = true; }
     if (btn) {
-      btn.className = 'btn btn-sm btn-dark fw-bold';
-      btn.innerText = '🔒 已鎖定日期';
+      btn.className = 'btn btn-sm btn-dark fw-bold text-nowrap';
+      btn.innerText = '🔒 已鎖定月份';
     }
   } else {
-    if (fEl) fEl.disabled = false;
-    if (rEl) rEl.disabled = false;
+    if (mEl) {
+      if (!mEl.value) mEl.value = getCurrentMonthStr();
+      mEl.disabled = false;
+    }
     if (btn) {
-      btn.className = 'btn btn-sm btn-outline-secondary fw-bold';
-      btn.innerText = '🔓 鎖定日期';
+      btn.className = 'btn btn-sm btn-outline-secondary fw-bold text-nowrap';
+      btn.innerText = '🔓 鎖定月份';
     }
   }
 }
 
-export function toggleAdjDateLock() {
+export function toggleAdjMonthLock() {
   const uCode = activeAdjUnitCode || unitPrefix;
-  const key = getAdjDateLockKey(uCode);
-  const fVal = document.getElementById('adj-param-forecast')?.value || '';
-  const rVal = document.getElementById('adj-param-reference')?.value || '';
+  const key = getAdjMonthLockKey(uCode);
+  const mVal = getAdjGlobalMonth();
   const raw = localStorage.getItem(key);
   let isLocked = false;
   try { isLocked = !!(raw && JSON.parse(raw).locked); } catch (e) {}
 
   if (isLocked) {
     localStorage.removeItem(key);
-    showToast('已解除日期鎖定');
+    showToast('已解除月份鎖定');
+    applyAdjMonthLockUI();
   } else {
-    if (!fVal || !rVal) return alert('請先選擇預測日與基準日後再鎖定');
-    localStorage.setItem(key, JSON.stringify({ locked: true, forecastDate: fVal, referenceDate: rVal }));
-    showToast(`已鎖定日期：${fVal} ～ ${rVal}`);
-    applyAdjDateLockUI();
-    loadAdjInventoryData();
-    return;
+    if (!mVal) return alert('請先選擇月份後再鎖定');
+    localStorage.setItem(key, JSON.stringify({ locked: true, month: mVal }));
+    showToast(`已鎖定套用月份：${mVal}`);
+    applyAdjMonthLockUI();
+    onAdjGlobalMonthChange();
   }
-  applyAdjDateLockUI();
+}
+
+export function onAdjGlobalMonthChange() {
+  adjNeedsRefresh = true;
+  if (activeAdjTabId === 'adj-tab-inventory') {
+    adjNeedsRefresh = false;
+    loadAdjInventoryData();
+  } else if (activeAdjTabId === 'adj-tab-records') {
+    loadAdjAppRecords();
+  } else if (activeAdjTabId === 'adj-tab-marker') {
+    loadAdjMarkers();
+  } else if (activeAdjTabId === 'adj-tab-version') {
+    loadAdjVersionRecords();
+  }
 }
 
 export function confirmAdjUnitAuth() {
@@ -201,7 +226,7 @@ export function confirmAdjUnitAuth() {
     }
     document.getElementById('adj-unit-picker-panel')?.classList.add('d-none');
     document.getElementById('adj-workspace-panel')?.classList.remove('d-none');
-    applyAdjDateLockUI(); // 載入該單位鎖定的日期
+    applyAdjMonthLockUI();
     recordAdjAudit('登入調帳單位', `進入 ${pendingAdjUnitTarget.uName} (${res.userName})`);
     switchAdjTab('adj-tab-inventory');
     loadAdjInventoryData();
@@ -209,17 +234,15 @@ export function confirmAdjUnitAuth() {
 }
 
 export function switchAdjTab(tabId) {
+  activeAdjTabId = tabId;
   ['adj-tab-inventory', 'adj-tab-records', 'adj-tab-marker', 'adj-tab-version'].forEach(id => {
     const sec = document.getElementById(id);
     if (sec) sec.classList.toggle('d-none', id !== tabId);
   });
-
   const activeColor = UNIT_COLOR_MAP[activeAdjUnitCode] || '#212529';
   document.querySelectorAll('#adj-main-tabs .nav-link').forEach(btn => {
     const active = btn.getAttribute('data-target') === tabId;
-    // 關鍵：把原本寫死 !important 的 class 全部移除
     btn.classList.remove('bg-academic', 'text-academic', 'bg-white', 'text-white', 'active');
-
     if (active) {
       btn.classList.add('active');
       btn.style.setProperty('background-color', activeColor, 'important');
@@ -254,33 +277,6 @@ export function toggleCustomNumRangeInputs() {
   if (valWrap) valWrap.classList.toggle('d-none', op === 'NONE');
 }
 
-export function loadAdjInventoryData(silent = false) {
-  const unitCode = activeAdjUnitCode || unitPrefix;
-  const fDate = document.getElementById('adj-param-forecast')?.value || '';
-  const rDate = document.getElementById('adj-param-reference')?.value || '';
-  if (!silent) toggleLoader(true, '載入月盤點調帳總表...');
-  fetchBackend('getMonthlyAdjInitData', { unitCode, forecastDate: fDate, referenceDate: rDate }).then(res => {
-    if (!silent) toggleLoader(false);
-    if (!res || !res.success) return alert('載入調帳資料失敗：' + (res?.message || '未知錯誤'));
-    adjInitData = res;
-    if (document.getElementById('adj-param-forecast')) document.getElementById('adj-param-forecast').value = res.dates?.D1 || '';
-    if (document.getElementById('adj-param-reference')) document.getElementById('adj-param-reference').value = res.dates?.F1 || '';
-  const recMonthEl = document.getElementById('adj-rec-month');
-    if (recMonthEl && !recMonthEl.value) {
-      recMonthEl.value = (res.dates?.F1 || '').substring(0, 7);
-    }
-
-    const symSel = document.getElementById('adj-filter-symbol');
-    if (symSel) {
-      const prev = symSel.value;
-      symSel.innerHTML = '<option value="ALL">全部符號</option>';
-      (res.state?.availableSymbols || []).forEach(s => symSel.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
-      if (Array.from(symSel.options).some(o => o.value === prev)) symSel.value = prev;
-    }
-    if (!silent) setAdjSaveStatus('載入完成，尚未修改', 'green');
-    applyAdjFilters();
-  }).catch(err => { if (!silent) toggleLoader(false); alert('載入失敗：' + err.message); });
-}
 
 export function handleAdjSortClick(colIndex) {
   if (adjSort.colIndex === colIndex) adjSort.order = adjSort.order === 'none' ? 'desc' : (adjSort.order === 'desc' ? 'asc' : 'none');
@@ -486,9 +482,6 @@ function renderAdjTable(rowsToRender) {
     bDet.className = 'btn btn-sm btn-outline-info fw-bold py-0';
     bDet.innerText = '📄 紀錄';
     bDet.onclick = () => {
-      const rVal = document.getElementById('adj-param-reference')?.value || adjInitData.dates?.F1 || '';
-      const recMonthEl = document.getElementById('adj-rec-month');
-      if (recMonthEl && rVal) recMonthEl.value = rVal.substring(0, 7);
       if (document.getElementById('adj-rec-search')) document.getElementById('adj-rec-search').value = r.rowData[0];
       switchAdjTab('adj-tab-records');
     };
@@ -499,16 +492,16 @@ function renderAdjTable(rowsToRender) {
 }
 
 export function handleAdjSaveVersion() {
-  const reportDate = document.getElementById('adj-param-reference')?.value || '';
-  if (!reportDate) return alert('請先選取盤點基準日！');
+  const targetMonth = getAdjGlobalMonth();
+  if (!targetMonth) return alert('請先選取套用月份！');
   const unitCode = activeAdjUnitCode || unitPrefix;
-  if (!confirm(`即將儲存為 ${reportDate.substring(0, 7)} 月份版本（同月將覆蓋），確定嗎？`)) return;
+  if (!confirm(`即將儲存為 ${targetMonth} 月份版本（同月將覆蓋），確定嗎？`)) return;
   toggleLoader(true, '正在儲存月盤點調帳版本...');
-  fetchBackend('saveMonthlyAdjVersion', { unitCode, reportDate, rows: JSON.stringify(adjInitData.rows || []) }).then(res => {
+  fetchBackend('saveMonthlyAdjVersion', { unitCode, reportDate: targetMonth, rows: JSON.stringify(adjInitData.rows || []) }).then(res => {
     toggleLoader(false);
     if (!res || !res.success) return alert('存檔失敗：' + (res?.message || '未知錯誤'));
-    setAdjSaveStatus(`✔️ 已存檔 (${reportDate.substring(0, 7)})`, 'green');
-    recordAdjAudit('存檔版本', `鎖存 ${reportDate.substring(0, 7)} 月份調帳版本（共 ${(adjInitData.rows || []).length} 項）`);
+    setAdjSaveStatus(`✔️ 已存檔 (${targetMonth})`, 'green');
+    recordAdjAudit('存檔版本', `鎖存 ${targetMonth} 月份調帳版本（共 ${(adjInitData.rows || []).length} 項）`);
     showToast(res.message || '已儲存版本');
     loadAdjInventoryData(true);
   }).catch(err => { toggleLoader(false); alert('存檔異常：' + err.message); });
@@ -516,14 +509,13 @@ export function handleAdjSaveVersion() {
 
 export function loadAdjAppRecords() {
   const unitCode = activeAdjUnitCode || unitPrefix;
-  const monthVal = document.getElementById('adj-rec-month')?.value || (adjInitData.dates?.F1 || '').substring(0, 7);
-  if (document.getElementById('adj-rec-month') && monthVal) {
-    document.getElementById('adj-rec-month').value = monthVal;
-  }
-  const startDate = monthVal ? `${monthVal}-01` : '';
-  const endDate = monthVal ? `${monthVal}-31` : '';
+  const targetMonth = getAdjGlobalMonth();
+  const badgeEl = document.getElementById('adj-rec-month-badge');
+  if (badgeEl) badgeEl.innerText = `套用月份：${targetMonth}`;
 
-  toggleLoader(true, '載入月盤點輸入區紀錄...');
+  const startDate = `${targetMonth}-01`;
+  const endDate = `${targetMonth}-31`;
+  toggleLoader(true, `載入 ${targetMonth} 月盤點輸入區紀錄...`);
   fetchBackend('getMonthlyAdjAppRecords', { unitCode, startDate, endDate }).then(res => {
     toggleLoader(false);
     if (!res || !res.success) return alert('載入失敗：' + (res?.message || '未知錯誤'));
@@ -680,6 +672,7 @@ export function deleteExistingAdjMarker(code) {
 
 export function loadAdjVersionRecords() {
   const unitCode = activeAdjUnitCode || unitPrefix;
+  const targetMonth = getAdjGlobalMonth();
   toggleLoader(true, '載入版本紀錄...');
   fetchBackend('getMonthlyAdjVersionRecords', { unitCode }).then(res => {
     toggleLoader(false);
@@ -687,8 +680,8 @@ export function loadAdjVersionRecords() {
     adjVerHeaders = res.headers || []; adjVerRecords = res.records || [];
     const mSel = document.getElementById('adj-ver-month-filter');
     if (mSel) {
-      const months = Array.from(new Set(adjVerRecords.map(r => String(r[0] || '').trim()).filter(Boolean))).sort().reverse();
-      mSel.innerHTML = '<option value="ALL">全部月份</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
+      const months = Array.from(new Set([targetMonth, ...adjVerRecords.map(r => String(r[0] || '').trim()).filter(Boolean)])).sort().reverse();
+      mSel.innerHTML = '<option value="ALL">全部月份</option>' + months.map(m => `<option value="${m}" ${m === targetMonth ? 'selected' : ''}>${m}</option>`).join('');
     }
     applyAdjVersionFilters();
   }).catch(err => { toggleLoader(false); alert('載入異常：' + err.message); });
