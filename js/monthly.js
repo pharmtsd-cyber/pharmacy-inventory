@@ -193,9 +193,13 @@ export function initMonthlyMode() {
   });
   
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const startInput = document.getElementById('filter-date-start'); if (startInput) startInput.value = todayStr;
-  const endInput = document.getElementById('filter-date-end'); if (endInput) endInput.value = todayStr;
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const lastDay = String(new Date(yyyy, today.getMonth() + 1, 0).getDate()).padStart(2, '0');
+  const firstDayStr = `${yyyy}-${mm}-01`;
+  const lastDayStr = `${yyyy}-${mm}-${lastDay}`;
+  const startInput = document.getElementById('filter-date-start'); if (startInput) startInput.value = firstDayStr;
+  const endInput = document.getElementById('filter-date-end'); if (endInput) endInput.value = lastDayStr;
 
   toggleLoader(true);
   fetchBackend('getMonthlyInitData').then(res => {
