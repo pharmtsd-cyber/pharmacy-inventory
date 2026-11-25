@@ -114,3 +114,109 @@ body {
   padding: 0.5rem 0.6rem !important;
   vertical-align: middle;
 }
+
+/* ==========================================
+   網站入口大廳 — 手機與桌面響應式排版優化
+   ========================================== */
+.lobby-logo-circle {
+  width: 56px;
+  height: 56px;
+  font-size: 1.7rem;
+}
+.lobby-title {
+  font-size: 1.35rem;
+  letter-spacing: 2px;
+  font-family: 'Times New Roman', 'Noto Serif TC', serif;
+}
+.lobby-subtitle {
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+}
+
+/* 手機端：上排調劑單位 2x2 觸控方塊 */
+.lobby-unit-card {
+  padding: 1.15rem 0.75rem !important;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.lobby-unit-card h5 {
+  font-size: 1.05rem;
+}
+.lobby-en-sub {
+  font-size: 0.7rem;
+}
+
+/* 手機端：下排管理入口改為橫向好點清單 */
+.lobby-admin-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem !important;
+  min-height: 64px;
+  border-left: 5px solid var(--portal-accent, #212529) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.lobby-admin-card .icon-wrapper i {
+  font-size: 1.65rem;
+  line-height: 1;
+}
+.lobby-admin-card h5 {
+  font-size: 1rem;
+}
+.lobby-desc {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+/* 手機點擊按壓回饋 */
+.dept-card-academic:active {
+  transform: scale(0.97);
+  background-color: #f8f9fa;
+}
+
+/* 桌面端 (>= 768px)：恢復原本 4 欄置中直式大卡片 */
+@media (min-width: 768px) {
+  .lobby-logo-circle {
+    width: 75px;
+    height: 75px;
+    font-size: 2.2rem;
+  }
+  .lobby-title {
+    font-size: 2rem;
+    letter-spacing: 3px;
+  }
+  .lobby-subtitle {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+  }
+  .lobby-unit-card {
+    padding: 2.5rem 1.5rem !important;
+    min-height: auto;
+  }
+  .lobby-en-sub {
+    font-size: 0.75rem;
+  }
+  .lobby-admin-card {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 0.4rem;
+    padding: 2.2rem 1.25rem !important;
+    border-left: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-top: 4px solid var(--portal-accent, #212529) !important;
+  }
+  .lobby-admin-card .icon-wrapper i {
+    font-size: 2.6rem;
+    margin-bottom: 0.25rem;
+  }
+}
