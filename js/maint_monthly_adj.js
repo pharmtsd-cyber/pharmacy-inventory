@@ -277,6 +277,33 @@ export function toggleCustomNumRangeInputs() {
   if (valWrap) valWrap.classList.toggle('d-none', op === 'NONE');
 }
 
+export function loadAdjInventoryData(silent = false) {
+  const unitCode = activeAdjUnitCode || unitPrefix;
+  const targetMonth = getAdjGlobalMonth();
+  if (!silent) toggleLoader(true, `載入 ${targetMonth} 月盤點調帳總表...`);
+  fetchBackend('getMonthlyAdjInitData', { unitCode, targetMonth }).then(res => {
+    if (!silent) toggleLoader(false);
+    if (!res || !res.success) return alert('載入調帳資料失敗：' + (res?.message || '未知錯誤'));
+    adjInitData = res;
+
+    const infoEl = document.getElementById('adj-detected-sap-info');
+    if (infoEl) {
+      const d1 = res.dates?.D1 || '尚無月SAP';
+      const f1 = res.dates?.F1 || '尚無月SAP';
+      infoEl.innerHTML = `<i class="bi bi-calendar-check"></i> ${targetMonth} 自動對應：前日SAP/APP 基準日 <span class="badge bg-info text-dark">${d1}</span> ｜ 當日SAP/APP 基準日 <span class="badge bg-primary">${f1}</span>`;
+    }
+
+    const symSel = document.getElementById('adj-filter-symbol');
+    if (symSel) {
+      const prev = symSel.value;
+      symSel.innerHTML = '<option value="ALL">全部符號</option>';
+      (res.state?.availableSymbols || []).forEach(s => symSel.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+      if (Array.from(symSel.options).some(o => o.value === prev)) symSel.value = prev;
+    }
+    if (!silent) setAdjSaveStatus('載入完成，尚未修改', 'green');
+    applyAdjFilters();
+  }).catch(err => { if (!silent) toggleLoader(false); alert('載入失敗：' + err.message); });
+}
 
 export function handleAdjSortClick(colIndex) {
   if (adjSort.colIndex === colIndex) adjSort.order = adjSort.order === 'none' ? 'desc' : (adjSort.order === 'desc' ? 'asc' : 'none');
