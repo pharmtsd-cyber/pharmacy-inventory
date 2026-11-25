@@ -614,9 +614,10 @@ export function moveLocToTable(locCode, newTableId) {
 export function openAreaModal(areaId = '') {
   const existing = areaId ? hierAreas.find(a => a.area_id === areaId) : null;
   document.getElementById('a-editing-id').value = existing ? existing.area_id : '';
-  const nextCode = existing ? existing.area_code : indexToAlpha(hierAreas.length);
-  document.getElementById('a-area-code').value = nextCode;
-  document.getElementById('a-area-id').value = existing ? existing.area_id : `${unitPrefix}${nextCode}`;
+  const usedIds = new Set(hierAreas.map(a => String(a.area_id || '').toUpperCase()));
+  const nextObj = existing ? { code: existing.area_code, id: existing.area_id } : findNextAvailableAreaCode(usedIds);
+  document.getElementById('a-area-code').value = nextObj.code;
+  document.getElementById('a-area-id').value = nextObj.id;
   document.getElementById('a-area-name').value = existing ? existing.area_name : '';
   document.getElementById('a-area-desc').value = existing ? existing.area_desc : '';
   const lockChk = document.getElementById('a-is-locked');
@@ -671,10 +672,12 @@ export function openTableModal(tableId = '') {
   const areaId = existing ? existing.area_code : selectedAreaId;
   document.getElementById('t-editing-id').value = existing ? existing.table_id : '';
   document.getElementById('t-area-id').value = areaId;
-  const countInArea = hierTables.filter(t => t.area_code === areaId).length;
-  const previewCode = existing ? existing.table_code : indexToTwoLetters(0, countInArea);
-  document.getElementById('t-table-code').value = previewCode;
-  document.getElementById('t-table-id').value = existing ? existing.table_id : `${areaId}${previewCode}`;
+  const usedIds = new Set(hierTables.map(t => String(t.table_id || '').toUpperCase()));
+  const nextObj = existing
+    ? { tCode: existing.table_code, tId: existing.table_id }
+    : findNextAvailableTableCode(areaId, 0, 0, usedIds);
+  document.getElementById('t-table-code').value = nextObj.tCode;
+  document.getElementById('t-table-id').value = nextObj.tId;
   document.getElementById('t-table-name').value = existing ? existing.table_name : '';
   document.getElementById('t-table-desc').value = existing ? existing.table_desc : '';
   const lockChk = document.getElementById('t-is-locked');
