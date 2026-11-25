@@ -676,28 +676,7 @@ export function deleteTableItem(tableId) {
   commitImmediateHierarchy('已刪除盤點表並即時存檔');
 }
 
-export function openLocEditModal(locCode = '') {
-  if (!selectedTableId && !locCode) return alert('請先選擇盤點表');
-  const existing = locCode ? hierLocations.find(l => l.loc_code === locCode) : null;
-  const tblId = existing ? existing.table_id : selectedTableId;
-  const defaultSeg = existing ? (Number(existing.segment_no ?? existing.row_no) || 0) : (Number(selectedSegmentNo) || 0);
 
-  document.getElementById('l-editing-code').value = existing ? existing.loc_code : '';
-  document.getElementById('l-table-id').value = tblId;
-  document.getElementById('l-segment-no').value = defaultSeg;
-  document.getElementById('l-is-locked').checked = existing ? !!existing.is_locked : false;
-  document.getElementById('l-drug-search').value = existing ? `${existing.drug_code} - ${existing.drug_name}` : '';
-  document.getElementById('l-drug-code').value = existing ? existing.drug_code : '';
-  document.getElementById('l-drug-name').value = existing ? existing.drug_name : '';
-  document.getElementById('l-monthly-desc').value = existing ? existing.monthly_desc : '';
-  document.getElementById('l-drug-remark').value = existing ? existing.drug_remark : '';
-  document.getElementById('l-daily-notice').value = existing ? existing.daily_notice : '';
-  const dd = document.getElementById('l-drug-dropdown');
-  if (dd) dd.style.display = 'none';
-
-  if (!locModalInstance) locModalInstance = new window.bootstrap.Modal(document.getElementById('locEditModal'));
-  locModalInstance.show();
-}
 
 export function handleLocDrugFuzzySearch() {
   const kw = (document.getElementById('l-drug-search')?.value || '').toLowerCase().trim();
@@ -733,14 +712,65 @@ export function pickDrugFromMaster(code, name) {
   if (dd) dd.style.display = 'none';
 }
 
+function suggestNextLocCode(tblId, segNo) {
+  const existingSet = new Set(hierLocations.map(l => String(l.loc_code || '').toUpperCase()));
+  let posSeq = 1001;
+  while (existingSet.has(`${tblId}${segNo}${posSeq}`.toUpperCase())) {
+    posSeq += 2;
+  }
+  return `${tblId}${segNo}${posSeq}`.toUpperCase();
+}
+
+export function openLocEditModal(locCode = '') {
+  if (!selectedTableId && !locCode) return alert('請先選擇盤點表');
+  const existing = locCode ? hierLocations.find(l => l.loc_code === locCode) : null;
+  const tblId = existing ? existing.table_id : selectedTableId;
+  const defaultSeg = existing ? (Number(existing.segment_no ?? existing.row_no) || 0) : (Number(selectedSegmentNo) || 0);
+  const suggestedCode = existing ? existing.loc_code : suggestNextLocCode(tblId, defaultSeg);
+
+  document.getElementById('l-editing-code').value = existing ? existing.loc_code : '';
+  document.getElementById('l-table-id').value = tblId;
+  document.getElementById('l-loc-code').value = suggestedCode;
+  document.getElementById('l-segment-no').value = defaultSeg;
+  document.getElementById('l-is-locked').checked = existing ? !!existing.is_locked : false;
+  document.getElementById('l-drug-search').value = existing ? `${existing.drug_code} - ${existing.drug_name}` : '';
+  document.getElementById('l-drug-code').value = existing ? existing.drug_code : '';
+  document.getElementById('l-drug-name').value = existing ? existing.drug_name : '';
+  document.getElementById('l-monthly-desc').value = existing ? existing.monthly_desc : '';
+  document.getElementById('l-drug-remark').value = existing ? existing.drug_remark : '';
+  document.getElementById('l-daily-notice').value = existing ? existing.daily_notice : '';
+  const dd = document.getElementById('l-drug-dropdown');
+  if (dd) dd.style.display = 'none';
+
+  if (!locModalInstance) locModalInstance = new window.bootstrap.Modal(document.getElementById('locEditModal'));
+  locModalInstance.show();
+}
+
 export function submitLocEdit() {
-  const editingCode = document.getElementById('l-editing-code').value;
-  const tblId = document.getElementById('l-table-id').value;
+  const editingCode = document.getElementById('l-editing-code').value.trim();
+  const tblId = document.getElementById('l-table-id').value.trim().toUpperCase();
+  const newLocCode = document.getElementById('l-loc-code').value.trim().toUpperCase();
   const segNo = Number(document.getElementById('l-segment-no').value) || 0;
-  const isLocked = !!document.getElementById('l-is-locked').checked;
+  let isLocked = !!document.getElementById('l-is-locked').checked;
   const drugCode = document.getElementById('l-drug-code').value.trim();
   const drugName = document.getElementById('l-drug-name').value.trim();
+
+  if (!newLocCode) return alert('請輸入儲位碼');
   if (!drugCode || !drugName) return alert('請填寫或從藥品主檔選取藥品代碼與藥品名稱');
+
+  // 重複儲位碼檢核（排除目前正在編輯的這筆本身）
+  const dup = hierLocations.find(l =>
+    String(l.loc_code || '').toUpperCase() === newLocCode &&
+    String(l.loc_code || '').toUpperCase() !== editingCode.toUpperCase()
+  );
+  if (dup) {
+    return alert(`❌ 儲位碼重複！\n「${newLocCode}」已被藥品【${dup.drug_code} - ${dup.drug_name}】使用（盤點表：${dup.table_id}），請更換其他編號。`);
+  }
+
+  // 若使用者手動修改了儲位碼，自動鎖定避免存檔時被系統自動重編蓋掉
+  if ((editingCode && newLocCode !== editingCode.toUpperCase()) || (!editingCode && newLocCode !== suggestNextLocCode(tblId, segNo))) {
+    isLocked = true;
+  }
 
   const monthlyDesc = document.getElementById('l-monthly-desc').value.trim();
   const drugRemark = document.getElementById('l-drug-remark').value.trim();
@@ -749,6 +779,7 @@ export function submitLocEdit() {
   if (editingCode) {
     const target = hierLocations.find(l => l.loc_code === editingCode);
     if (target) {
+      target.loc_code = newLocCode;
       target.segment_no = segNo;
       target.row_no = String(segNo);
       target.is_locked = isLocked;
@@ -760,7 +791,7 @@ export function submitLocEdit() {
     }
   } else {
     hierLocations.push({
-      loc_code: `${tblId}_NEW_${Date.now()}`,
+      loc_code: newLocCode,
       unit_code: unitPrefix,
       table_id: tblId,
       row_no: String(segNo),
@@ -776,7 +807,7 @@ export function submitLocEdit() {
   }
 
   if (locModalInstance) locModalInstance.hide();
-  commitImmediateHierarchy(segNo === 0 ? '已新增儲位至 POOL 暫存池' : '已即時儲存儲位資料');
+  commitImmediateHierarchy(segNo === 0 ? '已儲存儲位至 POOL 暫存池' : '已即時儲存儲位資料');
 }
 
 export function deleteLocItem(locCode) {
