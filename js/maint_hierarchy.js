@@ -22,6 +22,24 @@ let tableModalInstance = null;
 let locModalInstance = null;
 let hasUnsavedHierChanges = false;
 
+
+const collapsedTableSegs = new Set();
+const collapsedLocSegs = new Set();
+
+export function toggleTableSegCollapse(segNo) {
+  const key = `${selectedAreaId}_${segNo}`;
+  if (collapsedTableSegs.has(key)) collapsedTableSegs.delete(key);
+  else collapsedTableSegs.add(key);
+  renderTablesColumn();
+}
+
+export function toggleLocSegCollapse(segNo) {
+  const key = `${selectedTableId}_${segNo}`;
+  if (collapsedLocSegs.has(key)) collapsedLocSegs.delete(key);
+  else collapsedLocSegs.add(key);
+  renderLocationsColumn();
+}
+
 // 跨層拖拉狀態（子層拖拉至父層）
 let draggingTableId = null;
 let draggingLocCode = null;
@@ -555,15 +573,18 @@ export function renderTablesColumn() {
     }).join('');
   };
 
+  const isPoolCollapsed = collapsedTableSegs.has(`${selectedAreaId}_0`);
   const poolHtml = `
     <div class="card border ${selectedTableSegmentNo === 0 ? 'border-warning border-2' : 'border-warning'} mb-2 shadow-xs">
       <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center bg-warning bg-opacity-25" style="cursor:pointer;" onclick="selectTableSegment(0)">
-        <div class="fw-bold small text-dark">
-          <span class="badge bg-warning text-dark me-1">POOL</span>未分配分段暫存池 (${poolTables.length})
+        <div class="fw-bold small text-dark d-flex align-items-center gap-1">
+          <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleTableSegCollapse(0)" title="收合/展開">${isPoolCollapsed ? '▸' : '▾'}</button>
+          <span class="badge bg-warning text-dark">POOL</span>
+          <span>未分配暫存池 (${poolTables.length})</span>
         </div>
         <span class="small ${selectedTableSegmentNo === 0 ? 'text-dark fw-bold' : 'text-muted'}">${selectedTableSegmentNo === 0 ? '● 新增目標' : ''}</span>
       </div>
-      <div class="list-group list-group-flush hier-tbl-seg-list" data-seg-no="0">
+      <div class="list-group list-group-flush hier-tbl-seg-list ${isPoolCollapsed ? 'd-none' : ''}" data-seg-no="0">
         ${renderTableCards(poolTables)}
       </div>
     </div>`;
@@ -572,18 +593,21 @@ export function renderTablesColumn() {
     const sNo = Number(seg.segment_no);
     const letter = segNoToLetter(idx + 1);
     const isSel = Number(selectedTableSegmentNo) === sNo;
+    const isCol = collapsedTableSegs.has(`${selectedAreaId}_${sNo}`);
     const itemsInSeg = areaTables.filter(t => (Number(t.segment_no ?? t.is_section_start) || 0) === sNo);
     return `
       <div class="card border ${isSel ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs">
         <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSel ? 'bg-primary bg-opacity-10' : 'bg-light'}" style="cursor:pointer;" onclick="selectTableSegment(${sNo})">
-          <div class="fw-bold small text-dark text-truncate">
-            <span class="badge bg-primary me-1">段 ${letter}</span>${seg.segment_name || `分段 ${letter}`} (${itemsInSeg.length})
+          <div class="fw-bold small text-dark text-truncate d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleTableSegCollapse(${sNo})" title="收合/展開">${isCol ? '▸' : '▾'}</button>
+            <span class="badge bg-primary">段 ${letter}</span>
+            <span class="text-truncate">${seg.segment_name || `分段 ${letter}`} (${itemsInSeg.length})</span>
           </div>
-          <div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+          <div class="d-flex align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
             <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.7rem;" onclick="deleteTableSegmentBox(${sNo})">取消分段</button>
           </div>
         </div>
-        <div class="list-group list-group-flush hier-tbl-seg-list" data-seg-no="${sNo}">
+        <div class="list-group list-group-flush hier-tbl-seg-list ${isCol ? 'd-none' : ''}" data-seg-no="${sNo}">
           ${renderTableCards(itemsInSeg)}
         </div>
       </div>`;
@@ -786,17 +810,19 @@ export function renderLocationsColumn() {
       </tr>`).join('');
   };
 
+  const isLocPoolCollapsed = collapsedLocSegs.has(`${selectedTableId}_0`);
   const poolCardHtml = `
     <div class="card border ${selectedSegmentNo === 0 ? 'border-warning border-2' : 'border-warning'} mb-3 shadow-xs">
       <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center bg-warning bg-opacity-25" style="cursor:pointer;" onclick="selectLocSegment(0)">
-        <div class="fw-bold small text-dark">
-          <span class="badge bg-warning text-dark me-1">POOL</span>
+        <div class="fw-bold small text-dark d-flex align-items-center gap-1">
+          <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleLocSegCollapse(0)" title="收合/展開">${isLocPoolCollapsed ? '▸' : '▾'}</button>
+          <span class="badge bg-warning text-dark">POOL</span>
           <span>未分配分段暫存池（分段碼 0）</span>
-          <span class="text-muted ms-1">(${poolItems.length} 筆)</span>
+          <span class="text-muted">(${poolItems.length} 筆)</span>
         </div>
         <span class="small text-dark fw-semibold">${selectedSegmentNo === 0 ? '● 目前新增目標' : '暫存區'}</span>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive ${isLocPoolCollapsed ? 'd-none' : ''}">
         <table class="table table-hover table-sm align-middle mb-0">
           <thead class="table-light">
             <tr><th class="text-center">池別</th><th>儲位碼</th><th>藥品代碼</th><th>藥品名稱</th><th>說明/備註/注意</th><th class="text-center">操作</th></tr>
@@ -813,22 +839,24 @@ export function renderLocationsColumn() {
         const segNo = Number(seg.segment_no) || (sIdx + 1);
         const displaySegNum = sIdx + 1;
         const isSelSeg = segNo === Number(selectedSegmentNo);
+        const isCol = collapsedLocSegs.has(`${selectedTableId}_${segNo}`);
         const itemsInSeg = filterKw(tableLocs.filter(l => (Number(l.segment_no ?? l.row_no) || 0) === segNo));
 
         return `
           <div class="card border ${isSelSeg ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs">
             <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSelSeg ? 'bg-primary bg-opacity-10' : 'bg-light'}" onclick="selectLocSegment(${segNo})" style="cursor:pointer;">
-              <div class="fw-bold small text-dark">
-                <span class="badge bg-primary me-1">分段 #${displaySegNum}</span>
+              <div class="fw-bold small text-dark d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleLocSegCollapse(${segNo})" title="收合/展開">${isCol ? '▸' : '▾'}</button>
+                <span class="badge bg-primary">分段 #${displaySegNum}</span>
                 <span>${seg.segment_name || `第 ${displaySegNum} 分段`}</span>
-                <span class="text-muted ms-1">(${itemsInSeg.length} 筆)</span>
+                <span class="text-muted">(${itemsInSeg.length} 筆)</span>
               </div>
               <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
                 <span class="small ${isSelSeg ? 'text-primary fw-bold' : 'text-muted'}">${isSelSeg ? '● 新增目標' : ''}</span>
                 <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.7rem;" onclick="deleteLocSegmentBox(${segNo})">取消分段</button>
               </div>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive ${isCol ? 'd-none' : ''}">
               <table class="table table-hover table-sm align-middle mb-0">
                 <thead class="table-light">
                   <tr><th class="text-center">分段</th><th>儲位碼</th><th>藥品代碼</th><th>藥品名稱</th><th>說明/備註/注意</th><th class="text-center">操作</th></tr>
