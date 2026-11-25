@@ -3,10 +3,9 @@ import { toggleLoader, switchView, showToast } from './ui.js';
 import { session } from './config.js';
 
 export let dailyItems = []; 
+export let dailyTables = [];
 export let currentDailyTab = '未盤'; 
-export let adminCombinedList = []; 
-export let sortableInstance = null; 
-export let adminData = null;
+export let currentDailyTableId = null;
 
 // ==========================================
 // 🚀 每日盤點：「單筆消失 + 立刻背景寫入」引擎
@@ -63,8 +62,26 @@ function applyDailyQueueToLocalState() {
       item.hasRecord = true;
       item.countedQty = d.handQty;
       item.status = '成立';
+      item.userName = d.userName || session.name;
     }
   });
+}
+
+function rebuildDailyTables() {
+  const map = new Map();
+  dailyItems.forEach(item => {
+    const tId = item.tableId || 'UNKNOWN';
+    if (!map.has(tId)) {
+      map.set(tId, {
+        id: tId,
+        name: item.tableName || '未分類藥架',
+        desc: item.tableDesc || '',
+        items: []
+      });
+    }
+    map.get(tId).items.push(item);
+  });
+  dailyTables = Array.from(map.values());
 }
 
 export function flushDailyQueue(options = {}) {
@@ -136,17 +153,28 @@ export function flushDailyQueue(options = {}) {
 }
 
 // ==========================================
-// 基礎作業
+// 基礎作業與進度看板
 // ==========================================
 export function initDailyMode() { 
   currentDailyTab = '未盤';
-  updateTabUI();
+  currentDailyTableId = null;
   switchView('view-daily-app'); 
+  showDailyDashboardView();
+
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const dateSelect = document.getElementById('header-date-select');
   if (dateSelect) dateSelect.value = todayStr;
   loadDailyData(todayStr); 
+}
+
+function showDailyDashboardView() {
+  currentDailyTableId = null;
+  document.getElementById('daily-main-tabs')?.classList.remove('d-none');
+  document.getElementById('daily-tab-dashboard')?.classList.remove('d-none');
+  document.getElementById('daily-tab-desk')?.classList.add('d-none');
+  const titleEl = document.getElementById('daily-app-title');
+  if (titleEl) titleEl.innerHTML = '<i class="bi bi-calendar-check"></i> 每日盤點';
 }
 
 export function changeDailyDate() {
@@ -168,14 +196,122 @@ export function loadDailyData(dateStr) {
     dailyItems = data.items || []; 
     if (data.selectedDate) document.getElementById('header-date-select').value = data.selectedDate.replace(/\//g, '-');
     applyDailyQueueToLocalState();
-    updateTabUI();
-    renderDailyItems();
-    checkAdminNewDrugs();
+    rebuildDailyTables();
+    renderDailyDashboard();
+    if (currentDailyTableId) {
+      updateTabUI();
+      renderDailyItems();
+    }
     if (getDailyQueueCount() > 0) startDailyAutoSyncTimer();
   }).catch(err => {
     toggleLoader(false);
-    document.getElementById('daily-list-area').innerHTML = '<div class="text-center p-5 text-muted fw-bold">讀取失敗</div>';
+    const area = document.getElementById('daily-dashboard-unfinished');
+    if (area) area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">讀取失敗</div>';
   });
+}
+
+export function renderDailyDashboard() {
+  const unfinishedArea = document.getElementById('daily-dashboard-unfinished');
+  const finishedArea = document.getElementById('daily-dashboard-finished');
+  if (!unfinishedArea || !finishedArea) return;
+
+  let unfinishedHtml = '';
+  let finishedHtml = '';
+
+  dailyTables.forEach(table => {
+    const total = table.items.length;
+    const counted = table.items.filter(i => i.hasRecord && i.status === '成立').length;
+    const percent = total > 0 ? Math.round((counted / total) * 100) : 0;
+    const isComplete = total > 0 && percent === 100;
+    const safeName = (table.name || '').replace(/'/g, "\\'");
+    const tableDesc = table.desc ? `<div class="mt-2 px-2 py-1 rounded text-dark fw-bold shadow-sm" style="background-color: #fff3cd; border-left: 4px solid #ffc107; font-size: 0.85rem;"><i class="bi bi-exclamation-circle-fill text-warning me-1" style="font-size: 1rem;"></i>${table.desc}</div>` : '';
+
+    const cardHtml = `
+      <div class="card mb-3 shadow-sm border-0 border-start border-4 ${isComplete ? 'border-success' : 'border-warning'}" onclick="enterDailyTable('${table.id}', '${safeName}')" style="cursor: pointer;">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="fw-bold text-dark fs-5">${table.name}</div>
+              ${tableDesc}
+            </div>
+            <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
+          </div>
+          <div class="progress mb-2" style="height: 12px;">
+            <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="small text-secondary">已盤: ${counted} / ${total}</div>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary me-2 fw-bold" onclick="event.stopPropagation(); showDailyTableDetailModal('${table.id}', '${safeName}')">
+                <i class="bi bi-list-ul"></i> 明細
+              </button>
+              <span class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    if (isComplete) finishedHtml += cardHtml;
+    else unfinishedHtml += cardHtml;
+  });
+
+  unfinishedArea.innerHTML = unfinishedHtml || '<div class="text-center text-muted py-3">所有藥架皆已盤點完成</div>';
+  finishedArea.innerHTML = finishedHtml || '<div class="text-center text-muted py-3">尚無完成的藥架</div>';
+}
+
+export function enterDailyTable(tableId, tableName) {
+  currentDailyTableId = tableId;
+  currentDailyTab = '未盤';
+  const searchInput = document.getElementById('daily-search-input');
+  if (searchInput) searchInput.value = '';
+
+  const titleEl = document.getElementById('daily-app-title');
+  if (titleEl) titleEl.innerText = tableName;
+  document.getElementById('daily-main-tabs')?.classList.add('d-none');
+  document.getElementById('daily-tab-dashboard')?.classList.add('d-none');
+  document.getElementById('daily-tab-desk')?.classList.remove('d-none');
+
+  updateTabUI();
+  renderDailyItems();
+  window.scrollTo(0, 0);
+}
+
+export function handleDailyBack(stayInDashboard = false) {
+  if (getDailyQueueCount() > 0) {
+    flushDailyQueue({
+      showBlockingLoader: true,
+      onComplete: () => executeDailyBack(stayInDashboard)
+    });
+    return;
+  }
+  executeDailyBack(stayInDashboard);
+}
+
+function executeDailyBack(stayInDashboard = false) {
+  if (currentDailyTableId || stayInDashboard) {
+    showDailyDashboardView();
+    renderDailyDashboard();
+  } else {
+    switchView('view-mode-select');
+  }
+}
+
+export function showDailyTableDetailModal(tableId, tableName) {
+  const table = dailyTables.find(t => t.id === tableId);
+  if (!table) return;
+  document.getElementById('modal-drug-name').innerText = `【${tableName}】儲位明細 (當日紀錄)`;
+  const headers = ["儲位碼", "代碼", "藥名", "數量", "人員", "時間", "修改紀錄", "狀態"];
+  document.getElementById('modal-thead').innerHTML = `<tr>${headers.map(h => `<th class="py-2 text-nowrap">${h}</th>`).join('')}</tr>`;
+  const tbodyHtml = table.items.map(item => {
+    const isCounted = item.hasRecord && item.status === '成立';
+    const userName = isCounted ? (item.userName || '系統') : '-';
+    const timeStr = isCounted ? (item.timeStr || '-') : '-';
+    const qtyStr = isCounted ? (item.countedQty !== '' ? item.countedQty : '已盤') : '-';
+    const modifyStr = (isCounted && item.updateUser) ? `<div class="small fw-bold text-dark">${item.updateUser}</div><div class="text-muted" style="font-size: 0.65rem;">${item.updateTime}</div>` : '-';
+    return `<tr class="${isCounted ? 'table-success-light' : ''}"><td class="text-center fw-bold">${item.locCode}</td><td class="text-center">${item.drugCode}</td><td class="text-start text-truncate" style="max-width:150px;">${item.drugName}</td><td class="text-center fw-bold text-academic">${qtyStr}</td><td class="text-center">${userName}</td><td class="text-center small text-secondary">${timeStr}</td><td class="text-center align-middle">${modifyStr}</td><td class="text-center">${isCounted ? '✅' : '❌'}</td></tr>`;
+  }).join('');
+  document.getElementById('modal-tbody').innerHTML = tbodyHtml;
+  new window.bootstrap.Modal(document.getElementById('detailsModal')).show();
 }
 
 export function switchDailyTab(tabName) { 
@@ -202,10 +338,13 @@ export function switchDailyTab(tabName) {
 export function updateTabUI() {
   const btnUn = document.getElementById('btn-tab-uncounted');
   const btnCo = document.getElementById('btn-tab-counted');
+  if (!btnUn || !btnCo) return;
   btnUn.className = currentDailyTab === '未盤' ? 'nav-link active fw-bold border bg-academic shadow-sm text-white py-2' : 'nav-link fw-bold border text-academic shadow-sm bg-white py-2';
   btnCo.className = currentDailyTab === '已盤' ? 'nav-link active fw-bold border bg-success shadow-sm text-white py-2' : 'nav-link fw-bold border text-success shadow-sm bg-white py-2';
-  document.getElementById('count-uncounted').innerText = dailyItems.filter(i => !i.hasRecord || i.status === '作廢').length;
-  document.getElementById('count-counted').innerText = dailyItems.filter(i => i.hasRecord).length;
+
+  const scopeItems = currentDailyTableId ? dailyItems.filter(i => i.tableId === currentDailyTableId) : dailyItems;
+  document.getElementById('count-uncounted').innerText = scopeItems.filter(i => !i.hasRecord || i.status === '作廢').length;
+  document.getElementById('count-counted').innerText = scopeItems.filter(i => i.hasRecord && i.status === '成立').length;
 }
 
 export function renderDailyItems() {
@@ -213,9 +352,9 @@ export function renderDailyItems() {
   if (!area) return;
   applyDailyQueueToLocalState();
 
-  let filtered = dailyItems;
-  if (currentDailyTab === '未盤') filtered = dailyItems.filter(i => !i.hasRecord || i.status === '作廢');
-  else filtered = dailyItems.filter(i => i.hasRecord && i.status === '成立');
+  let filtered = currentDailyTableId ? dailyItems.filter(i => i.tableId === currentDailyTableId) : dailyItems;
+  if (currentDailyTab === '未盤') filtered = filtered.filter(i => !i.hasRecord || i.status === '作廢');
+  else filtered = filtered.filter(i => i.hasRecord && i.status === '成立');
 
   const kwInput = document.getElementById('daily-search-input');
   const kw = kwInput ? kwInput.value.toLowerCase().trim() : '';
@@ -301,7 +440,6 @@ export function renderDailyItems() {
   area.innerHTML = html;
 }
 
-// 🌟 單筆送出：卡片立刻消失 + 立刻背景寫入 D1
 export function submitDailyOne(loc, dCode, dName, tId) {
   const inputEl = document.getElementById(`qty-${loc}`);
   const qty = inputEl ? inputEl.value.trim() : ''; 
@@ -314,11 +452,12 @@ export function submitDailyOne(loc, dCode, dName, tId) {
   item.hasRecord = true;
   item.status = '成立';
   item.countedQty = qty;
+  item.userName = session.name;
   item.tStamp = now.getTime();
   item.timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
   const queue = getDailyQueue();
-  const queueItem = {
+  queue.push({
     queueId: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 7),
     timestamp: now.getTime(),
     action: 'submitInventory',
@@ -337,8 +476,7 @@ export function submitDailyOne(loc, dCode, dName, tId) {
       inventoryDate: dStr,
       barcode: ''
     }
-  };
-  queue.push(queueItem);
+  });
   saveDailyQueue(queue);
 
   if (navigator.vibrate) navigator.vibrate(50);
@@ -349,6 +487,7 @@ export function submitDailyOne(loc, dCode, dName, tId) {
       card.remove();
       updateTabUI();
       updateDailyPendingUI();
+      renderDailyDashboard();
     }, 10);
   }
 
@@ -401,127 +540,10 @@ export async function toggleDailyStatus(locCode, newStatus) {
   item.status = newStatus;
   updateTabUI();
   renderDailyItems();
+  renderDailyDashboard();
   fetchBackend('modifyDailyRecord', { sn: item.sn, newQty: '', newStatus: newStatus, userId: session.id, userName: session.name }).then(res => {
-    if (!res.success) { item.status = oldStatus; updateTabUI(); renderDailyItems(); }
-  }).catch(err => { item.status = oldStatus; updateTabUI(); renderDailyItems(); });
-}
-
-export function openAdminSort() { 
-  toggleLoader(true);
-  fetchBackend('getAdminData').then(data => {
-    toggleLoader(false);
-    if (data && data.success === false) return alert('⚠️ 後端異常: ' + data.message);
-    adminData = data;
-    adminCombinedList = (data.selectable || []).map(item => {
-      const savedItem = (data.saved || []).find(s => s.locCode === item.locCode);
-      return { ...item, order: savedItem ? savedItem.order : '' };
-    });
-    renderSortableList();
-    switchView('view-admin-sort');
-  }).catch(err => {
-    toggleLoader(false);
-    alert('🚫 連線失敗：' + err.message);
-  }); 
-}
-
-export function renderSortableList() {
-  const container = document.getElementById('admin-sortable-list');
-  if (!container) return; 
-  adminCombinedList.sort((a, b) => {
-    const aV = a.order !== 0, bV = b.order !== 0;
-    if (aV && !bV) return -1;
-    if (!aV && bV) return 1;
-    if (aV && bV) {
-      if (a.order !== '' && b.order !== '') return a.order - b.order;
-      if (a.order !== '' && b.order === '') return -1;
-      if (a.order === '' && b.order !== '') return 1;
-    }
-    return a.locCode.localeCompare(b.locCode);
-  });
-  let html = '';
-  adminCombinedList.forEach(item => {
-    const isHidden = item.order === 0;
-    const isNew = item.order === '';
-    const cardStyle = isHidden ? 'opacity: 0.6; border-left: 5px solid #dc3545;' : (isNew ? 'border-left: 5px solid #ffc107; background-color: #fffbeb;' : 'border-left: 5px solid var(--academic-primary);');
-    const eyeIcon = isHidden ? 'bi-eye-slash-fill text-danger' : 'bi-eye-fill text-success';
-    html += `<div class="card border-0 shadow-sm mb-2 sortable-item" style="${cardStyle}" data-loc="${item.locCode}" data-table="${item.tableId}" data-drug="${item.drugCode}" data-name="${item.drugName}" data-hidden="${isHidden}"><div class="card-body p-2 d-flex align-items-center"><div class="drag-handle"><i class="bi bi-grip-vertical"></i></div><div class="flex-grow-1 px-2 text-truncate"><div class="fw-bold text-dark search-target">${item.drugName} ${isNew ? '<span class="badge bg-warning text-dark ms-2">🆕 新</span>' : ''}</div><div class="small text-muted"><span class="badge bg-academic me-1">${item.tableName}</span>${item.locCode}</div></div><div><button class="btn btn-light border p-2" onclick="toggleVisibility(this, '${item.locCode}')"><i id="eye-${item.locCode}" class="${eyeIcon} fs-5"></i></button></div></div></div>`;
-  });
-  container.innerHTML = html;
-  if (sortableInstance) sortableInstance.destroy();
-  sortableInstance = new window.Sortable(container, { handle: '.drag-handle', animation: 150, ghostClass: 'sortable-ghost' });
-}
-
-export function toggleVisibility(btn, locCode) {
-  const card = btn.closest('.sortable-item');
-  const icon = document.getElementById(`eye-${locCode}`);
-  if (card.getAttribute('data-hidden') === 'true') {
-    card.setAttribute('data-hidden', 'false');
-    card.style.opacity = '1';
-    card.style.borderLeftColor = 'var(--academic-primary)';
-    icon.className = 'bi bi-eye-fill text-success fs-5';
-  } else {
-    card.setAttribute('data-hidden', 'true');
-    card.style.opacity = '0.6';
-    card.style.borderLeftColor = '#dc3545';
-    icon.className = 'bi bi-eye-slash-fill text-danger fs-5';
-  }
-}
-
-export function highlightSearchItem() {
-  const kw = document.getElementById('admin-search-input').value.toLowerCase();
-  let firstMatch = null;
-  document.querySelectorAll('.sortable-item').forEach(card => {
-    if (kw && (card.querySelector('.search-target').innerText.toLowerCase().includes(kw) || card.getAttribute('data-loc').toLowerCase().includes(kw))) {
-      card.classList.add('bg-warning', 'bg-opacity-25');
-      if (!firstMatch) firstMatch = card;
-    } else card.classList.remove('bg-warning', 'bg-opacity-25');
-  });
-  if (firstMatch) firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-export function rebuildAdminList() {
-  if (confirm('確定要重建清單嗎？')) {
-    adminCombinedList = adminData.selectable.map(i => ({ ...i, order: '' }));
-    renderSortableList();
-  }
-}
-
-export function saveAdminDataToServer() {
-  const payload = [];
-  let currentOrder = 1;
-  document.querySelectorAll('.sortable-item').forEach(el => {
-    payload.push({
-      tableId: el.getAttribute('data-table'),
-      locCode: el.getAttribute('data-loc'),
-      drugCode: el.getAttribute('data-drug'),
-      drugName: el.getAttribute('data-name'),
-      order: el.getAttribute('data-hidden') === 'true' ? 0 : currentOrder++
-    });
-  });
-  toggleLoader(true);
-  fetchBackend('saveAdminSortData', { payloadArray: JSON.stringify(payload) }).then(res => {
-    toggleLoader(false);
-    if (res && res.success) {
-      showToast('🎉 儲存成功！');
-      if (typeof changeDailyDate === 'function') changeDailyDate();
-    } else alert('❌ 失敗：' + (res.message));
-  }).catch(err => {
-    toggleLoader(false);
-    alert('⚠️ 異常：' + err.message);
-  });
-}
-
-export function checkAdminNewDrugs() {
-  fetchBackend('getAdminData').then(data => {
-    if (data && data.success !== false) {
-      const hasNew = (data.selectable || []).some(item => !(data.saved || []).find(s => s.locCode === item.locCode));
-      const badge = document.getElementById('admin-new-badge');
-      if (badge) {
-        if (hasNew) badge.classList.remove('d-none');
-        else badge.classList.add('d-none');
-      }
-    }
-  }).catch(err => {});
+    if (!res.success) { item.status = oldStatus; updateTabUI(); renderDailyItems(); renderDailyDashboard(); }
+  }).catch(err => { item.status = oldStatus; updateTabUI(); renderDailyItems(); renderDailyDashboard(); });
 }
 
 window.resolveEditQtyModal = window.resolveEditQtyModal || null;
