@@ -67,73 +67,104 @@
       </div>
     </div>
 
-    <div class="w-100 mb-3" style="max-width: 1140px;">
-      <div class="small fw-bold text-secondary mb-2 ps-1"><i class="bi bi-building"></i> 調劑單位盤點入口</div>
-      <div class="row g-3 row-cols-2 row-cols-md-4">
+<!-- 第一區：調劑單位（手機單欄一行一個 / 桌面 1x4） -->
+    <div class="w-100 mb-3 mb-md-4" style="max-width: 1140px;">
+      <div class="small fw-bold text-secondary mb-2 ps-1 d-flex align-items-center gap-1">
+        <i class="bi bi-building"></i> 調劑單位盤點入口
+      </div>
+      <div class="row g-2 g-md-3 row-cols-1 row-cols-md-4">
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('opd')" style="border-top: 4px solid #1A365D !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-shop" style="color: #1A365D;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">門診藥局</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Outpatient Pharmacy</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('opd')" style="--portal-accent: #1A365D;">
+            <div class="icon-wrapper"><i class="bi bi-shop" style="color: #1A365D;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">門診藥局</h5>
+              <span class="text-muted lobby-desc">Outpatient Pharmacy</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('ipd')" style="border-top: 4px solid #1E4D2B !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-building" style="color: #1E4D2B;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">住院藥局</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Inpatient Pharmacy</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('ipd')" style="--portal-accent: #1E4D2B;">
+            <div class="icon-wrapper"><i class="bi bi-building" style="color: #1E4D2B;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">住院藥局</h5>
+              <span class="text-muted lobby-desc">Inpatient Pharmacy</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('erd')" style="border-top: 4px solid #7A1717 !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-heart-pulse" style="color: #7A1717;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">急診藥局</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Emergency Pharmacy</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('erd')" style="--portal-accent: #7A1717;">
+            <div class="icon-wrapper"><i class="bi bi-heart-pulse" style="color: #7A1717;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">急診藥局</h5>
+              <span class="text-muted lobby-desc">Emergency Pharmacy</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('comp')" style="border-top: 4px solid #4E342E !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-capsule" style="color: #4E342E;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">調配藥局</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">Compounding Pharmacy</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('comp')" style="--portal-accent: #4E342E;">
+            <div class="icon-wrapper"><i class="bi bi-capsule" style="color: #4E342E;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">調配藥局</h5>
+              <span class="text-muted lobby-desc">Compounding Pharmacy</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="w-100 mt-4" style="max-width: 1140px;">
-      <div class="small fw-bold text-secondary mb-2 ps-1"><i class="bi bi-shield-check"></i> 全院藥檔與權限管理入口</div>
-      <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-4">
+<!-- 第二區：管理與調帳入口（手機橫向好點清單 / 桌面 1x4 卡片） -->
+    <div class="w-100 mb-3" style="max-width: 1140px;">
+      <div class="small fw-bold text-secondary mb-2 ps-1 d-flex align-items-center gap-1">
+        <i class="bi bi-shield-check"></i> 全院藥檔與權限管理入口
+      </div>
+      <div class="row g-2 g-md-3 row-cols-1 row-cols-md-4">
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('drug_mgmt')" style="border-top: 4px solid #6F42C1 !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-box-seam" style="color: #6F42C1;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">藥品管理組</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">藥品主檔 / SAP上傳 / 盤點結果</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('drug_mgmt')" style="--portal-accent: #6F42C1;">
+            <div class="icon-wrapper"><i class="bi bi-box-seam" style="color: #6F42C1;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">藥品管理組</h5>
+              <span class="text-muted lobby-desc">藥品主檔 / SAP上傳 / 盤點結果</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('user_mgmt')" style="border-top: 4px solid #2B2D42 !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-people-fill" style="color: #2B2D42;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">藥師權限管理</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">藥師生命週期與角色權限維護</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('user_mgmt')" style="--portal-accent: #2B2D42;">
+            <div class="icon-wrapper"><i class="bi bi-people-fill" style="color: #2B2D42;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">藥師權限管理</h5>
+              <span class="text-muted lobby-desc">藥師生命週期與角色權限維護</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('portal_perm')" style="border-top: 4px solid #3D405B !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-key-fill" style="color: #3D405B;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">網站權限管理</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">各入口登入權限規則設定</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('portal_perm')" style="--portal-accent: #3D405B;">
+            <div class="icon-wrapper"><i class="bi bi-key-fill" style="color: #3D405B;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">網站權限管理</h5>
+              <span class="text-muted lobby-desc">各入口登入權限規則設定</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 text-center dept-card-academic" onclick="enterPharmacy('monthly_adj')" style="border-top: 4px solid #212529 !important;">
-            <div class="icon-wrapper mb-2 mt-1"><i class="bi bi-calculator-fill" style="color: #212529;"></i></div>
-            <h5 class="fw-bold text-dark mb-1">月盤點調帳專區</h5>
-            <span class="text-muted tracking-wide" style="font-size: 0.75rem;">各單位調帳 / 紀錄 / 標記 / 版本</span>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('monthly_adj')" style="--portal-accent: #212529;">
+            <div class="icon-wrapper"><i class="bi bi-calculator-fill" style="color: #212529;"></i></div>
+            <div class="lobby-card-body">
+              <h5 class="fw-bold text-dark mb-0 mb-md-1">月盤點調帳專區</h5>
+              <span class="text-muted lobby-desc">各單位調帳 / 紀錄 / 標記 / 版本</span>
+            </div>
+            <i class="bi bi-chevron-right text-muted d-md-none ms-auto"></i>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
