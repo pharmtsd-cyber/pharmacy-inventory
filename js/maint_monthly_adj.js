@@ -172,6 +172,9 @@ export function toggleAdjDateLock() {
     if (!fVal || !rVal) return alert('請先選擇預測日與基準日後再鎖定');
     localStorage.setItem(key, JSON.stringify({ locked: true, forecastDate: fVal, referenceDate: rVal }));
     showToast(`已鎖定日期：${fVal} ～ ${rVal}`);
+    applyAdjDateLockUI();
+    loadAdjInventoryData();
+    return;
   }
   applyAdjDateLockUI();
 }
