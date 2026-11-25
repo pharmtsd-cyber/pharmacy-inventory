@@ -484,8 +484,24 @@ export function createNewTableSegmentBox() {
     segment_no: nextNo,
     segment_name: customName.trim() || `分段 ${letter}`
   });
+
+  // 自動把目前在 POOL 中、且盤點表代碼第一個字母符合此分段（例如 A -> AA/AB/AC）的盤點表歸類進來
+  let autoMoved = 0;
+  hierTables.forEach(t => {
+    const curSeg = Number(t.segment_no ?? t.is_section_start) || 0;
+    const tCode = String(t.table_code || '').trim().toUpperCase();
+    if (t.area_code === selectedAreaId && curSeg === 0 && tCode.startsWith(letter)) {
+      t.segment_no = nextNo;
+      t.is_section_start = nextNo;
+      autoMoved++;
+    }
+  });
+
   selectedTableSegmentNo = nextNo;
-  saveHierarchyOnly(`已建立盤點表「分段 ${letter}」`);
+  const msg = autoMoved > 0
+    ? `已建立「分段 ${letter}」，並自動歸類 ${autoMoved} 張盤點表`
+    : `已建立盤點表「分段 ${letter}」`;
+  saveHierarchyOnly(msg);
 }
 
 export function deleteTableSegmentBox(segNo) {
