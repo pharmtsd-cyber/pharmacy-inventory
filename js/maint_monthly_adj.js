@@ -354,7 +354,7 @@ export function applyAdjFilters() {
   const customMax = parseFloat(document.getElementById('adj-custom-max')?.value);
 
   if (kw) rows = rows.filter(r => kw.split(/\s+/).every(t => (`${r.rowData[0]} ${r.rowData[1]}`).toLowerCase().includes(t)));
-  if (sym !== 'ALL') rows = rows.filter(r => String(r.rowData[12] || '').trim() === sym);
+  if (sym !== 'ALL') rows = rows.filter(r => String(r.rowData[12] || '').split(/[,，]/).map(s => s.trim()).includes(sym));
   if (fltPrev !== 'ALL') rows = rows.filter(r => { const hv = (Number(r.rowData[2]) !== 0 || Number(r.rowData[3]) !== 0 || Number(r.rowData[5]) !== 0); return fltPrev === 'HAS_VALUE' ? hv : !hv; });
   if (fltCurr !== 'ALL') rows = rows.filter(r => { const hv = (Number(r.rowData[8]) !== 0 || Number(r.rowData[9]) !== 0); return fltCurr === 'HAS_VALUE' ? hv : !hv; });
 
@@ -618,7 +618,7 @@ export function loadAdjMarkers() {
       const prevSym = symSel.value;
       const allSyms = new Set([
         ...(res.availableSymbols || []),
-        ...(res.trackedItems || []).map(x => String(x.symbol || '').trim()).filter(Boolean)
+        ...(res.trackedItems || []).flatMap(x => String(x.symbol || '').split(/[,，]/).map(s => s.trim())).filter(Boolean)
       ]);
       symSel.innerHTML = '<option value="ALL">全部顯示</option>';
       Array.from(allSyms).sort().forEach(s => {
@@ -667,7 +667,7 @@ export function applyAdjMarkerFilters() {
   const tbody = document.getElementById('adj-marker-tbody');
   if (!tbody) return;
   const list = (adjMarkerData.trackedItems || []).filter(item =>
-    (sym === 'ALL' || String(item.symbol || '').trim() === sym) &&
+    (sym === 'ALL' || String(item.symbol || '').split(/[,，]/).map(s => s.trim()).includes(sym)) &&
     (!kw || kw.split(/\s+/).every(t => (`${item.code} ${item.name}`).toLowerCase().includes(t)))
   );
   if (!list.length) {
