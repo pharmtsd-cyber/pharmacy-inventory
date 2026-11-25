@@ -125,6 +125,57 @@ export function selectAdjUnitCard(uCode, uName, portalKey) {
   openAdjAuthModalEl();
 }
 
+function getAdjDateLockKey(uCode) {
+  return `femh_adj_locked_dates_${uCode || activeAdjUnitCode || unitPrefix}`;
+}
+
+function applyAdjDateLockUI() {
+  const uCode = activeAdjUnitCode || unitPrefix;
+  const raw = localStorage.getItem(getAdjDateLockKey(uCode));
+  const fEl = document.getElementById('adj-param-forecast');
+  const rEl = document.getElementById('adj-param-reference');
+  const btn = document.getElementById('adj-btn-lock-dates');
+
+  let lockedObj = null;
+  try { lockedObj = raw ? JSON.parse(raw) : null; } catch (e) {}
+
+  if (lockedObj && lockedObj.locked) {
+    if (fEl) { if (lockedObj.forecastDate) fEl.value = lockedObj.forecastDate; fEl.disabled = true; }
+    if (rEl) { if (lockedObj.referenceDate) rEl.value = lockedObj.referenceDate; rEl.disabled = true; }
+    if (btn) {
+      btn.className = 'btn btn-sm btn-dark fw-bold';
+      btn.innerText = '🔒 已鎖定日期';
+    }
+  } else {
+    if (fEl) fEl.disabled = false;
+    if (rEl) rEl.disabled = false;
+    if (btn) {
+      btn.className = 'btn btn-sm btn-outline-secondary fw-bold';
+      btn.innerText = '🔓 鎖定日期';
+    }
+  }
+}
+
+export function toggleAdjDateLock() {
+  const uCode = activeAdjUnitCode || unitPrefix;
+  const key = getAdjDateLockKey(uCode);
+  const fVal = document.getElementById('adj-param-forecast')?.value || '';
+  const rVal = document.getElementById('adj-param-reference')?.value || '';
+  const raw = localStorage.getItem(key);
+  let isLocked = false;
+  try { isLocked = !!(raw && JSON.parse(raw).locked); } catch (e) {}
+
+  if (isLocked) {
+    localStorage.removeItem(key);
+    showToast('已解除日期鎖定');
+  } else {
+    if (!fVal || !rVal) return alert('請先選擇預測日與基準日後再鎖定');
+    localStorage.setItem(key, JSON.stringify({ locked: true, forecastDate: fVal, referenceDate: rVal }));
+    showToast(`已鎖定日期：${fVal} ～ ${rVal}`);
+  }
+  applyAdjDateLockUI();
+}
+
 export function confirmAdjUnitAuth() {
   if (!pendingAdjUnitTarget) return;
   const empId = (document.getElementById('adj-unit-auth-id')?.value || '').trim();
@@ -147,6 +198,7 @@ export function confirmAdjUnitAuth() {
     }
     document.getElementById('adj-unit-picker-panel')?.classList.add('d-none');
     document.getElementById('adj-workspace-panel')?.classList.remove('d-none');
+    applyAdjDateLockUI(); // 載入該單位鎖定的日期
     recordAdjAudit('登入調帳單位', `進入 ${pendingAdjUnitTarget.uName} (${res.userName})`);
     switchAdjTab('adj-tab-inventory');
     loadAdjInventoryData();
@@ -161,12 +213,17 @@ export function switchAdjTab(tabId) {
   const activeColor = UNIT_COLOR_MAP[activeAdjUnitCode] || '#212529';
   document.querySelectorAll('#adj-main-tabs .nav-link').forEach(btn => {
     const active = btn.getAttribute('data-target') === tabId;
-    btn.classList.toggle('active', active);
-    btn.classList.toggle('text-white', active);
-    btn.classList.toggle('bg-white', !active);
-    btn.style.backgroundColor = active ? activeColor : '#ffffff';
-    btn.style.borderColor = activeColor;
-    btn.style.color = active ? '#ffffff' : activeColor;
+    btn.classList.remove('bg-academic', 'text-academic', 'bg-white', 'text-white', 'active');
+    if (active) {
+      btn.classList.add('active');
+      btn.style.setProperty('background-color', activeColor, 'important');
+      btn.style.setProperty('border-color', activeColor, 'important');
+      btn.style.setProperty('color', '#ffffff', 'important');
+    } else {
+      btn.style.setProperty('background-color', '#ffffff', 'important');
+      btn.style.setProperty('border-color', activeColor, 'important');
+      btn.style.setProperty('color', activeColor, 'important');
+    }
   });
 
   if (tabId === 'adj-tab-inventory' && adjNeedsRefresh) { adjNeedsRefresh = false; loadAdjInventoryData(true); }
