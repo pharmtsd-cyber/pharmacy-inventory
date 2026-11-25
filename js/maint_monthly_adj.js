@@ -210,10 +210,13 @@ export function switchAdjTab(tabId) {
     const sec = document.getElementById(id);
     if (sec) sec.classList.toggle('d-none', id !== tabId);
   });
+
   const activeColor = UNIT_COLOR_MAP[activeAdjUnitCode] || '#212529';
   document.querySelectorAll('#adj-main-tabs .nav-link').forEach(btn => {
     const active = btn.getAttribute('data-target') === tabId;
+    // 關鍵：把原本寫死 !important 的 class 全部移除
     btn.classList.remove('bg-academic', 'text-academic', 'bg-white', 'text-white', 'active');
+
     if (active) {
       btn.classList.add('active');
       btn.style.setProperty('background-color', activeColor, 'important');
