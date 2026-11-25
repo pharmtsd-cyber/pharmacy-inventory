@@ -851,7 +851,10 @@
         <h6 class="fw-bold text-academic mb-0" id="maint-dept-title"><i class="bi bi-diagram-3"></i> 分層儲位維護</h6>
         <div class="small text-muted">每次新增/修改/拖拉/分段/鎖定皆會立即存檔並自動重編未鎖定儲位</div>
       </div>
-      <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')"><i class="bi bi-chevron-left"></i> 返回模式選單</button>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="runAutoEncodeHierarchy()"><i class="bi bi-magic"></i> 自動編碼</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')"><i class="bi bi-chevron-left"></i> 返回模式選單</button>
+      </div>
     </div>
   </div>
 
@@ -978,12 +981,12 @@
         <input type="hidden" id="a-editing-id">
         <div class="row g-2">
           <div class="col-6">
-            <label class="form-label small fw-bold">區域代碼</label>
-            <input type="text" id="a-area-code" name="a_area_code" class="form-control bg-light fw-bold" readonly>
+            <label class="form-label small fw-bold text-primary">區域代碼 (A-Z)</label>
+            <input type="text" id="a-area-code" name="a_area_code" class="form-control border-primary fw-bold text-uppercase" maxlength="2" oninput="syncAreaIdPreview()">
           </div>
           <div class="col-6">
-            <label class="form-label small fw-bold">區域編號</label>
-            <input type="text" id="a-area-id" name="a_area_id" class="form-control bg-light fw-bold" readonly>
+            <label class="form-label small fw-bold text-primary">區域編號（可修改）</label>
+            <input type="text" id="a-area-id" name="a_area_id" class="form-control border-primary fw-bold text-uppercase">
           </div>
           <div class="col-12">
             <label class="form-label small fw-bold">區域名稱</label>
@@ -1025,12 +1028,12 @@
             <input type="text" id="t-area-id" name="t_area_id" class="form-control bg-light fw-bold" readonly>
           </div>
           <div class="col-4">
-            <label class="form-label small fw-bold">盤點表代碼</label>
-            <input type="text" id="t-table-code" name="t_table_code" class="form-control bg-light fw-bold" readonly>
+            <label class="form-label small fw-bold text-primary">盤點表代碼</label>
+            <input type="text" id="t-table-code" name="t_table_code" class="form-control border-primary fw-bold text-uppercase" maxlength="3" oninput="syncTableIdPreview()">
           </div>
           <div class="col-4">
-            <label class="form-label small fw-bold">盤點表編號</label>
-            <input type="text" id="t-table-id" name="t_table_id" class="form-control bg-light fw-bold" readonly>
+            <label class="form-label small fw-bold text-primary">盤點表編號</label>
+            <input type="text" id="t-table-id" name="t_table_id" class="form-control border-primary fw-bold text-uppercase">
           </div>
           <div class="col-12">
             <label class="form-label small fw-bold">盤點表名稱</label>
