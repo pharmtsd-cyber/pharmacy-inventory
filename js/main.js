@@ -43,7 +43,8 @@ import {
   renderLocationsColumn, toggleLocLock, moveLocToTable,
   openAreaModal, submitAreaEdit, deleteAreaItem,
   openTableModal, submitTableEdit, deleteTableItem,
-  openLocEditModal, handleLocDrugFuzzySearch, pickDrugFromMaster, submitLocEdit, deleteLocItem, runAutoEncodeHierarchy, toggleAreaLock, syncAreaIdPreview, syncTableIdPreview, saveHierarchyManual
+  openLocEditModal, handleLocDrugFuzzySearch, pickDrugFromMaster, submitLocEdit, deleteLocItem, runAutoEncodeHierarchy, toggleAreaLock, syncAreaIdPreview, syncTableIdPreview, saveHierarchyManual,
+  handleAreaDragOver, handleAreaDragLeave, handleAreaDrop, handleTableDragOver, handleTableDragLeave, handleTableDrop
 } from './maint_hierarchy.js';
 
 import {
@@ -166,6 +167,13 @@ window.syncAreaIdPreview = syncAreaIdPreview;
 window.syncTableIdPreview = syncTableIdPreview;
 
 window.toggleCustomNumRangeInputs = toggleCustomNumRangeInputs; window.renderAdjAuditLogs = renderAdjAuditLogs;
+
+window.handleAreaDragOver = handleAreaDragOver;
+window.handleAreaDragLeave = handleAreaDragLeave;
+window.handleAreaDrop = handleAreaDrop;
+window.handleTableDragOver = handleTableDragOver;
+window.handleTableDragLeave = handleTableDragLeave;
+window.handleTableDrop = handleTableDrop;
 
 let calcTargetId = null; let calcExpression = '';
 window.openCalculator = function(targetId, title = '小算盤') { calcTargetId = targetId; const targetInput = document.getElementById(targetId); calcExpression = targetInput ? targetInput.value || '' : ''; document.getElementById('calc-title').innerText = title; updateCalcDisplay(); const calcModal = new window.bootstrap.Modal(document.getElementById('calculatorModal')); calcModal.show(); };
