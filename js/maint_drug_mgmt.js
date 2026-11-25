@@ -42,13 +42,20 @@ function fmtSignedPct(diff, sap) {
   return `<span class="text-dark fw-bold">0.00%</span>`;
 }
 
+function getLocalTodayStr() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+}
+
 export function initDrugMgmtPortal() {
   switchView('view-drug-mgmt');
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = getLocalTodayStr();
   const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const dEl = document.getElementById('dm-daily-date'); if (dEl) dEl.value = todayStr;
   const mEl = document.getElementById('dm-monthly-month'); if (mEl) mEl.value = monthStr;
+  const sapDailyDateEl = document.getElementById('dm-sap-daily-date'); if (sapDailyDateEl) sapDailyDateEl.value = todayStr;
+  const sapMonthlyDateEl = document.getElementById('dm-sap-monthly-date'); if (sapMonthlyDateEl) sapMonthlyDateEl.value = todayStr;
   switchDrugMgmtTab('dm-tab-master');
 }
 
@@ -184,13 +191,23 @@ export function uploadSapWithConfirm(sapType) {
   if (!rows.length) return;
   const unitSelect = document.getElementById(`dm-sap-${sapType}-unit`);
   const unitCode = unitSelect.value, unitLabel = unitSelect.options[unitSelect.selectedIndex].text;
-  const dates = Array.from(new Set(rows.map(x => x.sap_date))).sort();
-  if (!confirm(`📋 最終確認：\n• 單位：${unitLabel}\n• 日期：${dates.join(', ')}\n• 筆數：${rows.length} 筆\n\n確定上傳並覆蓋同日資料嗎？`)) return;
-  toggleLoader(true, `正在上傳 ${rows.length} 筆 SAP...`, true);
-  fetchBackend('importSapBatch', { unitCode, sapType, rows: JSON.stringify(rows), replaceDate: true }).then(res => {
+  const todayStr = getLocalTodayStr();
+  const targetDate = document.getElementById(`dm-sap-${sapType}-date`)?.value || todayStr;
+
+  let warningMsg = '';
+  if (targetDate !== todayStr) {
+    warningMsg = `⚠️ 跨日提醒：您選擇的歸屬日期為【${targetDate}】，並非今日（${todayStr}）！\n\n`;
+  }
+
+  const finalRows = rows.map(r => ({ ...r, sap_date: targetDate }));
+  const confirmText = `${warningMsg}📋 最終確認：\n• 單位：${unitLabel}\n• 歸屬日期：${targetDate}\n• 筆數：${finalRows.length} 筆\n\n若當日已有資料，系統將建立新版本並以最新版為主。確定上傳嗎？`;
+  if (!confirm(confirmText)) return;
+
+  toggleLoader(true, `正在上傳 ${finalRows.length} 筆 SAP...`, true);
+  fetchBackend('importSapBatch', { unitCode, sapType, rows: JSON.stringify(finalRows), replaceDate: false }).then(res => {
     toggleLoader(false, '', true);
     if (!res || !res.success) return alert('上傳失敗：' + (res?.message || '未知錯誤'));
-    showToast(`已成功上傳 ${res.count} 筆至 ${unitLabel}`);
+    showToast(`已成功上傳 ${res.count} 筆至 ${unitLabel}（${targetDate} v${res.versionNo || 1}）`);
     if (sapType === 'daily') parsedSapDailyRows = []; else parsedSapMonthlyRows = [];
     document.getElementById(`dm-sap-${sapType}-file`).value = '';
     document.getElementById(`dm-sap-${sapType}-btn`).disabled = true;
@@ -204,22 +221,28 @@ export function loadSapHistoryList(sapType) {
   if (!tbody) return;
   fetchBackend('getSapSummary', { unitCode, sapType }).then(res => {
     const list = res?.data || [];
-    if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">目前尚無上傳紀錄</td></tr>'; return; }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">目前尚無上傳紀錄</td></tr>'; return; }
     tbody.innerHTML = list.map(r => `
-      <tr>
+      <tr class="${r.is_latest ? '' : 'table-light text-muted'}">
         <td class="fw-bold">${r.sap_date}</td>
+        <td class="text-center">
+          <span class="badge ${r.is_latest ? 'bg-success' : 'bg-secondary'}">v${r.version_no || 1} ${r.is_latest ? '(目前採用)' : '(歷史版本)'}</span>
+        </td>
         <td class="text-center">${r.item_count} 筆</td>
         <td class="text-end">${Math.round((r.total_qty || 0) * 100) / 100}</td>
-        <td class="text-center"><button class="btn btn-sm btn-outline-danger py-0 fw-bold" onclick="rollbackSapDate('${sapType}', '${r.sap_date}')">取回刪除</button></td>
+        <td class="text-center small text-muted">${r.created_at || '-'}</td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-danger py-0 fw-bold" onclick="rollbackSapDate('${sapType}', '${r.sap_date}', '${r.version_id || ''}')">刪除此版</button>
+        </td>
       </tr>`).join('');
   });
 }
 
-export function rollbackSapDate(sapType, sapDate) {
+export function rollbackSapDate(sapType, sapDate, versionId = '') {
   const unitCode = document.getElementById(`dm-sap-${sapType}-unit`).value;
-  if (!confirm(`確定要「取回並刪除」${unitCode} 在 ${sapDate} 的 SAP 資料嗎？`)) return;
-  fetchBackend('rollbackSapByDate', { unitCode, sapType, sapDate }).then(res => {
-    if (res?.success) { showToast(`已取回刪除 ${res.deleted} 筆`); loadSapHistoryList(sapType); }
+  if (!confirm(`確定要刪除 ${unitCode} 在 ${sapDate} 的此筆 SAP 版本嗎？（若仍有前一版本將自動切回上一版）`)) return;
+  fetchBackend('rollbackSapByDate', { unitCode, sapType, sapDate, versionId }).then(res => {
+    if (res?.success) { showToast(`已刪除並更新採用版本`); loadSapHistoryList(sapType); }
   });
 }
 
