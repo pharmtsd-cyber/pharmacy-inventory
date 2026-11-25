@@ -39,7 +39,7 @@ import {
 
 import {
   initHierarchyMaintenance, loadHierarchyData, createNewSegmentBox,
-  selectHierArea, selectHierTable, toggleTableSection, toggleTableLock, moveTableToArea,
+  selectHierArea, selectHierTable, toggleTableLock, moveTableToArea,
   renderLocationsColumn, toggleLocLock, moveLocToTable,
   openAreaModal, submitAreaEdit, deleteAreaItem,
   openTableModal, submitTableEdit, deleteTableItem,
@@ -158,7 +158,7 @@ window.initDrugMgmtPortal = initDrugMgmtPortal; window.switchDrugMgmtTab = switc
 
 window.initMonthlyAdjPortal = initMonthlyAdjPortal; window.selectAdjUnitCard = selectAdjUnitCard; window.confirmAdjUnitAuth = confirmAdjUnitAuth; window.switchAdjTab = switchAdjTab; window.toggleAdjColGroup = toggleAdjColGroup; window.loadAdjInventoryData = loadAdjInventoryData; window.handleAdjSortClick = handleAdjSortClick; window.applyAdjFilters = applyAdjFilters; window.handleAdjSaveVersion = handleAdjSaveVersion; window.loadAdjAppRecords = loadAdjAppRecords; window.applyAdjAppRecordFilters = applyAdjAppRecordFilters; window.loadAdjMarkers = loadAdjMarkers; window.handleAdjMarkerAutocomplete = handleAdjMarkerAutocomplete; window.selectAdjMarkerDrug = selectAdjMarkerDrug; window.saveAdjMarkerItem = saveAdjMarkerItem; window.applyAdjMarkerFilters = applyAdjMarkerFilters; window.deleteExistingAdjMarker = deleteExistingAdjMarker; window.loadAdjVersionRecords = loadAdjVersionRecords; window.applyAdjVersionFilters = applyAdjVersionFilters; window.exportAdjVersionExcel = exportAdjVersionExcel;
 
-window.initHierarchyMaintenance = initHierarchyMaintenance; window.loadHierarchyData = loadHierarchyData; window.createNewSegmentBox = createNewSegmentBox; window.selectHierArea = selectHierArea; window.selectHierTable = selectHierTable; window.toggleTableSection = toggleTableSection; window.toggleTableLock = toggleTableLock; window.moveTableToArea = moveTableToArea; window.renderLocationsColumn = renderLocationsColumn; window.toggleLocLock = toggleLocLock; window.moveLocToTable = moveLocToTable; window.openAreaModal = openAreaModal; window.submitAreaEdit = submitAreaEdit; window.deleteAreaItem = deleteAreaItem; window.openTableModal = openTableModal; window.submitTableEdit = submitTableEdit; window.deleteTableItem = deleteTableItem; window.openLocEditModal = openLocEditModal; window.handleLocDrugFuzzySearch = handleLocDrugFuzzySearch; window.pickDrugFromMaster = pickDrugFromMaster; window.submitLocEdit = submitLocEdit; window.deleteLocItem = deleteLocItem;
+window.initHierarchyMaintenance = initHierarchyMaintenance; window.loadHierarchyData = loadHierarchyData; window.createNewSegmentBox = createNewSegmentBox; window.selectHierArea = selectHierArea; window.selectHierTable = selectHierTable; window.toggleTableLock = toggleTableLock; window.moveTableToArea = moveTableToArea; window.renderLocationsColumn = renderLocationsColumn; window.toggleLocLock = toggleLocLock; window.moveLocToTable = moveLocToTable; window.openAreaModal = openAreaModal; window.submitAreaEdit = submitAreaEdit; window.deleteAreaItem = deleteAreaItem; window.openTableModal = openTableModal; window.submitTableEdit = submitTableEdit; window.deleteTableItem = deleteTableItem; window.openLocEditModal = openLocEditModal; window.handleLocDrugFuzzySearch = handleLocDrugFuzzySearch; window.pickDrugFromMaster = pickDrugFromMaster; window.submitLocEdit = submitLocEdit; window.deleteLocItem = deleteLocItem;
 
 window.runAutoEncodeHierarchy = runAutoEncodeHierarchy; window.saveHierarchyManual = saveHierarchyManual;
 window.toggleAreaLock = toggleAreaLock;
