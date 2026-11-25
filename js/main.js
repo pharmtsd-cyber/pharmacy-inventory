@@ -52,8 +52,10 @@ import {
   handleAdjSaveVersion, loadAdjAppRecords, applyAdjAppRecordFilters, loadAdjMarkers,
   handleAdjMarkerAutocomplete, selectAdjMarkerDrug, saveAdjMarkerItem, applyAdjMarkerFilters,
   deleteExistingAdjMarker, loadAdjVersionRecords, applyAdjVersionFilters, exportAdjVersionExcel,
-  renderAdjAuditLogs
+  renderAdjAuditLogs, toggleAdjDateLock
 } from './maint_monthly_adj.js';
+
+window.toggleAdjDateLock = toggleAdjDateLock;
 
 window.addEventListener('beforeunload', function (e) {
   const mCount = typeof getMonthlyQueueCount === 'function' ? getMonthlyQueueCount() : 0;
