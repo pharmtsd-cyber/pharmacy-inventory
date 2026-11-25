@@ -39,7 +39,10 @@ exposeFunctions(
 // ==========================================
 window.switchView = switchView;
 window.handleLogin = handleLogin;
-window.backToLobby = backToLobby;
+window.backToLobby = function() {
+  if (typeof hierMod.confirmLeaveHierarchy === 'function' && !hierMod.confirmLeaveHierarchy()) return;
+  backToLobby();
+};
 window.enterPharmacy = function(deptCode) { window.location.href = `?dept=${deptCode}`; };
 window.openMaintenanceLink = function() { hierMod.initHierarchyMaintenance(); };
 
@@ -55,16 +58,21 @@ window.selectMode = function(modeName) {
 window.addEventListener('beforeunload', function (e) {
   const mCount = typeof monthlyMod.getMonthlyQueueCount === 'function' ? monthlyMod.getMonthlyQueueCount() : 0;
   const dCount = typeof dailyMod.getDailyQueueCount === 'function' ? dailyMod.getDailyQueueCount() : 0;
-  if (activeUploads > 0 || mCount > 0 || dCount > 0) {
+  const hasHierUnsaved = typeof hierMod.hasUnsavedHierarchyChanges === 'function' ? hierMod.hasUnsavedHierarchyChanges() : false;
+  if (activeUploads > 0 || mCount > 0 || dCount > 0 || hasHierUnsaved) {
     if (mCount > 0 && typeof monthlyMod.flushMonthlyQueue === 'function') monthlyMod.flushMonthlyQueue({ showBlockingLoader: false });
     if (dCount > 0 && typeof dailyMod.flushDailyQueue === 'function') dailyMod.flushDailyQueue({ showBlockingLoader: false });
-    const msg = '尚有待同步的盤點資料，請等待同步完成再關閉網頁！';
+    const msg = hasHierUnsaved
+      ? '分層儲位維護尚有未存檔的變更，確定要離開嗎？'
+      : '尚有待同步的盤點資料，請等待同步完成再關閉網頁！';
+    e.preventDefault();
     e.returnValue = msg;
     return msg;
   }
 });
 
 window.backToModeSelect = function() {
+  if (typeof hierMod.confirmLeaveHierarchy === 'function' && !hierMod.confirmLeaveHierarchy()) return;
   if (activeUploads > 0) { alert('⚠️ 系統正在背景同步，請稍候再離開。'); return; }
   const mCount = typeof monthlyMod.getMonthlyQueueCount === 'function' ? monthlyMod.getMonthlyQueueCount() : 0;
   const dCount = typeof dailyMod.getDailyQueueCount === 'function' ? dailyMod.getDailyQueueCount() : 0;
@@ -79,6 +87,7 @@ window.handleMonthlyBack = function() {
 };
 
 window.handleLogout = function() {
+  if (typeof hierMod.confirmLeaveHierarchy === 'function' && !hierMod.confirmLeaveHierarchy()) return;
   const mCount = typeof monthlyMod.getMonthlyQueueCount === 'function' ? monthlyMod.getMonthlyQueueCount() : 0;
   const dCount = typeof dailyMod.getDailyQueueCount === 'function' ? dailyMod.getDailyQueueCount() : 0;
   if (mCount > 0) { monthlyMod.flushMonthlyQueue({ showBlockingLoader: true, onComplete: (s) => { if (s) handleLogout(); } }); return; }
