@@ -706,7 +706,7 @@
             <label class="small fw-bold text-primary mb-0">基準日(迄):</label>
             <input type="date" id="adj-param-reference" name="adj_param_reference" class="form-control form-control-sm border-primary w-auto fw-bold">
           </div>
-          <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="loadAdjInventoryData()">🔍 依日期載入</button>
+          <button type="button" id="adj-btn-lock-dates" class="btn btn-sm btn-outline-secondary fw-bold" onclick="toggleAdjDateLock()">🔓 鎖定日期</button>
           <button type="button" class="btn btn-sm btn-success fw-bold" onclick="handleAdjSaveVersion()">💾 存檔版本</button>
           <span id="adj-save-status" class="small fw-bold ms-1"></span>
         </div>
