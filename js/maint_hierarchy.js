@@ -1054,8 +1054,12 @@ export function openTableModal(tableId = '') {
 export function submitTableEdit() {
   const editingId = document.getElementById('t-editing-id').value.trim().toUpperCase();
   const areaId = document.getElementById('t-area-id').value.trim().toUpperCase();
-  const tableCode = document.getElementById('t-table-code').value.trim().toUpperCase();
+  let tableCode = document.getElementById('t-table-code').value.trim().toUpperCase();
   const tableId = document.getElementById('t-table-id').value.trim().toUpperCase();
+  // 若直接修改「盤點表編號」，自動從編號反推盤點表代碼
+  if (tableId.startsWith(areaId) && tableId.length > areaId.length) {
+    tableCode = tableId.slice(areaId.length);
+  }
   const tableName = document.getElementById('t-table-name').value.trim();
   const tableDesc = document.getElementById('t-table-desc').value.trim();
   const isLocked = !!document.getElementById('t-is-locked')?.checked;
@@ -1068,6 +1072,26 @@ export function submitTableEdit() {
   );
   if (dup) return alert(`❌ 盤點表編號重複！\n「${tableId}」已被盤點表【${dup.table_name}】使用，請更換其他編號。`);
 
+  // 依盤點表代碼第一個字母（A-Z）自動對應分段編號（0 = POOL）
+  const firstChar = tableCode.charAt(0);
+  const alphaIdx = ALPHABET.indexOf(firstChar);
+  const targetSegNo = alphaIdx >= 0 ? (alphaIdx + 1) : 0;
+
+  // 若目標分段（如 C -> 3）尚未建立，自動幫此區域建立該分段框
+  if (targetSegNo > 0) {
+    const segKey = `${AREA_SEG_PREFIX}${areaId}`;
+    const hasSeg = hierSegments.some(s => s.table_id === segKey && Number(s.segment_no) === targetSegNo);
+    if (!hasSeg) {
+      hierSegments.push({
+        segment_id: `AREA_${areaId}_SEG_${Date.now()}`,
+        unit_code: unitPrefix,
+        table_id: segKey,
+        segment_no: targetSegNo,
+        segment_name: `分段 ${firstChar}`
+      });
+    }
+  }
+
   if (editingId) {
     const t = hierTables.find(x => x.table_id.toUpperCase() === editingId);
     if (t) {
@@ -1076,6 +1100,8 @@ export function submitTableEdit() {
       t.table_name = tableName;
       t.table_desc = tableDesc;
       t.is_locked = isLocked;
+      t.segment_no = targetSegNo;
+      t.is_section_start = targetSegNo;
       if (editingId !== tableId) {
         hierLocations.forEach(l => { if (l.table_id.toUpperCase() === editingId) l.table_id = tableId; });
         hierSegments.forEach(s => { if (s.table_id.toUpperCase() === editingId) s.table_id = tableId; });
@@ -1090,14 +1116,14 @@ export function submitTableEdit() {
       table_code: tableCode,
       table_name: tableName,
       table_desc: tableDesc,
-      segment_no: selectedTableSegmentNo,
-      is_section_start: selectedTableSegmentNo,
+      segment_no: targetSegNo,
+      is_section_start: targetSegNo,
       is_locked: isLocked
     });
     selectedTableId = tableId;
   }
   if (tableModalInstance) tableModalInstance.hide();
-  saveHierarchyOnly('已更新盤點表設定');
+  saveHierarchyOnly(targetSegNo > 0 ? `已更新盤點表並歸類至「分段 ${firstChar}」` : '已更新盤點表設定');
 }
 
 export function deleteTableItem(tableId) {
@@ -1173,7 +1199,7 @@ export function submitLocEdit() {
   const editingCode = document.getElementById('l-editing-code').value.trim().toUpperCase();
   const tblId = document.getElementById('l-table-id').value.trim().toUpperCase();
   const newLocCode = document.getElementById('l-loc-code').value.trim().toUpperCase();
-  const segNo = Number(document.getElementById('l-segment-no').value) || 0;
+  const inputSegNo = Number(document.getElementById('l-segment-no').value) || 0;
   const isLocked = !!document.getElementById('l-is-locked').checked;
   const drugCode = document.getElementById('l-drug-code').value.trim();
   const drugName = document.getElementById('l-drug-name').value.trim();
@@ -1189,6 +1215,37 @@ export function submitLocEdit() {
     return alert(`❌ 儲位碼重複！\n「${newLocCode}」已被藥品【${dup.drug_code} - ${dup.drug_name}】使用（盤點表：${dup.table_id}），請更換其他編號。`);
   }
 
+  // 自動判斷目標盤點表與分段碼
+  let targetTableId = tblId;
+  let targetSegNo = inputSegNo;
+
+  // 若有修改儲位碼，依新儲位碼前綴自動對應盤點表與分段碼(0-9)
+  if (newLocCode !== editingCode) {
+    const sortedTables = [...hierTables].sort((a, b) => (b.table_id || '').length - (a.table_id || '').length);
+    const matchedTbl = sortedTables.find(t => t.table_id && newLocCode.startsWith(t.table_id.toUpperCase()));
+    if (matchedTbl) {
+      targetTableId = matchedTbl.table_id.toUpperCase();
+      const rest = newLocCode.slice(targetTableId.length);
+      if (/^[0-9]/.test(rest)) {
+        targetSegNo = Number(rest.charAt(0));
+      }
+    }
+  }
+
+  // 若目標分段 (1~9) 尚未建立，自動建立該分段框避免掉回 POOL
+  if (targetSegNo > 0) {
+    const hasSeg = hierSegments.some(s => s.table_id === targetTableId && Number(s.segment_no) === targetSegNo);
+    if (!hasSeg) {
+      hierSegments.push({
+        segment_id: `${targetTableId}_SEG_${Date.now()}`,
+        unit_code: unitPrefix,
+        table_id: targetTableId,
+        segment_no: targetSegNo,
+        segment_name: `第 ${targetSegNo} 分段`
+      });
+    }
+  }
+
   const monthlyDesc = document.getElementById('l-monthly-desc').value.trim();
   const drugRemark = document.getElementById('l-drug-remark').value.trim();
   const dailyNotice = document.getElementById('l-daily-notice').value.trim();
@@ -1197,8 +1254,10 @@ export function submitLocEdit() {
     const target = hierLocations.find(l => l.loc_code.toUpperCase() === editingCode);
     if (target) {
       target.loc_code = newLocCode;
-      target.segment_no = segNo;
-      target.row_no = String(segNo);
+      target.table_id = targetTableId;
+      target.segment_no = targetSegNo;
+      target.row_no = String(targetSegNo);
+      target.pos_no = newLocCode.slice(-3) || target.pos_no || '001';
       target.is_locked = isLocked;
       target.drug_code = drugCode;
       target.drug_name = drugName;
@@ -1210,10 +1269,10 @@ export function submitLocEdit() {
     hierLocations.push({
       loc_code: newLocCode,
       unit_code: unitPrefix,
-      table_id: tblId,
-      row_no: String(segNo),
+      table_id: targetTableId,
+      row_no: String(targetSegNo),
       pos_no: newLocCode.slice(-3) || '001',
-      segment_no: segNo,
+      segment_no: targetSegNo,
       is_locked: isLocked,
       drug_code: drugCode,
       drug_name: drugName,
@@ -1224,7 +1283,10 @@ export function submitLocEdit() {
   }
 
   if (locModalInstance) locModalInstance.hide();
-  saveHierarchyOnly(segNo === 0 ? '已新增儲位至未分配池' : '已更新儲位資料');
+  const destMsg = targetSegNo === 0
+    ? `已移至 ${targetTableId} 的未分配池 (POOL)`
+    : `已歸類至 ${targetTableId} 的「第 ${targetSegNo} 分段」`;
+  saveHierarchyOnly(destMsg);
 }
 
 export function deleteLocItem(locCode) {
