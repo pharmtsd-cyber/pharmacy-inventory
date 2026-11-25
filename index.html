@@ -178,49 +178,59 @@
 </div>
 
 <div id="view-daily-app" class="container-fluid view-section">
-  <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
+  <div class="card card-academic p-2 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2"><button type="button" class="btn btn-outline-secondary fw-bold py-2" onclick="switchView('view-mode-select')"><i class="bi bi-chevron-left"></i> 返回</button><span>每日盤點</span></h5>
-      <div class="d-flex gap-1">
-        <input type="date" id="header-date-select" name="header_date_select" class="form-control py-2 w-auto fw-bold shadow-sm text-academic border-secondary" onchange="changeDailyDate()">
-        <button type="button" class="btn btn-academic shadow-sm py-2 px-3 fw-bold" onclick="changeDailyDate()"><i class="bi bi-arrow-clockwise"></i></button>
+      <h6 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-outline-secondary fw-bold py-1 px-2" onclick="handleDailyBack()">
+          <i class="bi bi-chevron-left"></i> 返回
+        </button>
+        <span id="daily-app-title"><i class="bi bi-calendar-check"></i> 每日盤點</span>
+      </h6>
+      <div class="d-flex gap-1 align-items-center">
+        <input type="date" id="header-date-select" name="header_date_select" class="form-control form-control-sm py-2 w-auto fw-bold shadow-sm text-academic border-secondary" onchange="changeDailyDate()">
+        <button type="button" class="btn btn-academic btn-sm shadow-sm py-2 px-3 fw-bold" onclick="changeDailyDate()"><i class="bi bi-arrow-clockwise"></i></button>
       </div>
     </div>
-    <div class="d-flex gap-2 mt-1 mb-2">
-      <button type="button" class="btn btn-outline-academic fw-bold flex-grow-1 shadow-sm py-2" onclick="initHistoryMode()"><i class="bi bi-journal-text"></i> 對帳與明細</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="openAdminSort()">
-        <i class="bi bi-sort-down"></i> 管理排序
-        <span id="admin-new-badge" class="badge bg-danger rounded-pill ms-1 d-none shadow-sm" style="font-size: 0.7rem;">New</span>
-      </button>
-    </div>
-    <ul class="nav nav-pills nav-fill gap-2 mt-1" id="daily-tabs">
-      <li class="nav-item"><button type="button" class="nav-link active fw-bold border bg-academic shadow-sm text-white py-2" id="btn-tab-uncounted" onclick="switchDailyTab('未盤')">未盤點 (<span id="count-uncounted">0</span>)</button></li>
-      <li class="nav-item"><button type="button" class="nav-link fw-bold border text-success shadow-sm bg-white py-2" id="btn-tab-counted" onclick="switchDailyTab('已盤')">已盤點 (<span id="count-counted">0</span>)</button></li>
+    <ul class="nav nav-pills nav-fill gap-2 mt-1" id="daily-main-tabs">
+      <li class="nav-item">
+        <button type="button" class="nav-link active fw-bold border border-secondary shadow-sm bg-academic text-white py-2" id="btn-daily-tab-dashboard" onclick="handleDailyBack(true)">
+          <i class="bi bi-kanban"></i> 進度看板
+        </button>
+      </li>
+      <li class="nav-item">
+        <button type="button" class="nav-link fw-bold border border-secondary shadow-sm text-academic bg-white py-2" id="btn-daily-tab-history" onclick="initHistoryMode()">
+          <i class="bi bi-journal-text"></i> 對帳與明細
+        </button>
+      </li>
     </ul>
-    <div class="input-group shadow-sm mb-2">
-      <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
-      <input type="text" id="daily-search-input" name="daily_search_input" class="form-control py-2 border-secondary fw-bold" placeholder="輸入藥名、代碼或儲位快速尋找..." onkeyup="renderDailyItems()">
-    </div>
   </div>
-  <div id="daily-list-area" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
-</div>
 
-<div id="view-admin-sort" class="container-fluid view-section">
-  <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
-    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-      <h5 class="fw-bold mb-0 text-academic"><i class="bi bi-grip-vertical"></i> 拖拉排序管理</h5>
-      <button type="button" class="btn btn-outline-secondary fw-bold py-2" onclick="switchView('view-daily-app')">返回</button>
+  <!-- 進度看板（比照月盤點進度看板） -->
+  <div id="daily-tab-dashboard" class="flex-grow-1 overflow-auto px-1 pb-4">
+    <div class="dashboard-group mb-4 mt-2">
+      <h6 class="fw-bold text-danger border-start border-4 border-danger ps-2 mb-3">🕒 未完成 (點擊進入盤點)</h6>
+      <div id="daily-dashboard-unfinished"></div>
     </div>
-    <div class="d-flex gap-2 mb-3">
-      <button type="button" class="btn btn-success flex-grow-1 fw-bold shadow-sm py-2" onclick="saveAdminDataToServer()"><i class="bi bi-cloud-arrow-up"></i> 儲存順序</button>
-      <button type="button" class="btn btn-outline-danger fw-bold shadow-sm py-2 opacity-75" onclick="rebuildAdminList()"><i class="bi bi-trash3"></i> 清空重排</button>
-    </div>
-    <div class="input-group shadow-sm">
-      <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
-      <input type="text" id="admin-search-input" name="admin_search_input" class="form-control py-2 border-secondary" placeholder="搜尋位置..." onkeyup="highlightSearchItem()">
+    <div class="dashboard-group mb-5">
+      <h6 class="fw-bold text-success border-start border-4 border-success ps-2 mb-3">✅ 已完成</h6>
+      <div id="daily-dashboard-finished"></div>
     </div>
   </div>
-  <div id="admin-sortable-list" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
+
+  <!-- 單一藥架盤點作業區 -->
+  <div id="daily-tab-desk" class="flex-grow-1 d-flex flex-column overflow-hidden d-none">
+    <div class="card p-2 border-0 shadow-sm mb-2 bg-white flex-shrink-0">
+      <ul class="nav nav-pills nav-fill gap-2 mb-2" id="daily-tabs">
+        <li class="nav-item"><button type="button" class="nav-link active fw-bold border bg-academic shadow-sm text-white py-2" id="btn-tab-uncounted" onclick="switchDailyTab('未盤')">未盤點 (<span id="count-uncounted">0</span>)</button></li>
+        <li class="nav-item"><button type="button" class="nav-link fw-bold border text-success shadow-sm bg-white py-2" id="btn-tab-counted" onclick="switchDailyTab('已盤')">已盤點 (<span id="count-counted">0</span>)</button></li>
+      </ul>
+      <div class="input-group shadow-sm">
+        <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
+        <input type="text" id="daily-search-input" name="daily_search_input" class="form-control py-2 border-secondary fw-bold" placeholder="輸入藥名、代碼或儲位快速尋找..." onkeyup="renderDailyItems()">
+      </div>
+    </div>
+    <div id="daily-list-area" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
+  </div>
 </div>
 
 <div id="view-monthly-app" class="container-fluid view-section">
