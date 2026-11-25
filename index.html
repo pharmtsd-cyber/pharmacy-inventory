@@ -680,10 +680,15 @@
   <div id="adj-workspace-panel" class="d-none">
     <div class="card card-academic p-2 shadow-sm mb-2 bg-white flex-shrink-0">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
           <h6 class="fw-bold text-academic mb-0"><i class="bi bi-calculator-fill"></i> 月盤點調帳專區</h6>
           <span id="adj-active-unit-badge" class="badge text-white"></span>
           <button type="button" class="btn btn-sm btn-outline-primary py-0 fw-bold" onclick="initMonthlyAdjPortal()">切換單位</button>
+          <div class="d-flex align-items-center gap-1 ms-md-2 ps-md-2 border-start">
+            <label class="small fw-bold text-dark mb-0 text-nowrap">套用月份:</label>
+            <input type="month" id="adj-global-month" name="adj_global_month" class="form-control form-control-sm border-primary fw-bold w-auto" onchange="onAdjGlobalMonthChange()">
+            <button type="button" id="adj-btn-lock-month" class="btn btn-sm btn-outline-secondary fw-bold text-nowrap" onclick="toggleAdjMonthLock()">🔓 鎖定月份</button>
+          </div>
         </div>
         <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
       </div>
@@ -698,15 +703,8 @@
     <div id="adj-tab-inventory" class="flex-grow-1 overflow-auto px-1 pb-4">
       <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2 p-2 rounded" style="background:#e3f2fd;">
-          <div class="d-flex align-items-center gap-1">
-            <label class="small fw-bold text-secondary mb-0">預測日(起):</label>
-            <input type="date" id="adj-param-forecast" name="adj_param_forecast" class="form-control form-control-sm border-secondary w-auto">
-          </div>
-          <div class="d-flex align-items-center gap-1">
-            <label class="small fw-bold text-primary mb-0">基準日(迄):</label>
-            <input type="date" id="adj-param-reference" name="adj_param_reference" class="form-control form-control-sm border-primary w-auto fw-bold">
-          </div>
-          <button type="button" id="adj-btn-lock-dates" class="btn btn-sm btn-outline-secondary fw-bold" onclick="toggleAdjDateLock()">🔓 鎖定日期</button>
+          <span id="adj-detected-sap-info" class="small fw-bold text-primary">自動偵測月SAP日期中...</span>
+          <button type="button" class="btn btn-sm btn-primary fw-bold ms-auto" onclick="loadAdjInventoryData()">🔄 重新載入</button>
           <button type="button" class="btn btn-sm btn-success fw-bold" onclick="handleAdjSaveVersion()">💾 存檔版本</button>
           <span id="adj-save-status" class="small fw-bold ms-1"></span>
         </div>
@@ -772,10 +770,9 @@
     <div id="adj-tab-records" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
       <div class="card border-0 shadow-sm p-3 mb-2 bg-white">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-          <label class="small fw-bold">盤點月份:</label>
-          <input type="month" id="adj-rec-month" name="adj_rec_month" class="form-control form-control-sm border-secondary w-auto fw-bold" onchange="loadAdjAppRecords()">
-          <input type="text" id="adj-rec-search" name="adj_rec_search" class="form-control form-control-sm border-secondary" style="max-width:220px;" placeholder="代碼/名稱/儲位搜尋" oninput="applyAdjAppRecordFilters()">
-          <button type="button" class="btn btn-sm btn-success fw-bold ms-auto" onclick="loadAdjAppRecords()">🔍 依月份載入</button>
+          <span class="badge bg-primary fs-6" id="adj-rec-month-badge">套用月份：-</span>
+          <input type="text" id="adj-rec-search" name="adj_rec_search" class="form-control form-control-sm border-secondary" style="max-width:240px;" placeholder="代碼/名稱/儲位搜尋" oninput="applyAdjAppRecordFilters()">
+          <button type="button" class="btn btn-sm btn-success fw-bold ms-auto" onclick="loadAdjAppRecords()">🔄 重新載入</button>
         </div>
       </div>
       <div class="table-responsive bg-white border rounded shadow-sm" style="max-height:62vh; overflow:auto;">
