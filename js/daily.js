@@ -207,28 +207,15 @@ export function renderDailyDashboard() {
   const percent = total > 0 ? Math.round((counted / total) * 100) : 0;
   const isComplete = total > 0 && percent === 100;
 
-  const tablePills = dailyTables.map(t => {
-    const tTot = t.items.length;
-    const tCnt = t.items.filter(i => i.hasRecord && i.status === '成立').length;
-    const tDone = tTot > 0 && tCnt === tTot;
-    const safeName = (t.name || '').replace(/'/g, "\\'");
-    return `
-      <span class="badge ${tDone ? 'bg-success' : 'bg-light text-dark border border-secondary'} d-inline-flex align-items-center gap-1 py-1 px-2" style="cursor:pointer; font-size:0.78rem;" onclick="enterDailyTable('${t.id}', '${safeName}')">
-        <span>${t.name}</span>
-        <span class="${tDone ? 'text-white' : 'text-academic'} fw-bold">${tCnt}/${tTot}</span>
-      </span>`;
-  }).join('');
-
   summaryEl.innerHTML = `
     <div class="p-2 rounded border ${isComplete ? 'border-success bg-success bg-opacity-10' : 'border-secondary-subtle bg-light'}">
       <div class="d-flex justify-content-between align-items-center mb-1">
         <span class="fw-bold small text-dark"><i class="bi bi-speedometer2 me-1 text-academic"></i>當日總進度：${counted} / ${total}</span>
         <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
       </div>
-      <div class="progress mb-2" style="height: 8px;">
+      <div class="progress" style="height: 8px;">
         <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
       </div>
-      <div class="d-flex flex-wrap gap-1">${tablePills || '<span class="small text-muted">無盤點表資料</span>'}</div>
     </div>`;
 }
 
