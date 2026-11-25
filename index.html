@@ -849,11 +849,21 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div>
         <h6 class="fw-bold text-academic mb-0" id="maint-dept-title"><i class="bi bi-diagram-3"></i> 分層儲位維護</h6>
-        <div class="small text-muted">每次新增/修改/拖拉/分段/鎖定皆會立即存檔並自動重編未鎖定儲位</div>
+        <div class="small text-muted">
+          編輯、拖拉排序或自動編碼後，請點擊右上角「存檔並更新」寫入資料庫
+          <span id="hier-dirty-badge" class="badge bg-danger ms-1 d-none">尚有未存檔變更</span>
+        </div>
       </div>
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="runAutoEncodeHierarchy()"><i class="bi bi-magic"></i> 自動編碼</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')"><i class="bi bi-chevron-left"></i> 返回模式選單</button>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" id="btn-hier-manual-save" class="btn btn-success btn-sm fw-bold shadow-sm" onclick="saveHierarchyManual()">
+          <i class="bi bi-cloud-arrow-up"></i> 存檔並更新
+        </button>
+        <button type="button" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="runAutoEncodeHierarchy()">
+          <i class="bi bi-magic"></i> 自動編碼
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="switchView('view-mode-select')">
+          <i class="bi bi-chevron-left"></i> 返回模式選單
+        </button>
       </div>
     </div>
   </div>
