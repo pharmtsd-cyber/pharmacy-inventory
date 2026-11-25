@@ -265,11 +265,9 @@ export function loadAdjInventoryData(silent = false) {
     adjInitData = res;
     if (document.getElementById('adj-param-forecast')) document.getElementById('adj-param-forecast').value = res.dates?.D1 || '';
     if (document.getElementById('adj-param-reference')) document.getElementById('adj-param-reference').value = res.dates?.F1 || '';
-    if (document.getElementById('adj-rec-start') && !document.getElementById('adj-rec-start').value) {
-      document.getElementById('adj-rec-start').value = res.dates?.D1 || '';
-    }
-    if (document.getElementById('adj-rec-end') && !document.getElementById('adj-rec-end').value) {
-      document.getElementById('adj-rec-end').value = res.dates?.F1 || '';
+  const recMonthEl = document.getElementById('adj-rec-month');
+    if (recMonthEl && !recMonthEl.value) {
+      recMonthEl.value = (res.dates?.F1 || '').substring(0, 7);
     }
 
     const symSel = document.getElementById('adj-filter-symbol');
@@ -488,10 +486,9 @@ function renderAdjTable(rowsToRender) {
     bDet.className = 'btn btn-sm btn-outline-info fw-bold py-0';
     bDet.innerText = '📄 紀錄';
     bDet.onclick = () => {
-      const fVal = document.getElementById('adj-param-forecast')?.value || adjInitData.dates?.D1 || '';
       const rVal = document.getElementById('adj-param-reference')?.value || adjInitData.dates?.F1 || '';
-      if (document.getElementById('adj-rec-start')) document.getElementById('adj-rec-start').value = fVal;
-      if (document.getElementById('adj-rec-end')) document.getElementById('adj-rec-end').value = rVal;
+      const recMonthEl = document.getElementById('adj-rec-month');
+      if (recMonthEl && rVal) recMonthEl.value = rVal.substring(0, 7);
       if (document.getElementById('adj-rec-search')) document.getElementById('adj-rec-search').value = r.rowData[0];
       switchAdjTab('adj-tab-records');
     };
@@ -519,8 +516,13 @@ export function handleAdjSaveVersion() {
 
 export function loadAdjAppRecords() {
   const unitCode = activeAdjUnitCode || unitPrefix;
-  const startDate = document.getElementById('adj-rec-start')?.value || '';
-  const endDate = document.getElementById('adj-rec-end')?.value || '';
+  const monthVal = document.getElementById('adj-rec-month')?.value || (adjInitData.dates?.F1 || '').substring(0, 7);
+  if (document.getElementById('adj-rec-month') && monthVal) {
+    document.getElementById('adj-rec-month').value = monthVal;
+  }
+  const startDate = monthVal ? `${monthVal}-01` : '';
+  const endDate = monthVal ? `${monthVal}-31` : '';
+
   toggleLoader(true, '載入月盤點輸入區紀錄...');
   fetchBackend('getMonthlyAdjAppRecords', { unitCode, startDate, endDate }).then(res => {
     toggleLoader(false);
