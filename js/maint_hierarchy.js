@@ -99,23 +99,53 @@ export function loadHierarchyData(silent = false) {
   });
 }
 
-// 平時拖拉、新增、編輯：即時存檔，保留現有編碼不強制改碼
-function saveHierarchyOnly(toastMsg = '已即時存檔') {
+let hasUnsavedHierChanges = false;
+
+function setHierDirtyState(isDirty) {
+  hasUnsavedHierChanges = isDirty;
+  const badge = document.getElementById('hier-dirty-badge');
+  const saveBtn = document.getElementById('btn-hier-manual-save');
+  if (badge) badge.classList.toggle('d-none', !isDirty);
+  if (saveBtn) {
+    saveBtn.className = isDirty
+      ? 'btn btn-danger btn-sm fw-bold shadow-sm'
+      : 'btn btn-success btn-sm fw-bold shadow-sm';
+    saveBtn.innerHTML = isDirty
+      ? '<i class="bi bi-exclamation-circle-fill"></i> 存檔並更新*'
+      : '<i class="bi bi-cloud-arrow-up"></i> 存檔並更新';
+  }
+}
+
+// 改為本地即時更新畫面，不直接呼叫後端，避免操作卡頓
+function saveHierarchyOnly(toastMsg = '') {
+  setHierDirtyState(true);
+  renderAreasColumn();
+  if (toastMsg) showToast(`${toastMsg}（尚未寫入資料庫）`, 'delete');
+}
+
+// 手動存檔並更新按鈕
+export function saveHierarchyManual() {
+  toggleLoader(true, '正在存檔並更新分層儲位...');
   fetchBackend('saveFullHierarchy', {
     areas: JSON.stringify(hierAreas),
     tables: JSON.stringify(hierTables),
     locations: JSON.stringify(hierLocations),
     segments: JSON.stringify(hierSegments)
   }).then(res => {
-    if (!res || !res.success) return alert('即時存檔失敗：' + (res?.message || '未知錯誤'));
-    showToast(toastMsg);
+    toggleLoader(false);
+    if (!res || !res.success) return alert('存檔失敗：' + (res?.message || '未知錯誤'));
+    setHierDirtyState(false);
+    showToast('✅ 已成功存檔並更新！');
     loadHierarchyData(true);
-  }).catch(err => alert('即時存檔異常：' + err.message));
+  }).catch(err => {
+    toggleLoader(false);
+    alert('存檔異常：' + err.message);
+  });
 }
 
-// 按下「⚡ 自動編碼」按鈕：依順序自動編碼所有未上鎖的區域、盤點表、儲位，並避開已上鎖編碼
+// 按下「自動編碼」：先在畫面預覽新編碼，確認無誤再按「存檔並更新」
 export function runAutoEncodeHierarchy() {
-  if (!confirm('確定要執行「自動編碼」嗎？\n\n• 未上鎖的區域、盤點表與儲位將依目前排序重新編碼\n• 已上鎖 (🔒) 的項目將維持原始編碼，系統會自動避開重複')) return;
+  if (!confirm('確定要執行「自動編碼」嗎？\n\n• 未上鎖的區域、盤點表與儲位將依目前排序重新編碼\n• 已上鎖 (🔒) 的項目將維持原始編碼，系統會自動避開重複\n• 執行後請記得點擊「存檔並更新」寫入資料庫')) return;
 
   const areaIdMap = {};
   const tableIdMap = {};
@@ -221,20 +251,16 @@ export function runAutoEncodeHierarchy() {
     });
   }
 
-  toggleLoader(true, '正在執行自動編碼並存檔...');
-  fetchBackend('saveFullHierarchy', {
-    areas: JSON.stringify(newAreas),
-    tables: JSON.stringify(newTables),
-    locations: JSON.stringify(newLocations),
-    segments: JSON.stringify(newSegments)
-  }).then(res => {
-    toggleLoader(false);
-    if (!res || !res.success) return alert('自動編碼失敗：' + (res?.message || '未知錯誤'));
-    if (selectedAreaId && areaIdMap[selectedAreaId]) selectedAreaId = areaIdMap[selectedAreaId];
-    if (selectedTableId && tableIdMap[selectedTableId]) selectedTableId = tableIdMap[selectedTableId];
-    showToast('✅ 已完成自動編碼並存檔');
-    loadHierarchyData(true);
-  }).catch(err => { toggleLoader(false); alert('自動編碼異常：' + err.message); });
+  hierAreas = newAreas;
+  hierTables = newTables;
+  hierLocations = newLocations;
+  hierSegments = newSegments;
+  if (selectedAreaId && areaIdMap[selectedAreaId]) selectedAreaId = areaIdMap[selectedAreaId];
+  if (selectedTableId && tableIdMap[selectedTableId]) selectedTableId = tableIdMap[selectedTableId];
+
+  setHierDirtyState(true);
+  renderAreasColumn();
+  showToast('已完成自動編碼預覽，請點擊「存檔並更新」寫入資料庫', 'delete');
 }
 
 export function renderAreasColumn() {
