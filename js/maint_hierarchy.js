@@ -92,6 +92,7 @@ export function loadHierarchyData(silent = false) {
     if (!selectedAreaId || !hierAreas.some(a => a.area_id === selectedAreaId)) {
       selectedAreaId = hierAreas[0]?.area_id || null;
     }
+    setHierDirtyState(false);
     renderAreasColumn();
   }).catch(err => {
     if (!silent) toggleLoader(false);
