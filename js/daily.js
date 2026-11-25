@@ -5,7 +5,6 @@ import { session } from './config.js';
 export let dailyItems = []; 
 export let dailyTables = [];
 export let currentDailyTab = '未盤'; 
-export let currentDailyTableId = null;
 
 // ==========================================
 // 🚀 每日盤點：「單筆消失 + 立刻背景寫入」引擎
@@ -153,28 +152,19 @@ export function flushDailyQueue(options = {}) {
 }
 
 // ==========================================
-// 基礎作業與進度看板
+// 基礎作業與統一進度小卡
 // ==========================================
 export function initDailyMode() { 
   currentDailyTab = '未盤';
-  currentDailyTableId = null;
   switchView('view-daily-app'); 
-  showDailyDashboardView();
+  const searchInput = document.getElementById('daily-search-input');
+  if (searchInput) searchInput.value = '';
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const dateSelect = document.getElementById('header-date-select');
   if (dateSelect) dateSelect.value = todayStr;
   loadDailyData(todayStr); 
-}
-
-function showDailyDashboardView() {
-  currentDailyTableId = null;
-  document.getElementById('daily-main-tabs')?.classList.remove('d-none');
-  document.getElementById('daily-tab-dashboard')?.classList.remove('d-none');
-  document.getElementById('daily-tab-desk')?.classList.add('d-none');
-  const titleEl = document.getElementById('daily-app-title');
-  if (titleEl) titleEl.innerHTML = '<i class="bi bi-calendar-check"></i> 每日盤點';
 }
 
 export function changeDailyDate() {
@@ -198,102 +188,64 @@ export function loadDailyData(dateStr) {
     applyDailyQueueToLocalState();
     rebuildDailyTables();
     renderDailyDashboard();
-    if (currentDailyTableId) {
-      updateTabUI();
-      renderDailyItems();
-    }
+    updateTabUI();
+    renderDailyItems();
     if (getDailyQueueCount() > 0) startDailyAutoSyncTimer();
   }).catch(err => {
     toggleLoader(false);
-    const area = document.getElementById('daily-dashboard-unfinished');
+    const area = document.getElementById('daily-list-area');
     if (area) area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">讀取失敗</div>';
   });
 }
 
 export function renderDailyDashboard() {
-  const unfinishedArea = document.getElementById('daily-dashboard-unfinished');
-  const finishedArea = document.getElementById('daily-dashboard-finished');
-  if (!unfinishedArea || !finishedArea) return;
+  const summaryEl = document.getElementById('daily-summary-card');
+  if (!summaryEl) return;
 
-  let unfinishedHtml = '';
-  let finishedHtml = '';
+  const total = dailyItems.length;
+  const counted = dailyItems.filter(i => i.hasRecord && i.status === '成立').length;
+  const percent = total > 0 ? Math.round((counted / total) * 100) : 0;
+  const isComplete = total > 0 && percent === 100;
 
-  dailyTables.forEach(table => {
-    const total = table.items.length;
-    const counted = table.items.filter(i => i.hasRecord && i.status === '成立').length;
-    const percent = total > 0 ? Math.round((counted / total) * 100) : 0;
-    const isComplete = total > 0 && percent === 100;
-    const safeName = (table.name || '').replace(/'/g, "\\'");
-    const tableDesc = table.desc ? `<div class="mt-2 px-2 py-1 rounded text-dark fw-bold shadow-sm" style="background-color: #fff3cd; border-left: 4px solid #ffc107; font-size: 0.85rem;"><i class="bi bi-exclamation-circle-fill text-warning me-1" style="font-size: 1rem;"></i>${table.desc}</div>` : '';
+  const tablePills = dailyTables.map(t => {
+    const tTot = t.items.length;
+    const tCnt = t.items.filter(i => i.hasRecord && i.status === '成立').length;
+    const tDone = tTot > 0 && tCnt === tTot;
+    const safeName = (t.name || '').replace(/'/g, "\\'");
+    return `
+      <span class="badge ${tDone ? 'bg-success' : 'bg-light text-dark border border-secondary'} d-inline-flex align-items-center gap-1 py-1 px-2" style="cursor:pointer; font-size:0.78rem;" onclick="enterDailyTable('${t.id}', '${safeName}')">
+        <span>${t.name}</span>
+        <span class="${tDone ? 'text-white' : 'text-academic'} fw-bold">${tCnt}/${tTot}</span>
+      </span>`;
+  }).join('');
 
-    const cardHtml = `
-      <div class="card mb-3 shadow-sm border-0 border-start border-4 ${isComplete ? 'border-success' : 'border-warning'}" onclick="enterDailyTable('${table.id}', '${safeName}')" style="cursor: pointer;">
-        <div class="card-body p-3">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-              <div class="fw-bold text-dark fs-5">${table.name}</div>
-              ${tableDesc}
-            </div>
-            <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
-          </div>
-          <div class="progress mb-2" style="height: 12px;">
-            <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
-          </div>
-          <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="small text-secondary">已盤: ${counted} / ${total}</div>
-            <div>
-              <button class="btn btn-sm btn-outline-secondary me-2 fw-bold" onclick="event.stopPropagation(); showDailyTableDetailModal('${table.id}', '${safeName}')">
-                <i class="bi bi-list-ul"></i> 明細
-              </button>
-              <span class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></span>
-            </div>
-          </div>
-        </div>
-      </div>`;
-
-    if (isComplete) finishedHtml += cardHtml;
-    else unfinishedHtml += cardHtml;
-  });
-
-  unfinishedArea.innerHTML = unfinishedHtml || '<div class="text-center text-muted py-3">所有藥架皆已盤點完成</div>';
-  finishedArea.innerHTML = finishedHtml || '<div class="text-center text-muted py-3">尚無完成的藥架</div>';
+  summaryEl.innerHTML = `
+    <div class="p-2 rounded border ${isComplete ? 'border-success bg-success bg-opacity-10' : 'border-secondary-subtle bg-light'}">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="fw-bold small text-dark"><i class="bi bi-speedometer2 me-1 text-academic"></i>當日總進度：${counted} / ${total}</span>
+        <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
+      </div>
+      <div class="progress mb-2" style="height: 8px;">
+        <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
+      </div>
+      <div class="d-flex flex-wrap gap-1">${tablePills || '<span class="small text-muted">無盤點表資料</span>'}</div>
+    </div>`;
 }
 
-export function enterDailyTable(tableId, tableName) {
-  currentDailyTableId = tableId;
-  currentDailyTab = '未盤';
-  const searchInput = document.getElementById('daily-search-input');
-  if (searchInput) searchInput.value = '';
-
-  const titleEl = document.getElementById('daily-app-title');
-  if (titleEl) titleEl.innerText = tableName;
-  document.getElementById('daily-main-tabs')?.classList.add('d-none');
-  document.getElementById('daily-tab-dashboard')?.classList.add('d-none');
-  document.getElementById('daily-tab-desk')?.classList.remove('d-none');
-
-  updateTabUI();
-  renderDailyItems();
-  window.scrollTo(0, 0);
+export function enterDailyTable(tableId) {
+  const target = document.getElementById(`daily-sec-${tableId}`);
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-export function handleDailyBack(stayInDashboard = false) {
+export function handleDailyBack() {
   if (getDailyQueueCount() > 0) {
     flushDailyQueue({
       showBlockingLoader: true,
-      onComplete: () => executeDailyBack(stayInDashboard)
+      onComplete: () => switchView('view-mode-select')
     });
     return;
   }
-  executeDailyBack(stayInDashboard);
-}
-
-function executeDailyBack(stayInDashboard = false) {
-  if (currentDailyTableId || stayInDashboard) {
-    showDailyDashboardView();
-    renderDailyDashboard();
-  } else {
-    switchView('view-mode-select');
-  }
+  switchView('view-mode-select');
 }
 
 export function showDailyTableDetailModal(tableId, tableName) {
@@ -342,9 +294,8 @@ export function updateTabUI() {
   btnUn.className = currentDailyTab === '未盤' ? 'nav-link active fw-bold border bg-academic shadow-sm text-white py-2' : 'nav-link fw-bold border text-academic shadow-sm bg-white py-2';
   btnCo.className = currentDailyTab === '已盤' ? 'nav-link active fw-bold border bg-success shadow-sm text-white py-2' : 'nav-link fw-bold border text-success shadow-sm bg-white py-2';
 
-  const scopeItems = currentDailyTableId ? dailyItems.filter(i => i.tableId === currentDailyTableId) : dailyItems;
-  document.getElementById('count-uncounted').innerText = scopeItems.filter(i => !i.hasRecord || i.status === '作廢').length;
-  document.getElementById('count-counted').innerText = scopeItems.filter(i => i.hasRecord && i.status === '成立').length;
+  document.getElementById('count-uncounted').innerText = dailyItems.filter(i => !i.hasRecord || i.status === '作廢').length;
+  document.getElementById('count-counted').innerText = dailyItems.filter(i => i.hasRecord && i.status === '成立').length;
 }
 
 export function renderDailyItems() {
@@ -352,19 +303,8 @@ export function renderDailyItems() {
   if (!area) return;
   applyDailyQueueToLocalState();
 
-  let filtered = currentDailyTableId ? dailyItems.filter(i => i.tableId === currentDailyTableId) : dailyItems;
-  if (currentDailyTab === '未盤') filtered = filtered.filter(i => !i.hasRecord || i.status === '作廢');
-  else filtered = filtered.filter(i => i.hasRecord && i.status === '成立');
-
   const kwInput = document.getElementById('daily-search-input');
   const kw = kwInput ? kwInput.value.toLowerCase().trim() : '';
-  if (kw) {
-    filtered = filtered.filter(i =>
-      (i.drugCode||'').toLowerCase().includes(kw) ||
-      (i.drugName||'').toLowerCase().includes(kw) ||
-      (i.locCode||'').toLowerCase().includes(kw)
-    );
-  }
 
   let html = '';
   const pendingCount = getDailyQueueCount();
@@ -379,64 +319,102 @@ export function renderDailyItems() {
       </button>
     </div>`;
 
-  if (filtered.length === 0) {
-    html += `<div class="text-center p-5 text-muted fw-bold">${kw ? '查無符合條件的藥品' : '此區皆已盤點完成'}</div>`;
-    area.innerHTML = html;
-    return;
-  }
+  let totalRendered = 0;
 
-  if (currentDailyTab === '未盤') {
-    filtered.forEach((item, index) => {
-      const encodedName = btoa(encodeURIComponent(item.drugName || '')); 
-      const borderColor = index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd';
-      let hintHtml = '';
-      if (item.infoNotice && item.infoNotice !== '') hintHtml += `<div class="text-danger small fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>盤點注意：${item.infoNotice}</div>`;
-      if (item.infoMemo && item.infoMemo !== '') hintHtml += `<div class="text-secondary small mb-1" style="font-size: 0.8rem;"><i class="bi bi-info-square-fill me-1"></i>藥品備註：${item.infoMemo}</div>`;
-      const lastRecordHtml = item.lastQty !== '無'
-        ? `<div class="bg-light border rounded p-2 mb-2 d-flex justify-content-between align-items-center shadow-sm"><span class="text-secondary small fw-bold"><i class="bi bi-clock-history"></i> 前次紀錄 (${item.lastTime}):</span><span class="text-academic fw-bold" style="font-size: 1.8rem; line-height: 1;">${item.lastQty}</span></div>`
-        : `<div class="bg-light border rounded p-2 mb-2 text-center text-muted small shadow-sm">尚無歷史盤點紀錄</div>`;
+  dailyTables.forEach(table => {
+    let items = currentDailyTab === '未盤'
+      ? table.items.filter(i => !i.hasRecord || i.status === '作廢')
+      : table.items.filter(i => i.hasRecord && i.status === '成立');
 
-      html += `
-        <div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;">
-          <div class="card-body p-3">
-            <div class="fw-bold fs-5 text-dark mb-1">${item.drugName}</div>
-            <div class="d-flex flex-wrap gap-1 mb-2">
-              <span class="badge bg-academic shadow-sm">${item.tableName}</span>
-              <span class="badge bg-white text-dark border border-secondary shadow-sm">儲位: ${item.locCode}</span>
-            </div>
-            ${hintHtml ? `<div class="bg-light rounded p-2 mb-2 border border-danger border-opacity-25">${hintHtml}</div>` : ''}
-            ${lastRecordHtml}
-            <div class="input-group shadow-sm mt-2">
-              <input type="number" id="qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="本次數量" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key === 'Enter') submitDailyOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">
-              <button class="btn btn-outline-secondary px-3 fw-bold bg-light border-secondary" type="button" onclick="openCalculator('qty-${item.locCode}', decodeURIComponent(atob('${encodedName}')))"><i class="bi bi-calculator fs-5"></i></button>
-              <button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitDailyOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">送出</button>
-            </div>
+    if (kw) {
+      items = items.filter(i =>
+        (i.drugCode || '').toLowerCase().includes(kw) ||
+        (i.drugName || '').toLowerCase().includes(kw) ||
+        (i.locCode || '').toLowerCase().includes(kw)
+      );
+    }
+
+    if (items.length === 0) return;
+    totalRendered += items.length;
+
+    const tTot = table.items.length;
+    const tCnt = table.items.filter(i => i.hasRecord && i.status === '成立').length;
+    const safeName = (table.name || '').replace(/'/g, "\\'");
+    const descHtml = table.desc ? `<div class="small text-dark fw-bold mt-1 px-2 py-1 rounded" style="background-color:#fff3cd; border-left:3px solid #ffc107;">${table.desc}</div>` : '';
+
+    html += `
+      <div id="daily-sec-${table.id}" class="mb-3">
+        <div class="d-flex justify-content-between align-items-center bg-white border-start border-4 border-primary rounded shadow-sm px-2 py-2 mb-2">
+          <div>
+            <span class="fw-bold text-dark">${table.name}</span>
+            <span class="badge bg-secondary ms-1">${tCnt}/${tTot}</span>
+            ${descHtml}
           </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary fw-bold py-0" onclick="showDailyTableDetailModal('${table.id}', '${safeName}')">
+            <i class="bi bi-list-ul"></i> 明細
+          </button>
         </div>`;
-    });
-  } else {
-    filtered.forEach((item, index) => {
-      const borderColor = index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd';
-      const updateInfo = (item.updateUser && item.updateTime) ? ` <span class="ms-1 badge bg-warning text-dark shadow-sm" style="font-size:0.65rem;"><i class="bi bi-pencil-square"></i> ${item.updateUser} 修改</span>` : '';
-      html += `
-        <div class="card drug-card mb-2 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;">
-          <div class="card-body p-2">
-            <div class="d-flex justify-content-between mb-1">
-              <div class="fw-bold text-dark text-truncate" style="max-width: 70%;">${item.drugName}</div>
-              <div class="small text-muted text-end" style="font-size:0.75rem;">${item.timeStr}${updateInfo}</div>
-            </div>
-            <div class="small text-secondary mb-2"><span class="badge bg-success">已盤點</span><span class="ms-1">儲位: ${item.locCode}</span></div>
-            <div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
-              <div class="fs-4 fw-bold text-success">${item.countedQty}</div>
-              <div>
-                <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editDailyQty('${item.locCode}', '${item.countedQty}')">修改</button>
-                <button class="btn btn-sm btn-outline-danger py-0" onclick="toggleDailyStatus('${item.locCode}', '作廢')">作廢</button>
+
+    if (currentDailyTab === '未盤') {
+      items.forEach((item, index) => {
+        const encodedName = btoa(encodeURIComponent(item.drugName || ''));
+        const borderColor = index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd';
+        let hintHtml = '';
+        if (item.infoNotice && item.infoNotice !== '') hintHtml += `<div class="text-danger small fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>盤點注意：${item.infoNotice}</div>`;
+        if (item.infoMemo && item.infoMemo !== '') hintHtml += `<div class="text-secondary small mb-1" style="font-size: 0.8rem;"><i class="bi bi-info-square-fill me-1"></i>藥品備註：${item.infoMemo}</div>`;
+        const lastRecordHtml = item.lastQty !== '無'
+          ? `<div class="bg-light border rounded p-2 mb-2 d-flex justify-content-between align-items-center shadow-sm"><span class="text-secondary small fw-bold"><i class="bi bi-clock-history"></i> 前次紀錄 (${item.lastTime}):</span><span class="text-academic fw-bold" style="font-size: 1.8rem; line-height: 1;">${item.lastQty}</span></div>`
+          : `<div class="bg-light border rounded p-2 mb-2 text-center text-muted small shadow-sm">尚無歷史盤點紀錄</div>`;
+
+        html += `
+          <div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;">
+            <div class="card-body p-3">
+              <div class="fw-bold fs-5 text-dark mb-1">${item.drugName}</div>
+              <div class="d-flex flex-wrap gap-1 mb-2">
+                <span class="badge bg-academic shadow-sm">${item.tableName}</span>
+                <span class="badge bg-white text-dark border border-secondary shadow-sm">儲位: ${item.locCode}</span>
+              </div>
+              ${hintHtml ? `<div class="bg-light rounded p-2 mb-2 border border-danger border-opacity-25">${hintHtml}</div>` : ''}
+              ${lastRecordHtml}
+              <div class="input-group shadow-sm mt-2">
+                <input type="number" id="qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="本次數量" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key === 'Enter') submitDailyOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">
+                <button class="btn btn-outline-secondary px-3 fw-bold bg-light border-secondary" type="button" onclick="openCalculator('qty-${item.locCode}', decodeURIComponent(atob('${encodedName}')))"><i class="bi bi-calculator fs-5"></i></button>
+                <button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitDailyOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">送出</button>
               </div>
             </div>
-          </div>
-        </div>`;
-    });
+          </div>`;
+      });
+    } else {
+      items.forEach((item, index) => {
+        const borderColor = index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd';
+        const updateInfo = (item.updateUser && item.updateTime) ? ` <span class="ms-1 badge bg-warning text-dark shadow-sm" style="font-size:0.65rem;"><i class="bi bi-pencil-square"></i> ${item.updateUser} 修改</span>` : '';
+        html += `
+          <div class="card drug-card mb-2 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;">
+            <div class="card-body p-2">
+              <div class="d-flex justify-content-between mb-1">
+                <div class="fw-bold text-dark text-truncate" style="max-width: 70%;">${item.drugName}</div>
+                <div class="small text-muted text-end" style="font-size:0.75rem;">${item.timeStr}${updateInfo}</div>
+              </div>
+              <div class="small text-secondary mb-2"><span class="badge bg-success">已盤點</span><span class="ms-1">儲位: ${item.locCode}</span></div>
+              <div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
+                <div class="fs-4 fw-bold text-success">${item.countedQty}</div>
+                <div>
+                  <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editDailyQty('${item.locCode}', '${item.countedQty}')">修改</button>
+                  <button class="btn btn-sm btn-outline-danger py-0" onclick="toggleDailyStatus('${item.locCode}', '作廢')">作廢</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      });
+    }
+
+    html += `</div>`;
+  });
+
+  if (totalRendered === 0) {
+    html += `<div class="text-center p-5 text-muted fw-bold">${kw ? '查無符合條件的藥品' : '此區皆已盤點完成'}</div>`;
   }
+
   area.innerHTML = html;
 }
 
@@ -480,16 +458,10 @@ export function submitDailyOne(loc, dCode, dName, tId) {
   saveDailyQueue(queue);
 
   if (navigator.vibrate) navigator.vibrate(50);
-  const card = inputEl.closest('.drug-card'); 
-  if (card) { 
-    card.style.display = 'none'; 
-    setTimeout(() => {
-      card.remove();
-      updateTabUI();
-      updateDailyPendingUI();
-      renderDailyDashboard();
-    }, 10);
-  }
+  updateTabUI();
+  updateDailyPendingUI();
+  renderDailyDashboard();
+  renderDailyItems();
 
   startDailyAutoSyncTimer();
   flushDailyQueue({ showBlockingLoader: false });
@@ -539,11 +511,11 @@ export async function toggleDailyStatus(locCode, newStatus) {
   const oldStatus = item.status;
   item.status = newStatus;
   updateTabUI();
-  renderDailyItems();
   renderDailyDashboard();
+  renderDailyItems();
   fetchBackend('modifyDailyRecord', { sn: item.sn, newQty: '', newStatus: newStatus, userId: session.id, userName: session.name }).then(res => {
-    if (!res.success) { item.status = oldStatus; updateTabUI(); renderDailyItems(); renderDailyDashboard(); }
-  }).catch(err => { item.status = oldStatus; updateTabUI(); renderDailyItems(); renderDailyDashboard(); });
+    if (!res.success) { item.status = oldStatus; updateTabUI(); renderDailyDashboard(); renderDailyItems(); }
+  }).catch(err => { item.status = oldStatus; updateTabUI(); renderDailyDashboard(); renderDailyItems(); });
 }
 
 window.resolveEditQtyModal = window.resolveEditQtyModal || null;
