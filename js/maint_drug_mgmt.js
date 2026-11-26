@@ -88,7 +88,7 @@ export function downloadExcelTemplate(type) {
   let rows = [], filename = 'template.xlsx', sheetName = 'Sheet1';
   if (type === 'master') {
     sheetName = '藥品主檔'; filename = '範本_藥品主檔更新.xlsx';
-    rows = [['批價代碼', '加P', '藥品學名', '藥檔狀態'], ['BAMIN0', 'PBAMIN0', 'Amino Acid 7% 250ml/bot (Nephrosteril)', '0']];
+    rows = [['批價代碼', '藥品學名', '藥檔狀態'], ['BAMIN0', 'Amino Acid 7% 250ml/bot (Nephrosteril)', '0']];
   } else if (type === 'daily_sap') {
     sheetName = '導入每日SAP'; filename = '範本_每日SAP上傳.xlsx';
     rows = [['物料', '數量'], ['POTAC01', 120]];
@@ -115,29 +115,102 @@ export function handleMasterFileSelect(event) {
   const preview = document.getElementById('dm-master-preview');
   const btn = document.getElementById('dm-master-upload-btn');
   if (!file) { preview.innerText = '尚未選擇檔案'; btn.disabled = true; return; }
+
   const reader = new FileReader();
   reader.onload = function(evt) {
     try {
       const wb = window.XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
       const sheetName = wb.Sheets['藥品主檔'] ? '藥品主檔' : wb.SheetNames[0];
       const raw = window.XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
-      if (raw.length <= 1) { preview.innerText = 'Excel 中沒有資料'; btn.disabled = true; return; }
+      if (raw.length <= 1) {
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ Excel 中沒有資料列</span>`;
+        btn.disabled = true;
+        return;
+      }
+
       const h = raw[0].map(x => String(x).trim());
-      const pIdx = h.indexOf('批價代碼'), nIdx = h.indexOf('藥品學名'), iIdx = h.indexOf('加P'), sIdx = h.indexOf('藥檔狀態');
-      if (pIdx === -1 || iIdx === -1 || nIdx === -1) {
-        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「批價代碼」、「加P」、「藥品學名」</span>`;
-        btn.disabled = true; return;
+      const pIdx = h.indexOf('批價代碼');
+      const nIdx = h.indexOf('藥品學名');
+      const sIdx = h.indexOf('藥檔狀態');
+      if (pIdx === -1 || nIdx === -1) {
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「批價代碼」、「藥品學名」兩個欄位</span>`;
+        btn.disabled = true;
+        return;
       }
+
       const rows = [];
+      const errors = [];
+      let replacedCount = 0;
+
       for (let i = 1; i < raw.length; i++) {
-        const r = raw[i], pCode = String(r[pIdx] || '').trim(), invCode = String(r[iIdx] || '').trim();
-        if (!pCode || !invCode) continue;
-        rows.push({ price_code: pCode, inv_code: invCode, drug_name: String(r[nIdx] || '').trim(), drug_status: sIdx > -1 && r[sIdx] !== '' ? String(r[sIdx]).trim() : '0' });
+        const r = raw[i];
+        const rawPriceCode = String(r[pIdx] ?? '').trim();
+        const rawDrugName = String(r[nIdx] ?? '').trim();
+        const excelRowNo = i + 1;
+
+        // 跳過整列皆空的空白列
+        if (!rawPriceCode && !rawDrugName) continue;
+
+        const rowErrs = [];
+        const pCode = rawPriceCode.toUpperCase();
+
+        if (!pCode) {
+          rowErrs.push('批價代碼為空');
+        } else if (pCode.startsWith('P')) {
+          rowErrs.push(`批價代碼「${rawPriceCode}」不可為 P 開頭`);
+        }
+
+        if (!rawDrugName) {
+          rowErrs.push('藥品學名為空');
+        }
+
+        if (rowErrs.length > 0) {
+          errors.push(`第 ${excelRowNo} 列：${rowErrs.join('；')}`);
+        } else {
+          let cleanedCode = pCode;
+          if (cleanedCode.includes('*') || cleanedCode.includes('+')) {
+            cleanedCode = cleanedCode.replace(/\*/g, '8').replace(/\+/g, '9');
+            replacedCount++;
+          }
+          const invCode = `P${cleanedCode}`;
+          rows.push({
+            price_code: pCode,
+            inv_code: invCode,
+            drug_name: rawDrugName,
+            drug_status: sIdx > -1 && String(r[sIdx] ?? '').trim() !== '' ? String(r[sIdx]).trim() : '0'
+          });
+        }
       }
+
+      if (errors.length > 0) {
+        const showLimit = 30;
+        const shown = errors.slice(0, showLimit).map(e => `<li>${e}</li>`).join('');
+        const moreText = errors.length > showLimit ? `<div class="mt-1 text-muted">...其餘尚有 ${errors.length - showLimit} 筆錯誤未顯示</div>` : '';
+        preview.innerHTML = `
+          <div class="text-danger fw-bold mb-1">❌ 檢核失敗，共發現 ${errors.length} 筆錯誤（請修正檔案後重新選擇，全部無誤才可上傳）：</div>
+          <ul class="mb-0 ps-3 text-danger" style="max-height: 180px; overflow-y: auto;">${shown}</ul>
+          ${moreText}
+        `;
+        btn.disabled = true;
+        return;
+      }
+
+      if (rows.length === 0) {
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 檔案中無有效資料列</span>`;
+        btn.disabled = true;
+        return;
+      }
+
       parsedMasterRows = rows;
-      preview.innerHTML = `<div class="text-success fw-bold">✅ 格式驗證通過！共解析 ${rows.length} 筆藥品主檔</div>`;
-      btn.disabled = rows.length === 0;
-    } catch (err) { preview.innerText = '解析失敗：' + err.message; btn.disabled = true; }
+      const replaceHint = replacedCount > 0
+        ? `<div class="text-primary small mt-1">ℹ️ 已自動產生「加P」代碼，並轉換 ${replacedCount} 筆特殊符號（<code>*</code>→<code>8</code>、<code>+</code>→<code>9</code>）</div>`
+        : `<div class="text-primary small mt-1">ℹ️ 已自動於批價代碼前加上 <code>P</code> 產生「加P」代碼</div>`;
+      preview.innerHTML = `<div class="text-success fw-bold">✅ 格式驗證通過！共解析 ${rows.length} 筆藥品主檔，可點擊重建</div>${replaceHint}`;
+      btn.disabled = false;
+    } catch (err) {
+      preview.innerHTML = `<span class="text-danger fw-bold">❌ 解析失敗：${err.message}</span>`;
+      btn.disabled = true;
+    }
   };
   reader.readAsArrayBuffer(file);
 }
