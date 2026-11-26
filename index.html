@@ -518,7 +518,7 @@
     </div>
   </div>
 
-  <div id="dm-tab-sap-daily" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+<div id="dm-tab-sap-daily" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <h6 class="fw-bold text-primary mb-0"><i class="bi bi-calendar-day"></i> 上傳【每日 SAP】Excel</h6>
@@ -527,7 +527,8 @@
         </button>
       </div>
       <div class="alert alert-primary bg-opacity-10 small mb-3">
-        <strong>用途</strong>：每日盤點比對參考的帳面 SAP 數量；<strong>必備欄位</strong>：<code>SAP日期</code>、<code>物料</code>、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。
+        <strong>必備欄位</strong>：僅需 <code>物料</code>、<code>數量</code>（日期由下方選擇器帶入）。<br>
+        <strong>自動檢核</strong>：物料須為 <code>P</code> 開頭（<code>*</code> 自動轉 <code>8</code>、<code>+</code> 自動轉 <code>9</code>）；數量僅限數字，全部無誤才可上傳。
       </div>
       <div class="row g-2 mb-3">
         <div class="col-md-3">
@@ -541,7 +542,7 @@
         </div>
         <div class="col-md-3">
           <label class="form-label small fw-bold">歸屬 SAP 日期（預設今日）</label>
-          <input type="date" id="dm-sap-daily-date" name="dm_sap_daily_date" class="form-control border-primary fw-bold">
+          <input type="date" id="dm-sap-daily-date" name="dm_sap_daily_date" class="form-control border-secondary fw-bold">
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">選擇每日 SAP Excel 檔案</label>
@@ -558,7 +559,7 @@
       <div class="table-responsive border rounded">
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light">
-            <tr><th>SAP日期</th><th class="text-center">版本 / 狀態</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">上傳時間</th><th class="text-center">操作</th></tr>
+            <tr><th>SAP日期</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">操作</th></tr>
           </thead>
           <tbody id="dm-sap-daily-tbody"></tbody>
         </table>
@@ -575,7 +576,8 @@
         </button>
       </div>
       <div class="alert alert-success bg-opacity-10 small mb-3">
-        <strong>用途</strong>：當月份盤點結果比對參考的帳面 SAP 數量；<strong>必備欄位</strong>：<code>SAP日期</code>、<code>物料</code>、<code>數量</code>（選填：<code>物料說明</code>、<code>單位</code>）。
+        <strong>必備欄位</strong>：僅需 <code>物料</code>、<code>數量</code>（日期由下方選擇器帶入）。<br>
+        <strong>自動檢核</strong>：物料須為 <code>P</code> 開頭（<code>*</code> 自動轉 <code>8</code>、<code>+</code> 自動轉 <code>9</code>）；數量僅限數字，全部無誤才可上傳。
       </div>
       <div class="row g-2 mb-3">
         <div class="col-md-3">
@@ -589,7 +591,7 @@
         </div>
         <div class="col-md-3">
           <label class="form-label small fw-bold">歸屬 SAP 日期（預設今日）</label>
-          <input type="date" id="dm-sap-monthly-date" name="dm_sap_monthly_date" class="form-control border-success fw-bold">
+          <input type="date" id="dm-sap-monthly-date" name="dm_sap_monthly_date" class="form-control border-secondary fw-bold">
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">選擇月 SAP Excel 檔案</label>
@@ -606,7 +608,7 @@
       <div class="table-responsive border rounded">
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light">
-            <tr><th>SAP日期</th><th class="text-center">版本 / 狀態</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">上傳時間</th><th class="text-center">操作</th></tr>
+            <tr><th>SAP日期</th><th class="text-center">品項數</th><th class="text-end">總數量</th><th class="text-center">操作</th></tr>
           </thead>
           <tbody id="dm-sap-monthly-tbody"></tbody>
         </table>
