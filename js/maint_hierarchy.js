@@ -26,6 +26,26 @@ let hasUnsavedHierChanges = false;
 const collapsedTableSegs = new Set();
 const collapsedLocSegs = new Set();
 
+// 在進入分層儲位維護畫面前，先向後端確認是否符合「網站權限管理」的 hierarchy_maint 規則
+export async function openHierarchyWithAuth() {
+  const userId = window.currentUser?.userId || sessionStorage.getItem('userId') || '';
+  if (!userId) return alert('請先登入員工編號');
+
+  toggleLoader(true, '正在驗證權限...');
+  try {
+    const res = await fetchBackend('checkLogin', { id: userId, portalKey: 'hierarchy_maint' });
+    toggleLoader(false);
+    if (!res || !res.success) {
+      return alert(res?.message || '權限不足，無法進入分層儲位維護');
+    }
+    // 驗證通過，呼叫原本初始化分層儲位維護的函式
+    initHierarchyPortal();
+  } catch (err) {
+    toggleLoader(false);
+    alert('權限驗證失敗：' + err.message);
+  }
+}
+
 export function toggleTableSegCollapse(segNo) {
   const key = `${selectedAreaId}_${segNo}`;
   if (collapsedTableSegs.has(key)) collapsedTableSegs.delete(key);
