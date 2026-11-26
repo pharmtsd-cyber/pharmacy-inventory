@@ -193,8 +193,7 @@ export function loadDailyData(dateStr) {
     if (getDailyQueueCount() > 0) startDailyAutoSyncTimer();
   }).catch(err => {
     toggleLoader(false);
-    const area = document.getElementById('daily-list-area');
-    if (area) area.innerHTML = '<div class="text-center p-5 text-muted fw-bold">讀取失敗</div>';
+    document.getElementById('daily-list-area').innerHTML = `<div class="text-center p-5 text-danger fw-bold">讀取失敗：${err?.message || '未知錯誤'}</div>`;
   });
 }
 
