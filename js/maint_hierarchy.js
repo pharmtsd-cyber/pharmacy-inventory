@@ -1,6 +1,6 @@
 import { fetchBackend } from './api.js';
 import { toggleLoader, switchView, showToast } from './ui.js';
-import { DEPT_NAME, currentDept } from './config.js';
+import { session, DEPT_NAME, currentDept } from './config.js';
 
 const UNIT_PREFIX_MAP = { opd: 'BA', ipd: 'BF', erd: 'BE', comp: 'BG' };
 const unitPrefix = UNIT_PREFIX_MAP[currentDept] || 'BF';
@@ -28,7 +28,7 @@ const collapsedLocSegs = new Set();
 
 // 在進入分層儲位維護畫面前，先向後端確認是否符合「網站權限管理」的 hierarchy_maint 規則
 export async function openHierarchyWithAuth() {
-  const userId = window.currentUser?.userId || sessionStorage.getItem('userId') || '';
+  const userId = session?.userId || session?.id || sessionStorage.getItem('userId') || '';
   if (!userId) return alert('請先登入員工編號');
 
   toggleLoader(true, '正在驗證權限...');
@@ -38,8 +38,8 @@ export async function openHierarchyWithAuth() {
     if (!res || !res.success) {
       return alert(res?.message || '權限不足，無法進入分層儲位維護');
     }
-    // 驗證通過，呼叫原本初始化分層儲位維護的函式
-    initHierarchyPortal();
+    // 驗證通過，進入分層儲位維護
+    initHierarchyMaintenance();
   } catch (err) {
     toggleLoader(false);
     alert('權限驗證失敗：' + err.message);
