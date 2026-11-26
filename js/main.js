@@ -38,7 +38,6 @@ exposeFunctions(
 // ==========================================
 // 基礎共用與導覽函式
 // ==========================================
-window.openHierarchyWithAuth = openHierarchyWithAuth;
 window.switchView = switchView;
 window.handleLogin = handleLogin;
 window.backToLobby = function() {
