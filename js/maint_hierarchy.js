@@ -26,19 +26,19 @@ let hasUnsavedHierChanges = false;
 const collapsedTableSegs = new Set();
 const collapsedLocSegs = new Set();
 
-// 在進入分層儲位維護畫面前，先向後端確認是否符合「網站權限管理」的 hierarchy_maint 規則
+// 依目前所在單位（opd / ipd / erd / comp）對應驗證「網站權限管理」的分層儲位維護規則
 export async function openHierarchyWithAuth() {
   const userId = session?.userId || session?.id || sessionStorage.getItem('userId') || '';
   if (!userId) return alert('請先登入員工編號');
 
+  const portalKey = `hierarchy_${currentDept || 'ipd'}`;
   toggleLoader(true, '正在驗證權限...');
   try {
-    const res = await fetchBackend('checkLogin', { id: userId, portalKey: 'hierarchy_maint' });
+    const res = await fetchBackend('checkLogin', { id: userId, portalKey });
     toggleLoader(false);
     if (!res || !res.success) {
-      return alert(res?.message || '權限不足，無法進入分層儲位維護');
+      return alert(res?.message || `權限不足，無法進入【${DEPT_NAME}】分層儲位維護`);
     }
-    // 驗證通過，進入分層儲位維護
     initHierarchyMaintenance();
   } catch (err) {
     toggleLoader(false);
