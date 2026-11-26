@@ -210,158 +210,85 @@ export function saveHierarchyManual() {
 }
 
 export function runAutoEncodeHierarchy() {
-  if (!confirm('確定要執行「自動編碼」嗎？\n\n• 未上鎖的區域、盤點表與儲位將依目前分段與排序重新編碼\n• 已上鎖 (🔒) 的項目將維持原始編碼，系統會自動避開重複\n• 執行後請記得點擊「存檔並更新」寫入資料庫')) return;
+  if (!selectedTableId) {
+    return alert('請先於左側選擇一張盤點表，再執行第三層儲位自動編碼');
+  }
+  const targetTable = hierTables.find(t => t.table_id === selectedTableId);
+  const tblLabel = targetTable ? `${targetTable.table_id} - ${targetTable.table_name}` : selectedTableId;
 
-  const areaIdMap = {};
-  const tableIdMap = {};
-  const newSegments = [];
+  if (!confirm(`確定要針對盤點表【${tblLabel}】執行「儲位自動編碼」嗎？\n\n• 僅重編此盤點表底下「未上鎖」的儲位碼\n• 第一層區域、第二層盤點表與其他盤點表皆不受影響\n• 已上鎖 (🔒) 的儲位將維持原碼並自動避開重複\n• 執行後請記得點擊「存檔並更新」寫入資料庫`)) return;
 
-  // 1. 第一層：區域 (前綴2碼 + A-Z)
-  const usedAreaIds = new Set(
-    hierAreas.filter(a => a.is_locked && a.area_id).map(a => String(a.area_id).toUpperCase())
-  );
-  const newAreas = hierAreas.map(a => {
-    if (a.is_locked && a.area_id) {
-      areaIdMap[a.area_id] = a.area_id;
-      return { ...a, is_locked: true };
-    }
-    const picked = findNextAvailableAreaCode(usedAreaIds);
-    usedAreaIds.add(picked.id);
-    areaIdMap[a.area_id] = picked.id;
-    return { ...a, area_code: picked.code, area_id: picked.id, is_locked: false };
+  // 1. 整理此盤點表的第三層分段編號（1, 2, 3... 連續化），其他表與區域分段維持不動
+  const otherSegments = hierSegments.filter(s => s.table_id !== selectedTableId);
+  const segsForTbl = hierSegments
+    .filter(s => s.table_id === selectedTableId && Number(s.segment_no) > 0)
+    .sort((a, b) => Number(a.segment_no) - Number(b.segment_no));
+
+  const segNoRemap = {};
+  const remappedSegs = segsForTbl.map((segObj, sIdx) => {
+    const oldNo = Number(segObj.segment_no);
+    const targetSegNo = sIdx + 1;
+    segNoRemap[oldNo] = targetSegNo;
+    return {
+      segment_id: `${selectedTableId}_SEG_${targetSegNo}`,
+      unit_code: unitPrefix,
+      table_id: selectedTableId,
+      segment_no: targetSegNo,
+      segment_name: segObj.segment_name || `第 ${targetSegNo} 分段`
+    };
   });
 
-  // 2. 第二層：盤點表 (區域編號 + 分段碼A-Z(或0=POOL) + 代號A-Z)
-  const usedTableIds = new Set(
-    hierTables.filter(t => t.is_locked && t.table_id).map(t => String(t.table_id).toUpperCase())
-  );
-  const newTables = [];
-
-  for (const a of newAreas) {
-    const oldAreaIds = Object.keys(areaIdMap).filter(k => areaIdMap[k] === a.area_id);
-    const oldAreaSegKeys = new Set(oldAreaIds.map(id => `${AREA_SEG_PREFIX}${id}`));
-    oldAreaSegKeys.add(`${AREA_SEG_PREFIX}${a.area_id}`);
-
-    const areaSegs = hierSegments.filter(s => oldAreaSegKeys.has(s.table_id));
-    const segNos = Array.from(new Set(areaSegs.map(s => Number(s.segment_no)).filter(n => n > 0))).sort((x, y) => x - y);
-    const areaSegRemap = {};
-    segNos.forEach((sNo, sIdx) => {
-      const targetSegNo = sIdx + 1;
-      areaSegRemap[sNo] = targetSegNo;
-      const segObj = areaSegs.find(x => Number(x.segment_no) === sNo);
-      newSegments.push({
-        segment_id: `AREA_${a.area_id}_SEG_${targetSegNo}`,
-        unit_code: unitPrefix,
-        table_id: `${AREA_SEG_PREFIX}${a.area_id}`,
-        segment_no: targetSegNo,
-        segment_name: segObj?.segment_name || `分段 ${segNoToLetter(targetSegNo)}`
-      });
-    });
-
-    const groupTables = hierTables.filter(t => oldAreaIds.includes(t.area_code) || t.area_code === a.area_id);
-    const minorIdxBySeg = {};
-
-    groupTables.forEach(t => {
-      const rawSeg = Number(t.segment_no ?? t.is_section_start) || 0;
-      const mappedSegNo = rawSeg > 0 && areaSegRemap[rawSeg] ? areaSegRemap[rawSeg] : 0;
-
-      if (t.is_locked && t.table_id) {
-        tableIdMap[t.table_id] = t.table_id;
-        newTables.push({
-          ...t,
-          area_code: a.area_id,
-          segment_no: mappedSegNo,
-          is_section_start: mappedSegNo,
-          is_locked: true
-        });
-      } else {
-        const startMinor = minorIdxBySeg[mappedSegNo] || 0;
-        const picked = findNextAvailableTableCodeInSeg(a.area_id, mappedSegNo, usedTableIds, startMinor);
-        usedTableIds.add(picked.tId);
-        minorIdxBySeg[mappedSegNo] = picked.nextMinor;
-        tableIdMap[t.table_id] = picked.tId;
-        newTables.push({
-          ...t,
-          area_code: a.area_id,
-          table_code: picked.tCode,
-          table_id: picked.tId,
-          segment_no: mappedSegNo,
-          is_section_start: mappedSegNo,
-          is_locked: false
-        });
-      }
-    });
-  }
-
-  // 3. 第三層：儲位 (盤點表編號 + 分段碼0-9 + 001起3碼)
+  // 2. 收集不可重複的儲位碼（其他盤點表全部儲位 + 本表已上鎖儲位）
   const usedLocCodes = new Set(
-    hierLocations.filter(l => l.is_locked && l.loc_code).map(l => String(l.loc_code).toUpperCase())
+    hierLocations
+      .filter(l => (l.table_id !== selectedTableId || l.is_locked) && l.loc_code)
+      .map(l => String(l.loc_code).toUpperCase())
   );
-  const newLocations = [];
 
-  for (const t of newTables) {
-    const oldTblIds = Object.keys(tableIdMap).filter(k => tableIdMap[k] === t.table_id);
-    const groupLocs = hierLocations.filter(l => oldTblIds.includes(l.table_id) || l.table_id === t.table_id);
-    const segsForTbl = hierSegments.filter(s => !s.table_id.startsWith(AREA_SEG_PREFIX) && (oldTblIds.includes(s.table_id) || s.table_id === t.table_id));
+  // 3. 僅重編目前選中盤點表底下的未上鎖儲位
+  const seqBySeg = {};
+  let encodedCount = 0;
 
-    const segNos = Array.from(new Set(segsForTbl.map(s => Number(s.segment_no)).filter(n => n > 0))).sort((x, y) => x - y);
-    const segNoRemap = {};
-    segNos.forEach((sNo, sIdx) => {
-      const targetSegNo = sIdx + 1;
-      segNoRemap[sNo] = targetSegNo;
-      const segObj = segsForTbl.find(x => Number(x.segment_no) === sNo);
-      newSegments.push({
-        segment_id: `${t.table_id}_SEG_${targetSegNo}`,
-        unit_code: unitPrefix,
-        table_id: t.table_id,
-        segment_no: targetSegNo,
-        segment_name: segObj?.segment_name || `第 ${targetSegNo} 分段`
-      });
-    });
+  hierLocations = hierLocations.map(l => {
+    if (l.table_id !== selectedTableId) return l;
 
-    const seqBySeg = {};
-    groupLocs.forEach(l => {
-      const rawSeg = Number(l.segment_no ?? l.row_no) || 0;
-      const mappedSegNo = rawSeg > 0 && segNoRemap[rawSeg] ? segNoRemap[rawSeg] : 0;
-      const rowNoStr = String(mappedSegNo);
+    const rawSeg = Number(l.segment_no ?? l.row_no) || 0;
+    const mappedSegNo = rawSeg > 0 && segNoRemap[rawSeg] ? segNoRemap[rawSeg] : 0;
+    const rowNoStr = String(mappedSegNo);
 
-      if (l.is_locked && l.loc_code) {
-        newLocations.push({
-          ...l,
-          table_id: t.table_id,
-          row_no: rowNoStr,
-          segment_no: mappedSegNo,
-          loc_code: l.loc_code,
-          is_locked: true
-        });
-      } else {
-        const startSeq = seqBySeg[mappedSegNo] || 1;
-        const picked = findNextAvailableLocCode(t.table_id, mappedSegNo, usedLocCodes, startSeq);
-        usedLocCodes.add(picked.locCode);
-        seqBySeg[mappedSegNo] = picked.nextSeq;
-        newLocations.push({
-          ...l,
-          table_id: t.table_id,
-          row_no: rowNoStr,
-          pos_no: picked.posStr,
-          segment_no: mappedSegNo,
-          loc_code: picked.locCode,
-          is_locked: false
-        });
-      }
-    });
+    if (l.is_locked && l.loc_code) {
+      return {
+        ...l,
+        row_no: rowNoStr,
+        segment_no: mappedSegNo,
+        is_locked: true
+      };
+    }
+
+    const startSeq = seqBySeg[mappedSegNo] || 1;
+    const picked = findNextAvailableLocCode(selectedTableId, mappedSegNo, usedLocCodes, startSeq);
+    usedLocCodes.add(picked.locCode);
+    seqBySeg[mappedSegNo] = picked.nextSeq;
+    encodedCount++;
+
+    return {
+      ...l,
+      row_no: rowNoStr,
+      pos_no: picked.posStr,
+      segment_no: mappedSegNo,
+      loc_code: picked.locCode,
+      is_locked: false
+    };
+  });
+
+  hierSegments = [...otherSegments, ...remappedSegs];
+  if (selectedSegmentNo > 0 && segNoRemap[selectedSegmentNo]) {
+    selectedSegmentNo = segNoRemap[selectedSegmentNo];
   }
-
-  hierAreas = newAreas;
-  hierTables = newTables;
-  hierLocations = newLocations;
-  hierSegments = newSegments;
-  if (selectedAreaId && areaIdMap[selectedAreaId]) selectedAreaId = areaIdMap[selectedAreaId];
-  if (selectedTableId && tableIdMap[selectedTableId]) selectedTableId = tableIdMap[selectedTableId];
 
   setHierDirtyState(true);
-  renderAreasColumn();
-  showToast('已完成自動編碼預覽，請點擊「存檔並更新」寫入資料庫', 'delete');
+  renderLocationsColumn();
+  showToast(`已完成【${selectedTableId}】儲位自動編碼（重編 ${encodedCount} 筆），請記得點擊「存檔並更新」`, 'delete');
 }
 
 // ==========================================
