@@ -50,7 +50,7 @@ function getLocalTodayStr() {
 export function initDrugMgmtPortal() {
   switchView('view-drug-mgmt');
   const today = new Date();
-  const todayStr = getLocalTodayStr();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const dEl = document.getElementById('dm-daily-date'); if (dEl) dEl.value = todayStr;
   const mEl = document.getElementById('dm-monthly-month'); if (mEl) mEl.value = monthStr;
@@ -58,8 +58,6 @@ export function initDrugMgmtPortal() {
   if (sapDailyDateEl && !sapDailyDateEl.value) sapDailyDateEl.value = todayStr;
   const sapMonthlyDateEl = document.getElementById('dm-sap-monthly-date');
   if (sapMonthlyDateEl && !sapMonthlyDateEl.value) sapMonthlyDateEl.value = todayStr;
-  const sapDailyDateEl = document.getElementById('dm-sap-daily-date'); if (sapDailyDateEl) sapDailyDateEl.value = todayStr;
-  const sapMonthlyDateEl = document.getElementById('dm-sap-monthly-date'); if (sapMonthlyDateEl) sapMonthlyDateEl.value = todayStr;
   switchDrugMgmtTab('dm-tab-master');
 }
 
