@@ -11,6 +11,7 @@ import * as drugMgmtMod from './maint_drug_mgmt.js';
 import * as hierMod from './maint_hierarchy.js';
 import * as monthlyAdjMod from './maint_monthly_adj.js';
 
+
 // ==========================================
 // 自動將各模組匯出的函式掛載至 window（供 HTML onclick 呼叫）
 // ==========================================
@@ -37,6 +38,7 @@ exposeFunctions(
 // ==========================================
 // 基礎共用與導覽函式
 // ==========================================
+window.openHierarchyWithAuth = openHierarchyWithAuth;
 window.switchView = switchView;
 window.handleLogin = handleLogin;
 window.backToLobby = function() {
