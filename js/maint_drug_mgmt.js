@@ -185,7 +185,6 @@ export function handleSapFileSelectV2(sapType, event) {
 
       const rows = [];
       const errors = [];
-      let replacedCount = 0;
 
       for (let i = 1; i < raw.length; i++) {
         const r = raw[i];
@@ -198,18 +197,12 @@ export function handleSapFileSelectV2(sapType, event) {
 
         const rowErrs = [];
 
-        // 1. 物料檢核與符號轉換（* -> 8、+ -> 9，且必須以 P 開頭）
-        let normCode = rawCode.toUpperCase();
+      // 1. 物料檢核（必須以 P 開頭）
+        const normCode = rawCode.toUpperCase();
         if (!normCode) {
           rowErrs.push('物料為空');
-        } else {
-          if (normCode.includes('*') || normCode.includes('+')) {
-            normCode = normCode.replace(/\*/g, '8').replace(/\+/g, '9');
-            replacedCount++;
-          }
-          if (!normCode.startsWith('P')) {
-            rowErrs.push(`物料「${rawCode}」不是 P 開頭`);
-          }
+        } else if (!normCode.startsWith('P')) {
+          rowErrs.push(`物料「${rawCode}」不是 P 開頭`);
         }
 
         // 2. 數量檢核（僅允許數字，可含千分位逗號、負號與小數點）
@@ -253,8 +246,7 @@ export function handleSapFileSelectV2(sapType, event) {
       }
 
       if (sapType === 'daily') parsedSapDailyRows = rows; else parsedSapMonthlyRows = rows;
-      const replaceHint = replacedCount > 0 ? `<div class="text-primary small mt-1">ℹ️ 已自動轉換 ${replacedCount} 筆物料特殊符號（<code>*</code>→<code>8</code>、<code>+</code>→<code>9</code>）</div>` : '';
-      preview.innerHTML = `<div class="text-success fw-bold">✅ 格式驗證通過！共 ${rows.length} 筆有效資料，可點擊上傳</div>${replaceHint}`;
+      preview.innerHTML = `<div class="text-success fw-bold">✅ 格式驗證通過！共 ${rows.length} 筆有效資料，可點擊上傳</div>`;
       btn.disabled = false;
     } catch (err) {
       preview.innerHTML = `<span class="text-danger fw-bold">❌ 解析失敗：${err.message}</span>`;
