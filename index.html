@@ -507,7 +507,8 @@
         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill"></i> 上傳格式與用途說明：</div>
         <ul class="mb-1 ps-3">
           <li><strong>用途</strong>：建立<strong>本版本之後</strong>全院共用的「批價代碼」、「藥品代碼(加P)」與「藥品學名」對照基準。</li>
-          <li><strong>必備欄位名稱（第一列標題）</strong>：<code>批價代碼</code>、<code>加P</code>、<code>藥品學名</code>（選填：<code>藥檔狀態</code>）。</li>
+          <li><strong>必備欄位名稱（第一列標題）</strong>：<code>批價代碼</code>（不可為 <code>P</code> 開頭）、<code>藥品學名</code>（選填：<code>藥檔狀態</code>）。</li>
+          <li><strong>加P自動產生</strong>：系統會自動在批價代碼前加上 <code>P</code>，並將代碼中的 <code>*</code> 轉為 <code>8</code>、<code>+</code> 轉為 <code>9</code>。</li>
         </ul>
       </div>
       <input type="file" id="dm-master-file" name="dm_master_file" class="form-control border-secondary mb-3" accept=".xlsx,.xls" onchange="handleMasterFileSelect(event)">
