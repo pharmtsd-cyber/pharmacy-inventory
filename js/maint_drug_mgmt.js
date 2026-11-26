@@ -54,6 +54,10 @@ export function initDrugMgmtPortal() {
   const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const dEl = document.getElementById('dm-daily-date'); if (dEl) dEl.value = todayStr;
   const mEl = document.getElementById('dm-monthly-month'); if (mEl) mEl.value = monthStr;
+  const sapDailyDateEl = document.getElementById('dm-sap-daily-date');
+  if (sapDailyDateEl && !sapDailyDateEl.value) sapDailyDateEl.value = todayStr;
+  const sapMonthlyDateEl = document.getElementById('dm-sap-monthly-date');
+  if (sapMonthlyDateEl && !sapMonthlyDateEl.value) sapMonthlyDateEl.value = todayStr;
   const sapDailyDateEl = document.getElementById('dm-sap-daily-date'); if (sapDailyDateEl) sapDailyDateEl.value = todayStr;
   const sapMonthlyDateEl = document.getElementById('dm-sap-monthly-date'); if (sapMonthlyDateEl) sapMonthlyDateEl.value = todayStr;
   switchDrugMgmtTab('dm-tab-master');
@@ -89,10 +93,10 @@ export function downloadExcelTemplate(type) {
     rows = [['批價代碼', '加P', '藥品學名', '藥檔狀態'], ['BAMIN0', 'PBAMIN0', 'Amino Acid 7% 250ml/bot (Nephrosteril)', '0']];
   } else if (type === 'daily_sap') {
     sheetName = '導入每日SAP'; filename = '範本_每日SAP上傳.xlsx';
-    rows = [['SAP日期', '物料', '物料說明', '數量', '單位'], ['2026-11-20', 'POTAC01', 'PR-Tacrolimus (Advagraf) <1mg> /cap', 120, 'CAP']];
+    rows = [['物料', '數量'], ['POTAC01', 120]];
   } else if (type === 'monthly_sap') {
     sheetName = '導入月SAP'; filename = '範本_月SAP上傳.xlsx';
-    rows = [['SAP日期', '物料', '物料說明', '數量', '單位'], ['2026-11-30', 'PBAMIN0', 'Amino Acid 7% (Nephrosteril) 250ml/bot', 82, 'BOT']];
+    rows = [['物料', '數量'], ['PBAMIN0', 82]];
   }
   window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), sheetName);
   window.XLSX.writeFile(wb, filename);
@@ -160,28 +164,104 @@ export function handleSapFileSelectV2(sapType, event) {
   const btn = document.getElementById(`dm-sap-${sapType}-btn`);
   if (sapType === 'daily') parsedSapDailyRows = []; else parsedSapMonthlyRows = [];
   if (!file) { preview.innerText = '尚未選擇檔案'; btn.disabled = true; return; }
+
   const reader = new FileReader();
   reader.onload = function(evt) {
     try {
       const wb = window.XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
       const raw = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
-      if (raw.length <= 1) { preview.innerText = 'Excel 中沒有資料'; btn.disabled = true; return; }
+      if (raw.length <= 1) {
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ Excel 中沒有資料列</span>`;
+        btn.disabled = true;
+        return;
+      }
+
       const h = raw[0].map(x => String(x).trim());
-      const dIdx = h.indexOf('SAP日期'), mIdx = h.indexOf('物料'), nIdx = h.indexOf('物料說明'), qIdx = h.indexOf('數量'), uIdx = h.indexOf('單位');
-      if (dIdx === -1 || mIdx === -1 || qIdx === -1) {
-        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「SAP日期」、「物料」、「數量」</span>`;
-        btn.disabled = true; return;
+      const mIdx = h.indexOf('物料');
+      const qIdx = h.indexOf('數量');
+      if (mIdx === -1 || qIdx === -1) {
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「物料」、「數量」兩個欄位</span>`;
+        btn.disabled = true;
+        return;
       }
+
       const rows = [];
+      const errors = [];
+      let replacedCount = 0;
+
       for (let i = 1; i < raw.length; i++) {
-        const r = raw[i], sapDate = normalizeExcelDate(r[dIdx]), drugCode = String(r[mIdx] || '').trim();
-        if (!sapDate || !drugCode) continue;
-        rows.push({ sap_date: sapDate, drug_code: drugCode, drug_name: nIdx > -1 ? String(r[nIdx] || '').trim() : '', qty: parseFloat(r[qIdx]) || 0, unit: uIdx > -1 ? String(r[uIdx] || '').trim() : '' });
+        const r = raw[i];
+        const rawCode = String(r[mIdx] ?? '').trim();
+        const rawQty = String(r[qIdx] ?? '').trim();
+        const excelRowNo = i + 1;
+
+        // 跳過整列皆空的空白列
+        if (!rawCode && !rawQty) continue;
+
+        const rowErrs = [];
+
+        // 1. 物料檢核與符號轉換（* -> 8、+ -> 9，且必須以 P 開頭）
+        let normCode = rawCode.toUpperCase();
+        if (!normCode) {
+          rowErrs.push('物料為空');
+        } else {
+          if (normCode.includes('*') || normCode.includes('+')) {
+            normCode = normCode.replace(/\*/g, '8').replace(/\+/g, '9');
+            replacedCount++;
+          }
+          if (!normCode.startsWith('P')) {
+            rowErrs.push(`物料「${rawCode}」不是 P 開頭`);
+          }
+        }
+
+        // 2. 數量檢核（僅允許數字，可含千分位逗號、負號與小數點）
+        const cleanQtyStr = rawQty.replace(/,/g, '');
+        if (!cleanQtyStr) {
+          rowErrs.push('數量為空');
+        } else if (!/^-?\d+(\.\d+)?$/.test(cleanQtyStr)) {
+          rowErrs.push(`數量「${rawQty}」不是有效數字`);
+        }
+
+        if (rowErrs.length > 0) {
+          errors.push(`第 ${excelRowNo} 列：${rowErrs.join('；')}`);
+        } else {
+          rows.push({
+            drug_code: normCode,
+            drug_name: '',
+            qty: parseFloat(cleanQtyStr),
+            unit: ''
+          });
+        }
       }
+
+      // 只要有任何錯誤，鎖定上傳按鈕並列出錯誤明細
+      if (errors.length > 0) {
+        const showLimit = 30;
+        const shown = errors.slice(0, showLimit).map(e => `<li>${e}</li>`).join('');
+        const moreText = errors.length > showLimit ? `<div class="mt-1 text-muted">...其餘尚有 ${errors.length - showLimit} 筆錯誤未顯示</div>` : '';
+        preview.innerHTML = `
+          <div class="text-danger fw-bold mb-1">❌ 檢核失敗，共發現 ${errors.length} 筆錯誤（請修正檔案後重新選擇，全部無誤才可上傳）：</div>
+          <ul class="mb-0 ps-3 text-danger" style="max-height: 180px; overflow-y: auto;">${shown}</ul>
+          ${moreText}
+        `;
+        btn.disabled = true;
+        return;
+      }
+
+      if (rows.length === 0) {
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 檔案中無有效資料列</span>`;
+        btn.disabled = true;
+        return;
+      }
+
       if (sapType === 'daily') parsedSapDailyRows = rows; else parsedSapMonthlyRows = rows;
-      preview.innerHTML = `<div class="text-success fw-bold">✅ 格式驗證通過！共 ${rows.length} 筆資料</div>`;
-      btn.disabled = rows.length === 0;
-    } catch (err) { preview.innerText = '解析失敗：' + err.message; btn.disabled = true; }
+      const replaceHint = replacedCount > 0 ? `<div class="text-primary small mt-1">ℹ️ 已自動轉換 ${replacedCount} 筆物料特殊符號（<code>*</code>→<code>8</code>、<code>+</code>→<code>9</code>）</div>` : '';
+      preview.innerHTML = `<div class="text-success fw-bold">✅ 格式驗證通過！共 ${rows.length} 筆有效資料，可點擊上傳</div>${replaceHint}`;
+      btn.disabled = false;
+    } catch (err) {
+      preview.innerHTML = `<span class="text-danger fw-bold">❌ 解析失敗：${err.message}</span>`;
+      btn.disabled = true;
+    }
   };
   reader.readAsArrayBuffer(file);
 }
@@ -189,27 +269,30 @@ export function handleSapFileSelectV2(sapType, event) {
 export function uploadSapWithConfirm(sapType) {
   const rows = sapType === 'daily' ? parsedSapDailyRows : parsedSapMonthlyRows;
   if (!rows.length) return;
+
+  const dateInput = document.getElementById(`dm-sap-${sapType}-date`);
+  const sapDate = dateInput ? dateInput.value.trim() : '';
+  if (!sapDate) return alert('請先選擇「歸屬 SAP 日期」');
+
   const unitSelect = document.getElementById(`dm-sap-${sapType}-unit`);
   const unitCode = unitSelect.value, unitLabel = unitSelect.options[unitSelect.selectedIndex].text;
-  const todayStr = getLocalTodayStr();
-  const targetDate = document.getElementById(`dm-sap-${sapType}-date`)?.value || todayStr;
 
-  let warningMsg = '';
-  if (targetDate !== todayStr) {
-    warningMsg = `⚠️ 跨日提醒：您選擇的歸屬日期為【${targetDate}】，並非今日（${todayStr}）！\n\n`;
-  }
+  // 若選擇的日期非今日，給予跨日提醒
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const crossDayWarn = sapDate !== todayStr ? `\n⚠️ 注意：您選擇的日期（${sapDate}）非今日（${todayStr}）！\n` : '';
 
-  const finalRows = rows.map(r => ({ ...r, sap_date: targetDate }));
-  const confirmText = `${warningMsg}📋 最終確認：\n• 單位：${unitLabel}\n• 歸屬日期：${targetDate}\n• 筆數：${finalRows.length} 筆\n\n若當日已有資料，系統將建立新版本並以最新版為主。確定上傳嗎？`;
-  if (!confirm(confirmText)) return;
+  if (!confirm(`📋 最終確認：${crossDayWarn}\n• 單位：${unitLabel}\n• 歸屬 SAP 日期：${sapDate}\n• 筆數：${rows.length} 筆\n\n確定上傳並覆蓋同日資料嗎？`)) return;
 
-  toggleLoader(true, `正在上傳 ${finalRows.length} 筆 SAP...`, true);
-  fetchBackend('importSapBatch', { unitCode, sapType, rows: JSON.stringify(finalRows), replaceDate: false }).then(res => {
+  const payloadRows = rows.map(r => ({ ...r, sap_date: sapDate }));
+  toggleLoader(true, `正在上傳 ${payloadRows.length} 筆 SAP...`, true);
+  fetchBackend('importSapBatch', { unitCode, sapType, rows: JSON.stringify(payloadRows), replaceDate: true }).then(res => {
     toggleLoader(false, '', true);
     if (!res || !res.success) return alert('上傳失敗：' + (res?.message || '未知錯誤'));
-    showToast(`已成功上傳 ${res.count} 筆至 ${unitLabel}（${targetDate} v${res.versionNo || 1}）`);
+    showToast(`已成功上傳 ${res.count} 筆至 ${unitLabel}（${sapDate}）`);
     if (sapType === 'daily') parsedSapDailyRows = []; else parsedSapMonthlyRows = [];
     document.getElementById(`dm-sap-${sapType}-file`).value = '';
+    document.getElementById(`dm-sap-${sapType}-preview`).innerText = '尚未選擇檔案';
     document.getElementById(`dm-sap-${sapType}-btn`).disabled = true;
     loadSapHistoryList(sapType);
   }).catch(err => { toggleLoader(false, '', true); alert('上傳異常：' + err.message); });
