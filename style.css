@@ -305,3 +305,12 @@ body {
     font-size: 1.3rem;
   }
 }
+
+/* 手機版隱藏「請選擇作業」頁面的分層儲位維護按鈕 */
+@media (max-width: 767.98px) {
+  button[onclick*="Hierarchy"],
+  button[onclick*="hierarchy"],
+  #btn-menu-hierarchy {
+    display: none !important;
+  }
+}
