@@ -1,5 +1,5 @@
 /**
- * ui.js - 負責畫面切換、載入動畫與提示訊息
+ * ui.js - 負責畫面切換、載入動畫與提示訊息 
  */
 import { session, DEPT_NAME, currentDept } from './config.js';
 
