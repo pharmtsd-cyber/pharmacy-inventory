@@ -422,47 +422,6 @@
 </div>
 
 <!-- ==================== 區塊 C：權限管理 / 藥品管理組 / 月盤點調帳 / 分層儲位維護 ==================== -->
-<div id="view-user-mgmt" class="container-fluid view-section">
-  <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold text-academic mb-0"><i class="bi bi-people-fill"></i> 藥師權限與生命週期管理</h6>
-    </div>
-    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
-      <div class="d-flex flex-wrap gap-2 flex-grow-1">
-        <input type="text" id="maint-user-search" name="maint_user_search" class="form-control form-control-sm border-secondary" style="max-width: 240px;" placeholder="搜尋工號、姓名、帳號、單位..." onkeyup="renderUsersTable()">
-        <select id="maint-user-status-filter" name="maint_user_status_filter" class="form-select form-select-sm border-secondary w-auto fw-bold" onchange="renderUsersTable()">
-          <option value="ALL">全部狀態</option>
-          <option value="在職">在職</option>
-          <option value="待確認">待確認</option>
-          <option value="調任">調任</option>
-          <option value="離職">離職</option>
-          <option value="留停">留停</option>
-        </select>
-      </div>
-      <button type="button" class="btn btn-sm btn-academic fw-bold px-3" onclick="openUserEditModal('')"><i class="bi bi-person-plus"></i> 新增藥師</button>
-    </div>
-  </div>
-  <div class="flex-grow-1 overflow-auto px-1 pb-4">
-    <div class="table-responsive bg-white border rounded shadow-sm">
-      <table class="table table-hover table-sm align-middle mb-0">
-        <thead class="table-academic-head sticky-top">
-          <tr>
-            <th class="text-center">員工編號</th>
-            <th>姓名</th>
-            <th>醫院帳號</th>
-            <th class="text-center">人員狀態</th>
-            <th>單位</th>
-            <th>管理 / 資訊權限</th>
-            <th>學生 / 教師角色</th>
-            <th class="text-center">系統管理員</th>
-            <th class="text-center">操作</th>
-          </tr>
-        </thead>
-        <tbody id="maint-users-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
 
 <div id="view-portal-perm" class="container-fluid view-section">
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
@@ -1012,76 +971,6 @@
 </div>
 
 <!-- ==================== 區塊 D：維護與操作 Modals ==================== -->
-<div class="modal fade" id="userEditModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-academic text-white">
-        <h6 class="modal-title fw-bold">藥師權限與生命週期維護</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-3">
-        <div class="row g-2">
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">員工編號 (KEY)</label>
-            <input type="text" id="u-user-id" name="u_user_id" class="form-control border-secondary" oninput="autoGenerateUserEmail()">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">姓名</label>
-            <input type="text" id="u-name" name="u_name" class="form-control border-secondary">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">醫院帳號 (自動生成)</label>
-            <input type="text" id="u-email" name="u_email" class="form-control bg-light" readonly>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">人員狀態</label>
-            <select id="u-status" name="u_status" class="form-select border-secondary"></select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">加入日期</label>
-            <input type="date" id="u-join-date" name="u_join_date" class="form-control border-secondary">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">離開日期</label>
-            <input type="date" id="u-leave-date" name="u_leave_date" class="form-control border-secondary">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">最後群組出現時間</label>
-            <input type="text" id="u-last-seen" name="u_last_seen" class="form-control border-secondary" placeholder="YYYY-MM-DD HH:mm:ss">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">單位</label>
-            <select id="u-department" name="u_department" class="form-select border-secondary"></select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-bold">資訊權限</label>
-            <select id="u-info-level" name="u_info_level" class="form-select border-secondary"></select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-bold">管理角色</label>
-            <select id="u-mgmt-role" name="u_mgmt_role" class="form-select border-secondary"></select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-bold">學生角色</label>
-            <select id="u-student-role" name="u_student_role" class="form-select border-secondary"></select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-bold">教師角色</label>
-            <select id="u-teacher-role" name="u_teacher_role" class="form-select border-secondary"></select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-bold">系統管理員</label>
-            <select id="u-is-admin" name="u_is_admin" class="form-select border-secondary"></select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer bg-light">
-        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-academic fw-bold px-4" onclick="submitUserEdit()">儲存人員</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <div class="modal fade" id="drugLocationsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
