@@ -462,74 +462,110 @@ export function submitMonthlyOnline(actionSrc, parsedData = null, writePriceCode
   flushMonthlyQueue({ showBlockingLoader: false });
 }
 
-export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
+const submittingMonthlyKeys = new Set();
+
+function clearPendingMonthlyRecords() {
+  for (let i = allRecordsData.length - 1; i >= 0; i--) {
+    if (String(allRecordsData[i].sn || '').startsWith('PENDING_')) {
+      allRecordsData.splice(i, 1);
+    }
+  }
+  for (let i = myRecordsData.length - 1; i >= 0; i--) {
+    if (String(myRecordsData[i].sn || '').startsWith('PENDING_')) {
+      myRecordsData.splice(i, 1);
+    }
+  }
+}
+
+export async function submitMonthlyDeskOne(loc, dCode, dName, tId) {
+  const lockKey = `desk_${loc}`;
+  if (submittingMonthlyKeys.has(lockKey)) return;
+
   const inputEl = document.getElementById(`m-qty-${loc}`);
-  const qty = inputEl ? inputEl.value.trim() : ''; 
-  if (qty === '' || Number(qty) < 0) return alert('請輸入有效數量'); 
-  
-  const tableId = document.getElementById('monthly-table-select').value;
+  const qty = inputEl ? inputEl.value.trim() : '';
+  if (qty === '' || Number(qty) < 0) return alert('請輸入有效數量');
+
+  const tableSelect = document.getElementById('monthly-table-select');
+  const tableId = tableSelect ? tableSelect.value : '';
   const tableData = monthlyTables.find(t => t.id === tableId);
-  if (!tableData) return; 
+  if (!tableData) return;
   const item = tableData.items.find(i => i.locCode === loc);
   if (!item) return;
-  
-  const now = new Date();
-  const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
 
-  item.hasCounted = true;
-  item.countedQty = qty;
-  item.countedUser = session.name;
-  item.countedTime = timeStr;
-  
-  const tempSn = 'PENDING_' + loc;
-  const queue = getMonthlyQueue();
-  const existingIdx = queue.findIndex(q => q.data && q.data.locCode === loc && q.data.type === '盤點調劑台');
-  const queueItem = {
-    queueId: Date.now().toString() + '_' + Math.random().toString(36).substring(2,7),
-    tempSn,
-    timestamp: now.getTime(),
-    localTimeStr: timeStr,
-    action: 'submitInventory',
-    data: {
-      mode: '月盤點',
-      userId: session.id,
-      userName: session.name,
-      type: '盤點調劑台',
-      actionSrc: '',
-      dispType: '',
-      drugCode: dCode,
-      drugName: dName,
-      handQty: qty,
-      tableId: tId,
-      locCode: loc,
-      barcode: ''
-    }
-  };
-  if (existingIdx > -1) queue[existingIdx] = queueItem;
-  else queue.push(queueItem);
-  saveMonthlyQueue(queue);
-  applyMonthlyQueueToLocalState();
-  renderAllRecordLists();
-
-  if (navigator.vibrate) navigator.vibrate(50);
-  const uncountedLength = tableData.items.filter(i => !i.hasCounted).length; 
-  const uncountedBadge = document.getElementById('count-desk-uncounted');
-  if (uncountedBadge) uncountedBadge.innerText = uncountedLength;
-  const card = inputEl.closest('.drug-card'); 
-  if (card) { 
-    card.style.display = 'none'; 
-    setTimeout(() => { 
-      card.remove(); 
-      if (uncountedLength === 0) { 
-        const area = document.getElementById('monthly-desk-area'); 
-        if (area) area.insertAdjacentHTML('beforeend', '<div class="text-center p-4 text-muted fw-bold">所有藥品皆已盤點完成</div>');
-        flushMonthlyQueue({ showBlockingLoader: true, onComplete: () => refreshMonthlyData(true) });
-      } 
-    }, 10);
+  submittingMonthlyKeys.add(lockKey);
+  if (inputEl) {
+    inputEl.value = '';
+    inputEl.disabled = true;
   }
 
-  startMonthlyAutoSyncTimer();
-  flushMonthlyQueue({ showBlockingLoader: false });
+  try {
+    const now = new Date();
+    const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    item.hasCounted = true;
+    item.countedQty = qty;
+    item.countedUser = session.name;
+    item.countedTime = timeStr;
+
+    const tempSn = 'PENDING_' + loc;
+    const queue = getMonthlyQueue();
+    const existingIdx = queue.findIndex(q => q.data && q.data.locCode === loc && q.data.type === '盤點調劑台');
+    const queueItem = {
+      queueId: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      tempSn,
+      timestamp: now.getTime(),
+      localTimeStr: timeStr,
+      action: 'submitInventory',
+      data: {
+        mode: '月盤點',
+        userId: session.id,
+        userName: session.name,
+        type: '盤點調劑台',
+        actionSrc: '',
+        dispType: '',
+        drugCode: dCode,
+        drugName: dName,
+        handQty: qty,
+        tableId: tId,
+        locCode: loc,
+        barcode: ''
+      }
+    };
+    if (existingIdx > -1) queue[existingIdx] = queueItem;
+    else queue.push(queueItem);
+
+    saveMonthlyQueue(queue);
+    applyMonthlyQueueToLocalState();
+    renderAllRecordLists();
+
+    if (navigator.vibrate) navigator.vibrate(50);
+    const uncountedItems = tableData.items.filter(i => !i.hasCounted);
+    const uncountedLength = uncountedItems.length;
+    const uncountedBadge = document.getElementById('count-desk-uncounted');
+    if (uncountedBadge) uncountedBadge.innerText = uncountedLength;
+
+    const card = inputEl ? inputEl.closest('.drug-card') : null;
+    if (card) {
+      card.style.display = 'none';
+      card.remove();
+    }
+
+    if (uncountedLength === 0) {
+      const area = document.getElementById('monthly-desk-area');
+      if (area) {
+        area.insertAdjacentHTML('beforeend', '<div class="text-center p-4 text-muted fw-bold">所有藥品皆已盤點完成</div>');
+      }
+      await flushMonthlyQueue({ showBlockingLoader: true, onComplete: () => refreshMonthlyData(true) });
+      return;
+    }
+
+    startMonthlyAutoSyncTimer();
+    await flushMonthlyQueue({ showBlockingLoader: false });
+  } finally {
+    setTimeout(() => {
+      submittingMonthlyKeys.delete(lockKey);
+    }, 400);
+  }
 }
 
 export function renderMonthlyDesk() {
