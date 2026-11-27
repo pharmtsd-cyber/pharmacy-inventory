@@ -981,7 +981,7 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div>
         <h6 class="fw-bold text-academic mb-0"><i class="bi bi-capsule-pill"></i> 全院藥品主檔與儲位分佈總覽</h6>
-        <div class="small text-muted">可輸入多組關鍵字（空白分隔）搜尋藥名、加P碼、批價代碼或儲位碼</div>
+        <div class="small text-muted">輸入關鍵字模糊篩選下拉藥品選取，或直接篩選列表；點選「儲位總數」可查看各單位儲位明細</div>
       </div>
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="loadDrugMasterCatalog()">
@@ -993,12 +993,13 @@
       </div>
     </div>
     <div class="row g-2 align-items-center">
-      <div class="col-md-5">
+      <div class="col-md-5 position-relative">
         <div class="input-group input-group-sm shadow-sm">
           <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
-          <input type="text" id="dm-catalog-search" class="form-control border-secondary fw-bold" placeholder="輸入藥名、加P碼、批價碼或儲位碼..." oninput="renderDrugMasterCatalog()">
+          <input type="text" id="dm-catalog-search" class="form-control border-secondary fw-bold" placeholder="模糊搜尋藥名、加P碼或批價碼（選取下拉可精準鎖定）..." oninput="onDrugMasterCatalogSearchInput()" onfocus="onDrugMasterCatalogSearchInput()" autocomplete="off">
           <button type="button" class="btn btn-outline-secondary" onclick="clearDrugMasterCatalogSearch()">清除</button>
         </div>
+        <div id="dm-catalog-dropdown" class="search-dropdown shadow" style="display: none; max-height: 280px; overflow-y: auto; z-index: 1080;"></div>
       </div>
       <div class="col-md-3">
         <select id="dm-catalog-loc-filter" class="form-select form-select-sm border-secondary fw-bold" onchange="renderDrugMasterCatalog()">
@@ -1018,15 +1019,14 @@
       <table class="table table-hover table-sm table-bordered align-middle mb-0">
         <thead class="table-academic-head sticky-top">
           <tr>
-            <th class="text-center text-nowrap" style="width: 12%;">加P代碼</th>
-            <th class="text-center text-nowrap" style="width: 11%;">批價代碼</th>
-            <th style="width: 28%;">藥品學名</th>
-            <th class="text-center text-nowrap" style="width: 10%;">儲位總數</th>
-            <th>目前儲位位置明細（單位 / 區域 / 盤點表 / 儲位碼）</th>
+            <th class="text-center text-nowrap" style="width: 18%;">加P藥品代碼</th>
+            <th class="text-center text-nowrap" style="width: 18%;">批價代碼</th>
+            <th>藥品學名</th>
+            <th class="text-center text-nowrap" style="width: 16%;">儲位總數（點擊查看）</th>
           </tr>
         </thead>
         <tbody id="dm-catalog-tbody">
-          <tr><td colspan="5" class="text-center py-4 text-muted">載入中...</td></tr>
+          <tr><td colspan="4" class="text-center py-4 text-muted">載入中...</td></tr>
         </tbody>
       </table>
     </div>
