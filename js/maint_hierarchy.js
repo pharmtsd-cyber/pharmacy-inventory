@@ -348,17 +348,21 @@ export function handleTableDrop(e, targetTableId) {
 // ==========================================
 // 第一層：區域
 // ==========================================
+let activeHierSearchTarget = null; // 點選下拉項目後鎖定的目標 { type, drugCode, locCode, tableId, areaId, label }
+
 function getHierSearchKeyword() {
   const el = document.getElementById('hier-loc-search');
   return String(el?.value || '').trim().toLowerCase();
 }
 
-// 計算搜尋關鍵字下符合的三層集合：
-// - 命中第三層儲位 -> 連帶保留所屬第二層盤點表與第一層區域
-// - 命中第二層盤點表 -> 連帶保留所屬第一層區域與該盤點表下所有儲位
-// - 命中第一層區域 -> 連帶保留該區域下所有盤點表與儲位
-function getHierarchySearchMatches(kw) {
-  if (!kw) {
+function hideHierSearchDropdown() {
+  const dd = document.getElementById('hier-search-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+// 依「已選定的搜尋目標」計算下方三層應顯示的集合
+function getHierarchySearchMatches() {
+  if (!activeHierSearchTarget) {
     return {
       active: false,
       matchedAreaIds: null,
@@ -368,83 +372,27 @@ function getHierarchySearchMatches(kw) {
   }
 
   const areaMap = {};
-  for (const a of hierAreas) {
-    areaMap[a.area_id] = a;
-  }
+  for (const a of hierAreas) areaMap[a.area_id] = a;
 
   const tableMap = {};
-  for (const t of hierTables) {
-    tableMap[t.table_id] = t;
-  }
+  for (const t of hierTables) tableMap[t.table_id] = t;
 
   const matchedAreaIds = new Set();
   const matchedTableIds = new Set();
   const matchedLocCodes = new Set();
 
-  // 1. 比對第三層儲位
+  const targetDrug = String(activeHierSearchTarget.drugCode || '').trim().toLowerCase();
+  const targetLoc = String(activeHierSearchTarget.locCode || '').trim().toLowerCase();
+
   for (const l of hierLocations) {
-    const tbl = tableMap[l.table_id];
-    const area = tbl ? areaMap[tbl.area_code] : null;
-    const hay = [
-      l.loc_code,
-      l.drug_code,
-      l.drug_name,
-      l.monthly_desc,
-      l.drug_remark,
-      l.daily_notice,
-      tbl?.table_id,
-      tbl?.table_code,
-      tbl?.table_name,
-      area?.area_id,
-      area?.area_code,
-      area?.area_name
-    ].join(' ').toLowerCase();
-
-    if (hay.includes(kw)) {
+    const sameDrug = targetDrug && String(l.drug_code || '').trim().toLowerCase() === targetDrug;
+    const sameLoc = targetLoc && String(l.loc_code || '').trim().toLowerCase() === targetLoc;
+    if (sameDrug || sameLoc) {
       if (l.loc_code) matchedLocCodes.add(l.loc_code);
-      if (l.table_id) matchedTableIds.add(l.table_id);
-      if (tbl?.area_code) matchedAreaIds.add(tbl.area_code);
-    }
-  }
-
-  // 2. 比對第二層盤點表
-  for (const t of hierTables) {
-    const area = areaMap[t.area_code];
-    const hay = [
-      t.table_id,
-      t.table_code,
-      t.table_name,
-      t.table_desc,
-      area?.area_id,
-      area?.area_code,
-      area?.area_name
-    ].join(' ').toLowerCase();
-
-    if (hay.includes(kw)) {
-      matchedTableIds.add(t.table_id);
-      if (t.area_code) matchedAreaIds.add(t.area_code);
-      for (const l of hierLocations) {
-        if (l.table_id === t.table_id && l.loc_code) {
-          matchedLocCodes.add(l.loc_code);
-        }
-      }
-    }
-  }
-
-  // 3. 比對第一層區域
-  for (const a of hierAreas) {
-    const hay = [a.area_id, a.area_code, a.area_name, a.area_desc].join(' ').toLowerCase();
-    if (hay.includes(kw)) {
-      matchedAreaIds.add(a.area_id);
-      for (const t of hierTables) {
-        if (t.area_code === a.area_id) {
-          matchedTableIds.add(t.table_id);
-          for (const l of hierLocations) {
-            if (l.table_id === t.table_id && l.loc_code) {
-              matchedLocCodes.add(l.loc_code);
-            }
-          }
-        }
+      if (l.table_id) {
+        matchedTableIds.add(l.table_id);
+        const tbl = tableMap[l.table_id];
+        if (tbl?.area_code) matchedAreaIds.add(tbl.area_code);
       }
     }
   }
@@ -457,7 +405,105 @@ function getHierarchySearchMatches(kw) {
   };
 }
 
+// 輸入關鍵字時：僅更新模糊下拉清單，不立即改動下方三層
 export function onHierSearchInput() {
+  const kw = getHierSearchKeyword();
+  const dd = document.getElementById('hier-search-dropdown');
+  if (!dd) return;
+
+  // 若使用者修改文字且與目前已套用的標籤不同，先解除鎖定狀態
+  if (activeHierSearchTarget && String(document.getElementById('hier-loc-search')?.value || '').trim() !== activeHierSearchTarget.label) {
+    activeHierSearchTarget = null;
+    renderAreasColumn();
+  }
+
+  if (!kw) {
+    dd.style.display = 'none';
+    return;
+  }
+
+  const areaMap = {};
+  for (const a of hierAreas) areaMap[a.area_id] = a;
+
+  const tableMap = {};
+  for (const t of hierTables) tableMap[t.table_id] = t;
+
+  const tokens = kw.split(/\s+/).filter(Boolean);
+  const candidates = [];
+
+  for (const l of hierLocations) {
+    const tbl = tableMap[l.table_id];
+    const area = tbl ? areaMap[tbl.area_code] : null;
+    const hay = [
+      l.drug_code,
+      l.drug_name,
+      l.loc_code,
+      tbl?.table_id,
+      tbl?.table_name,
+      area?.area_id,
+      area?.area_name
+    ].join(' ').toLowerCase();
+
+    if (tokens.every(tok => hay.includes(tok))) {
+      candidates.push({
+        drugCode: l.drug_code || '',
+        drugName: l.drug_name || '',
+        locCode: l.loc_code || '',
+        tableId: l.table_id || '',
+        tableName: tbl?.table_name || l.table_id || '',
+        areaId: tbl?.area_code || '',
+        areaName: area?.area_name || tbl?.area_code || ''
+      });
+    }
+  }
+
+  const topList = candidates.slice(0, 25);
+  if (!topList.length) {
+    dd.innerHTML = '<div class="p-2 small text-muted">查無相符的藥品或儲位</div>';
+    dd.style.display = 'block';
+    return;
+  }
+
+  dd.innerHTML = topList.map((item, idx) => `
+    <div class="search-dropdown-item p-2 border-bottom" style="cursor:pointer;" onclick="selectHierSearchCandidate(${idx})">
+      <div class="fw-bold text-primary small">${item.drugName || '-'} <span class="text-dark">(${item.drugCode || '-'})</span></div>
+      <div class="small text-muted">儲位：<strong>${item.locCode || '-'}</strong>｜${item.areaName} / ${item.tableName}</div>
+    </div>
+  `).join('');
+
+  window.__hierSearchCandidates = topList;
+  dd.style.display = 'block';
+}
+
+// 點選下拉清單中的藥品/儲位後，才觸發下方三層聯動篩選
+export function selectHierSearchCandidate(index) {
+  const list = window.__hierSearchCandidates || [];
+  const item = list[index];
+  if (!item) return;
+
+  const label = `${item.drugName} (${item.locCode || item.drugCode})`;
+  activeHierSearchTarget = {
+    drugCode: item.drugCode,
+    locCode: item.locCode,
+    tableId: item.tableId,
+    areaId: item.areaId,
+    label
+  };
+
+  const input = document.getElementById('hier-loc-search');
+  if (input) input.value = label;
+  hideHierSearchDropdown();
+
+  if (item.areaId) selectedAreaId = item.areaId;
+  if (item.tableId) selectedTableId = item.tableId;
+  renderAreasColumn();
+}
+
+export function clearHierSearchFilter() {
+  activeHierSearchTarget = null;
+  const input = document.getElementById('hier-loc-search');
+  if (input) input.value = '';
+  hideHierSearchDropdown();
   renderAreasColumn();
 }
 
