@@ -563,33 +563,102 @@ export function renderTablesColumn() {
       </div>
     </div>`;
 
-  const segsHtml = segs.map((seg, idx) => {
-    const sNo = Number(seg.segment_no);
-    const letter = segNoToLetter(idx + 1);
-    const isSel = Number(selectedTableSegmentNo) === sNo;
-    const isCol = collapsedTableSegs.has(`${selectedAreaId}_${sNo}`);
-    const itemsInSeg = areaTables.filter(t => (Number(t.segment_no ?? t.is_section_start) || 0) === sNo);
-    return `
-      <div class="card border ${isSel ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs">
-        <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSel ? 'bg-primary bg-opacity-10' : 'bg-light'}" style="cursor:pointer;" onclick="selectTableSegment(${sNo})">
-          <div class="fw-bold small text-dark text-truncate d-flex align-items-center gap-1">
-            <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleTableSegCollapse(${sNo})" title="收合/展開">${isCol ? '▸' : '▾'}</button>
-            <span class="badge bg-primary">段 ${letter}</span>
-            <span class="text-truncate">${seg.segment_name || `分段 ${letter}`} (${itemsInSeg.length})</span>
-          </div>
-          <div class="d-flex align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
-            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.7rem;" onclick="deleteTableSegmentBox(${sNo})">取消分段</button>
-          </div>
-        </div>
-        <div class="list-group list-group-flush hier-tbl-seg-list ${isCol ? 'd-none' : ''}" data-seg-no="${sNo}">
-          ${renderTableCards(itemsInSeg)}
-        </div>
-      </div>`;
-  }).join('');
+  const segsHtml = segs.length
+    ? `<div id="hier-tbl-segs-wrapper">` + segs.map((seg, idx) => {
+        const sNo = Number(seg.segment_no);
+        const letter = segNoToLetter(idx + 1);
+        const isSel = Number(selectedTableSegmentNo) === sNo;
+        const isCol = collapsedTableSegs.has(`${selectedAreaId}_${sNo}`);
+        const itemsInSeg = areaTables.filter(t => (Number(t.segment_no ?? t.is_section_start) || 0) === sNo);
+        return `
+          <div class="card border ${isSel ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs hier-tbl-seg-card" data-seg-no="${sNo}">
+            <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSel ? 'bg-primary bg-opacity-10' : 'bg-light'}" style="cursor:pointer;" onclick="selectTableSegment(${sNo})">
+              <div class="fw-bold small text-dark text-truncate d-flex align-items-center gap-1">
+                <i class="bi bi-arrows-move tbl-seg-drag-handle text-secondary" style="cursor:grab;" title="拖拉調整分段順序" onclick="event.stopPropagation()"></i>
+                <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleTableSegCollapse(${sNo})" title="收合/展開">${isCol ? '▸' : '▾'}</button>
+                <span class="badge bg-primary">段 ${letter}</span>
+                <span class="text-truncate">${seg.segment_name || `分段 ${letter}`} (${itemsInSeg.length})</span>
+              </div>
+              <div class="d-flex align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.7rem;" onclick="deleteTableSegmentBox(${sNo})">取消分段</button>
+              </div>
+            </div>
+            <div class="list-group list-group-flush hier-tbl-seg-list ${isCol ? 'd-none' : ''}" data-seg-no="${sNo}">
+              ${renderTableCards(itemsInSeg)}
+            </div>
+          </div>`;
+      }).join('') + `</div>`
+    : '<div id="hier-tbl-segs-wrapper"></div>';
 
   tblListEl.innerHTML = poolHtml + segsHtml;
 
   if (window.Sortable) {
+    // 分段框上下拖拉調整順序
+    const tblSegsWrapper = tblListEl.querySelector('#hier-tbl-segs-wrapper');
+    if (tblSegsWrapper) {
+      new window.Sortable(tblSegsWrapper, {
+        handle: '.tbl-seg-drag-handle',
+        draggable: '.hier-tbl-seg-card',
+        animation: 150,
+        onEnd: () => {
+          const orderedOldNos = Array.from(tblSegsWrapper.querySelectorAll('.hier-tbl-seg-card'))
+            .map(el => Number(el.getAttribute('data-seg-no')));
+
+          const oldToNewSegNo = {};
+          const updatedAreaSegs = [];
+          orderedOldNos.forEach((oldNo, idx) => {
+            const newNo = idx + 1;
+            oldToNewSegNo[oldNo] = newNo;
+            const origSeg = segs.find(s => Number(s.segment_no) === oldNo);
+            const letter = segNoToLetter(newNo);
+            updatedAreaSegs.push({
+              segment_id: origSeg?.segment_id || `AREA_${selectedAreaId}_SEG_${newNo}`,
+              unit_code: unitPrefix,
+              table_id: segKey,
+              segment_no: newNo,
+              segment_name: origSeg?.segment_name || `分段 ${letter}`
+            });
+          });
+
+          // 同步未上鎖盤點表的分段編號與編碼前綴
+          const usedTableIds = new Set(
+            hierTables.filter(t => t.is_locked && t.table_id).map(t => String(t.table_id).toUpperCase())
+          );
+          hierTables.forEach(t => {
+            if (t.area_code !== selectedAreaId) return;
+            const curSeg = Number(t.segment_no ?? t.is_section_start) || 0;
+            if (curSeg > 0 && oldToNewSegNo[curSeg]) {
+              const nextSegNo = oldToNewSegNo[curSeg];
+              t.segment_no = nextSegNo;
+              t.is_section_start = nextSegNo;
+              if (!t.is_locked) {
+                const newLetter = segNoToLetter(nextSegNo);
+                const rawCode = String(t.table_code || '').trim().toUpperCase();
+                const minorPart = rawCode.length >= 2 ? rawCode.slice(1) : 'A';
+                const candidateCode = `${newLetter}${minorPart}`;
+                const candidateId = `${selectedAreaId}${candidateCode}`;
+                if (!usedTableIds.has(candidateId) || candidateId === t.table_id) {
+                  const oldTblId = t.table_id;
+                  t.table_code = candidateCode;
+                  t.table_id = candidateId;
+                  usedTableIds.add(candidateId);
+                  if (selectedTableId === oldTblId) selectedTableId = candidateId;
+                }
+              }
+            }
+          });
+
+          const otherSegs = hierSegments.filter(s => s.table_id !== segKey);
+          hierSegments = [...otherSegs, ...updatedAreaSegs];
+          if (selectedTableSegmentNo > 0 && oldToNewSegNo[selectedTableSegmentNo]) {
+            selectedTableSegmentNo = oldToNewSegNo[selectedTableSegmentNo];
+          }
+          saveHierarchyOnly('已調整盤點表分段順序');
+        }
+      });
+    }
+
+    // 各分段與 POOL 內盤點表拖拉
     tblListEl.querySelectorAll('.hier-tbl-seg-list').forEach(listEl => {
       new window.Sortable(listEl, {
         group: 'hier-table-group',
@@ -809,7 +878,7 @@ export function renderLocationsColumn() {
     </div>`;
 
   const segCardsHtml = segs.length > 0
-    ? segs.map((seg, sIdx) => {
+    ? `<div id="hier-loc-segs-wrapper">` + segs.map((seg, sIdx) => {
         const segNo = Number(seg.segment_no) || (sIdx + 1);
         const displaySegNum = sIdx + 1;
         const isSelSeg = segNo === Number(selectedSegmentNo);
@@ -817,9 +886,10 @@ export function renderLocationsColumn() {
         const itemsInSeg = filterKw(tableLocs.filter(l => (Number(l.segment_no ?? l.row_no) || 0) === segNo));
 
         return `
-          <div class="card border ${isSelSeg ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs">
+          <div class="card border ${isSelSeg ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs hier-loc-seg-card" data-seg-no="${segNo}">
             <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center ${isSelSeg ? 'bg-primary bg-opacity-10' : 'bg-light'}" onclick="selectLocSegment(${segNo})" style="cursor:pointer;">
               <div class="fw-bold small text-dark d-flex align-items-center gap-1">
+                <i class="bi bi-arrows-move loc-seg-drag-handle text-secondary" style="cursor:grab;" title="拖拉調整分段順序" onclick="event.stopPropagation()"></i>
                 <button type="button" class="btn btn-sm btn-link text-dark p-0 text-decoration-none fw-bold" style="width:18px;" onclick="event.stopPropagation(); toggleLocSegCollapse(${segNo})" title="收合/展開">${isCol ? '▸' : '▾'}</button>
                 <span class="badge bg-primary">分段 #${displaySegNum}</span>
                 <span>${seg.segment_name || `第 ${displaySegNum} 分段`}</span>
@@ -841,12 +911,72 @@ export function renderLocationsColumn() {
               </table>
             </div>
           </div>`;
-      }).join('')
+      }).join('') + `</div>`
     : '<div class="alert alert-secondary small py-2 mb-0">尚未建立分段框，請點擊上方「+ 新增分段框」建立分段箱後再拖拉 POOL 儲位進入。</div>';
 
   container.innerHTML = poolCardHtml + segCardsHtml;
 
   if (window.Sortable && !kw) {
+    // 儲位分段框上下拖拉調整順序
+    const locSegsWrapper = container.querySelector('#hier-loc-segs-wrapper');
+    if (locSegsWrapper) {
+      new window.Sortable(locSegsWrapper, {
+        handle: '.loc-seg-drag-handle',
+        draggable: '.hier-loc-seg-card',
+        animation: 150,
+        onEnd: () => {
+          const orderedOldNos = Array.from(locSegsWrapper.querySelectorAll('.hier-loc-seg-card'))
+            .map(el => Number(el.getAttribute('data-seg-no')));
+
+          const oldToNewSegNo = {};
+          const updatedTableSegs = [];
+          orderedOldNos.forEach((oldNo, idx) => {
+            const newNo = idx + 1;
+            oldToNewSegNo[oldNo] = newNo;
+            const origSeg = segs.find(s => Number(s.segment_no) === oldNo);
+            updatedTableSegs.push({
+              segment_id: origSeg?.segment_id || `${selectedTableId}_SEG_${newNo}`,
+              unit_code: unitPrefix,
+              table_id: selectedTableId,
+              segment_no: newNo,
+              segment_name: origSeg?.segment_name || `第 ${newNo} 分段`
+            });
+          });
+
+          // 同步未上鎖儲位的分段編號與儲位碼分段碼
+          const usedLocCodes = new Set(
+            hierLocations.filter(l => l.is_locked && l.loc_code).map(l => String(l.loc_code).toUpperCase())
+          );
+          hierLocations.forEach(l => {
+            if (l.table_id !== selectedTableId) return;
+            const curSeg = Number(l.segment_no ?? l.row_no) || 0;
+            if (curSeg > 0 && oldToNewSegNo[curSeg]) {
+              const nextSegNo = oldToNewSegNo[curSeg];
+              l.segment_no = nextSegNo;
+              l.row_no = String(nextSegNo);
+              if (!l.is_locked) {
+                const posPart = String(l.pos_no || String(l.loc_code || '').slice(-3) || '001').padStart(3, '0');
+                const candidateCode = `${selectedTableId}${nextSegNo}${posPart}`.toUpperCase();
+                if (!usedLocCodes.has(candidateCode) || candidateCode === l.loc_code) {
+                  l.loc_code = candidateCode;
+                  l.pos_no = posPart;
+                  usedLocCodes.add(candidateCode);
+                }
+              }
+            }
+          });
+
+          const otherSegs = hierSegments.filter(s => s.table_id !== selectedTableId);
+          hierSegments = [...otherSegs, ...updatedTableSegs];
+          if (selectedSegmentNo > 0 && oldToNewSegNo[selectedSegmentNo]) {
+            selectedSegmentNo = oldToNewSegNo[selectedSegmentNo];
+          }
+          saveHierarchyOnly('已調整儲位分段順序');
+        }
+      });
+    }
+
+    // 各分段與 POOL 內儲位拖拉
     container.querySelectorAll('.hier-seg-tbody').forEach(tb => {
       new window.Sortable(tb, {
         group: 'hier-loc-group',
