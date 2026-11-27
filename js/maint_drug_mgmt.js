@@ -249,9 +249,12 @@ export function handleSapFileSelectV2(sapType, event) {
 
       const h = raw[0].map(x => String(x).trim());
       const mIdx = h.indexOf('物料');
-      const qIdx = h.indexOf('數量');
+      // 優先找「未限制」，找不到再相容舊的「數量」欄名
+      let qIdx = h.indexOf('未限制');
+      if (qIdx === -1) qIdx = h.indexOf('數量');
+
       if (mIdx === -1 || qIdx === -1) {
-        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「物料」、「數量」兩個欄位</span>`;
+        preview.innerHTML = `<span class="text-danger fw-bold">❌ 欄位格式不符！必須包含「物料」與「未限制」（或「數量」）欄位</span>`;
         btn.disabled = true;
         return;
       }
@@ -270,7 +273,7 @@ export function handleSapFileSelectV2(sapType, event) {
 
         const rowErrs = [];
 
-      // 1. 物料檢核（必須以 P 開頭）
+        // 1. 物料檢核（必須以 P 開頭）
         const normCode = rawCode.toUpperCase();
         if (!normCode) {
           rowErrs.push('物料為空');
@@ -281,9 +284,9 @@ export function handleSapFileSelectV2(sapType, event) {
         // 2. 數量檢核（僅允許數字，可含千分位逗號、負號與小數點）
         const cleanQtyStr = rawQty.replace(/,/g, '');
         if (!cleanQtyStr) {
-          rowErrs.push('數量為空');
+          rowErrs.push('未限制數量為空');
         } else if (!/^-?\d+(\.\d+)?$/.test(cleanQtyStr)) {
-          rowErrs.push(`數量「${rawQty}」不是有效數字`);
+          rowErrs.push(`未限制數量「${rawQty}」不是有效數字`);
         }
 
         if (rowErrs.length > 0) {
