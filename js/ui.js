@@ -88,6 +88,10 @@ export function toggleLoader(show, text = '系統處理中...', isBatch = false)
   }
 }
 
+export function applyDarkGrayTheme() {
+  document.documentElement.style.setProperty('--academic-primary', '#495057');
+}
+
 export function switchView(viewId) {
   document.querySelectorAll('.view-section').forEach(el => {
     el.classList.remove('active');
@@ -97,66 +101,75 @@ export function switchView(viewId) {
     target.classList.add('active');
   }
 
+  // 藥品主檔、藥師權限管理、網站權限管理、月盤點調帳專區 進入後主色統一深灰色
+  if (['view-drug-master-list', 'view-user-mgmt', 'view-portal-perm', 'view-monthly-adj'].includes(viewId)) {
+    applyDarkGrayTheme();
+  }
+
   const idEl = document.getElementById('nav-user-id');
   const nameEl = document.getElementById('nav-user-name');
   const modeEl = document.getElementById('nav-mode-name');
-  const backBtn = document.getElementById('nav-back-btn');
-  const logoutBtn = document.getElementById('nav-logout-btn');
+  const actionGroup = document.getElementById('nav-action-buttons');
+  const prevBtn = document.getElementById('nav-prev-btn');
 
-  if (!idEl) return; 
+  if (!idEl || !actionGroup) return;
 
-  if (viewId === 'view-lobby' || viewId === 'view-login') {
+  // 網站入口（view-lobby）不顯示導覽列返回按鈕
+  if (viewId === 'view-lobby') {
     idEl.style.display = 'none';
     nameEl.style.display = 'none';
     modeEl.style.display = 'none';
-    backBtn.style.display = 'none';
-    logoutBtn.style.display = 'none';
-  } else if (viewId === 'view-mode-select') {
-    idEl.innerText = session.id || '';
-    nameEl.innerText = session.name ? `${session.name} 藥師` : '';
-    idEl.style.display = session.id ? 'inline-block' : 'none';
-    nameEl.style.display = session.name ? 'inline-block' : 'none';
-    modeEl.style.display = 'none'; 
-    backBtn.style.display = 'none'; 
-    logoutBtn.style.display = 'inline-block'; 
-  } else {
-    idEl.innerText = session.id || '';
-    nameEl.innerText = session.name ? `${session.name} 藥師` : '';
-    idEl.style.display = session.id ? 'inline-block' : 'none';
-    nameEl.style.display = session.name ? 'inline-block' : 'none';
+    actionGroup.style.display = 'none';
+    return;
+  }
 
-    const isGlobalPortal = ['user_mgmt', 'drug_mgmt', 'portal_perm', 'monthly_adj'].includes(currentDept);
-    if (viewId === 'view-daily-app') {
-      modeEl.innerText = '每日盤點';
-    } else if (viewId === 'view-monthly-app') {
-      modeEl.innerText = '月盤點';
+  // 除網站入口外，每一層皆顯示「回到上一層」與「回到網站入口」
+  actionGroup.style.display = 'flex';
+
+  if (viewId === 'view-login') {
+    idEl.style.display = 'none';
+    nameEl.style.display = 'none';
+    modeEl.style.display = 'none';
+    if (prevBtn) prevBtn.setAttribute('onclick', 'backToLobby()');
+    return;
+  }
+
+  idEl.innerText = session.id || '';
+  nameEl.innerText = session.name ? `${session.name} 藥師` : '';
+  idEl.style.display = session.id ? 'inline-block' : 'none';
+  nameEl.style.display = session.name ? 'inline-block' : 'none';
+
+  const modeLabelMap = {
+    'view-mode-select': '作業模式',
+    'view-daily-app': '每日盤點',
+    'view-monthly-app': '月盤點',
+    'view-history-app': '對帳分析',
+    'view-user-mgmt': '藥師權限管理',
+    'view-drug-mgmt': '藥品管理組',
+    'view-portal-perm': '網站權限管理',
+    'view-monthly-adj': '月盤點調帳專區',
+    'view-maintenance': '分層儲位維護',
+    'view-drug-master-list': '藥品主檔'
+  };
+  modeEl.innerText = modeLabelMap[viewId] || '作業中';
+  modeEl.style.display = 'inline-block';
+
+  // 設定各層「回到上一層」的精準目標
+  if (prevBtn) {
+    if (viewId === 'view-mode-select') {
+      prevBtn.setAttribute('onclick', 'backToLobby()');
     } else if (viewId === 'view-history-app') {
-      modeEl.innerText = '對帳分析';
-    } else if (viewId === 'view-user-mgmt') {
-      modeEl.innerText = '藥師權限管理';
-    } else if (viewId === 'view-drug-mgmt') {
-      modeEl.innerText = '藥品管理組';
-    } else if (viewId === 'view-portal-perm') {
-      modeEl.innerText = '網站權限管理';
+      prevBtn.setAttribute('onclick', "switchView('view-daily-app')");
+    } else if (viewId === 'view-monthly-app') {
+      prevBtn.setAttribute('onclick', 'handleMonthlyBack()');
+    } else if (['view-daily-app', 'view-maintenance'].includes(viewId)) {
+      prevBtn.setAttribute('onclick', 'backToModeSelect()');
     } else if (viewId === 'view-monthly-adj') {
-      modeEl.innerText = '月盤點調帳專區';
-    } else if (viewId === 'view-maintenance') {
-      modeEl.innerText = '分層儲位維護';
+      prevBtn.setAttribute('onclick', 'handleMonthlyAdjPrevLayer()');
     } else {
-      modeEl.innerText = '作業中';
+      // view-user-mgmt / view-drug-mgmt / view-portal-perm / view-drug-master-list
+      prevBtn.setAttribute('onclick', 'backToLobby()');
     }
-
-    if (isGlobalPortal) {
-      backBtn.setAttribute('onclick', 'backToLobby()');
-      backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> 回入口';
-    } else {
-      backBtn.setAttribute('onclick', 'backToModeSelect()');
-      backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> 返回';
-    }
-    
-    modeEl.style.display = 'inline-block';      
-    backBtn.style.display = 'inline-block';     
-    logoutBtn.style.display = 'inline-block';   
   }
 }
 
