@@ -652,3 +652,75 @@ function extractSapQty(row) {
   const num = Number(String(raw).replace(/,/g, '').trim());
   return Number.isNaN(num) ? 0 : num;
 }
+
+let drugMasterCatalogCache = [];
+
+function matchesFuzzyKeywords(text, rawQuery) {
+  const q = String(rawQuery || '').trim().toLowerCase();
+  if (!q) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const target = String(text || '').toLowerCase();
+  return tokens.every(tok => target.includes(tok));
+}
+
+export function openDrugMasterListView() {
+  switchView('view-drug-master-list');
+  if (!drugMasterCatalogCache.length) {
+    loadDrugMasterCatalog();
+  } else {
+    renderDrugMasterCatalog();
+  }
+}
+
+export function loadDrugMasterCatalog() {
+  toggleLoader(true, '正在載入藥品主檔清單...');
+  fetchBackend('getDrugMasterSearchList')
+    .then(res => {
+      toggleLoader(false);
+      if (!res || !res.success) {
+        alert('載入藥品主檔失敗：' + (res?.message || '未知錯誤'));
+        return;
+      }
+      drugMasterCatalogCache = Array.isArray(res.data) ? res.data : [];
+      renderDrugMasterCatalog();
+    })
+    .catch(err => {
+      toggleLoader(false);
+      alert('載入藥品主檔異常：' + err.message);
+    });
+}
+
+export function clearDrugMasterCatalogSearch() {
+  const input = document.getElementById('dm-catalog-search');
+  if (input) input.value = '';
+  renderDrugMasterCatalog();
+}
+
+export function renderDrugMasterCatalog() {
+  const kw = document.getElementById('dm-catalog-search')?.value || '';
+  const tbody = document.getElementById('dm-catalog-tbody');
+  const countEl = document.getElementById('dm-catalog-count');
+  const totalEl = document.getElementById('dm-catalog-total');
+  if (!tbody) return;
+
+  const filtered = drugMasterCatalogCache.filter(item => {
+    const combined = `${item.inv_code || ''} ${item.price_code || ''} ${item.drug_name || ''}`;
+    return matchesFuzzyKeywords(combined, kw);
+  });
+
+  if (countEl) countEl.innerText = filtered.length;
+  if (totalEl) totalEl.innerText = drugMasterCatalogCache.length;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted">查無符合條件的藥品資料</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(item => `
+    <tr>
+      <td class="text-center fw-bold text-academic">${item.inv_code || '-'}</td>
+      <td class="text-center">${item.price_code || '-'}</td>
+      <td class="fw-bold">${item.drug_name || '-'}</td>
+    </tr>
+  `).join('');
+}
