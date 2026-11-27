@@ -27,9 +27,7 @@ export function handleLogin() {
       if (navInfoElement) navInfoElement.innerText = session.name;
 
       // 嚴格使用 if / else if / else，避免藥品管理組被導回一般單位選單
-      if (currentDept === 'user_mgmt') {
-        if (typeof window.initUserMgmtPortal === 'function') window.initUserMgmtPortal();
-      } else if (currentDept === 'drug_mgmt') {
+      if (currentDept === 'drug_mgmt') {
         if (typeof window.initDrugMgmtPortal === 'function') window.initDrugMgmtPortal();
       } else if (currentDept === 'portal_perm') {
         if (typeof window.initPortalPermPortal === 'function') window.initPortalPermPortal();
