@@ -984,13 +984,24 @@ export function renderMonthlyDashboard() {
 
 export function enterTableInventory(tableId, tableName) {
   const select = document.getElementById('monthly-table-select');
-  if (select) { select.value = tableId; handleTableSelectChange(); }
-  document.getElementById('monthly-app-title').innerText = tableName;
-  document.getElementById('monthly-tabs').classList.add('d-none');
-  document.getElementById('btn-monthly-back').classList.remove('d-none');
+  if (select) {
+    select.value = tableId;
+  }
+  const titleEl = document.getElementById('monthly-app-title');
+  if (titleEl) {
+    titleEl.innerText = tableName || '月盤點作業';
+  }
+  const tabsEl = document.getElementById('monthly-tabs');
+  if (tabsEl) {
+    tabsEl.classList.add('d-none');
+  }
   document.querySelectorAll('.monthly-content-section').forEach(s => s.classList.add('d-none'));
-  document.getElementById('tab-dispense').classList.remove('d-none');
-  window.scrollTo(0,0);
+  const dispenseTab = document.getElementById('tab-dispense');
+  if (dispenseTab) {
+    dispenseTab.classList.remove('d-none');
+  }
+  switchDeskSubTab('input');
+  window.scrollTo(0, 0);
 }
 
 export function handleMonthlyBack() {
