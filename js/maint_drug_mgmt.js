@@ -625,3 +625,27 @@ export function exportMonthlySnapshotsExcel() {
   }
   window.XLSX.writeFile(wb, `月盤點結果_${unitCode}_${monthStr}.xlsx`);
 }
+
+// 依候選欄位名稱取值（自動忽略欄名前後空白）
+function pickSapField(row, keys = []) {
+  if (!row || typeof row !== 'object') return '';
+  const normMap = {};
+  for (const [k, v] of Object.entries(row)) {
+    normMap[String(k).trim()] = v;
+  }
+  for (const key of keys) {
+    const val = normMap[String(key).trim()];
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      return val;
+    }
+  }
+  return '';
+}
+
+// 取得 SAP 數量（優先讀取「未限制」，並相容舊欄名與千分位逗號）
+function extractSapQty(row) {
+  const raw = pickSapField(row, ['未限制', '未限制數量', '數量', '庫存量', '庫存', 'qty', 'quantity']);
+  if (raw === '') return 0;
+  const num = Number(String(raw).replace(/,/g, '').trim());
+  return Number.isNaN(num) ? 0 : num;
+}
