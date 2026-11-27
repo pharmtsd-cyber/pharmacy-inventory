@@ -91,10 +91,10 @@ export function downloadExcelTemplate(type) {
     rows = [['批價代碼', '藥品學名', '藥檔狀態'], ['BAMIN0', 'Amino Acid 7% 250ml/bot (Nephrosteril)', '0']];
   } else if (type === 'daily_sap') {
     sheetName = '導入每日SAP'; filename = '範本_每日SAP上傳.xlsx';
-    rows = [['物料', '數量'], ['POTAC01', 120]];
+    rows = [['物料', '未限制'], ['POTAC01', 120]];
   } else if (type === 'monthly_sap') {
     sheetName = '導入月SAP'; filename = '範本_月SAP上傳.xlsx';
-    rows = [['物料', '數量'], ['PBAMIN0', 82]];
+    rows = [['物料', '未限制'], ['PBAMIN0', 82]];
   }
   window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(rows), sheetName);
   window.XLSX.writeFile(wb, filename);
