@@ -404,53 +404,74 @@ export function renderDailyItems() {
   area.innerHTML = html;
 }
 
-export function submitDailyOne(loc, dCode, dName, tId) {
+const submittingDailyLocs = new Set();
+
+export async function submitDailyOne(loc, dCode, dName, tId) {
+  if (submittingDailyLocs.has(loc)) return;
+
   const inputEl = document.getElementById(`qty-${loc}`);
-  const qty = inputEl ? inputEl.value.trim() : ''; 
+  const qty = inputEl ? inputEl.value.trim() : '';
   if (qty === '' || Number(qty) < 0) return alert('請輸入有效數量');
-  const dStr = document.getElementById('header-date-select').value;
+
+  const dateEl = document.getElementById('header-date-select');
+  const dStr = dateEl ? dateEl.value : '';
   const item = dailyItems.find(i => i.locCode === loc);
   if (!item) return;
 
-  const now = new Date();
-  item.hasRecord = true;
-  item.status = '成立';
-  item.countedQty = qty;
-  item.userName = session.name;
-  item.tStamp = now.getTime();
-  item.timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  submittingDailyLocs.add(loc);
+  if (inputEl) {
+    inputEl.value = '';
+    inputEl.disabled = true;
+  }
 
-  const queue = getDailyQueue();
-  queue.push({
-    queueId: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 7),
-    timestamp: now.getTime(),
-    action: 'submitInventory',
-    data: {
-      mode: '每日盤點',
-      userId: session.id,
-      userName: session.name,
-      type: '盤點調劑台',
-      actionSrc: '',
-      dispType: '',
-      drugCode: dCode,
-      drugName: dName,
-      handQty: qty,
-      tableId: tId,
-      locCode: loc,
-      inventoryDate: dStr,
-      barcode: ''
-    }
-  });
-  saveDailyQueue(queue);
+  try {
+    const now = new Date();
+    item.hasRecord = true;
+    item.status = '成立';
+    item.countedQty = qty;
+    item.userName = session.name;
+    item.tStamp = now.getTime();
+    item.timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  if (navigator.vibrate) navigator.vibrate(50);
-  updateTabUI();
-  updateDailyPendingUI();
-  renderDailyDashboard();
-  renderDailyItems();
+    const queue = getDailyQueue();
+    const filteredQueue = queue.filter(q => !(q.data && q.data.locCode === loc));
+    filteredQueue.push({
+      queueId: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: now.getTime(),
+      action: 'submitInventory',
+      data: {
+        mode: '每日盤點',
+        userId: session.id,
+        userName: session.name,
+        type: '盤點調劑台',
+        actionSrc: '',
+        dispType: '',
+        drugCode: dCode,
+        drugName: dName,
+        handQty: qty,
+        tableId: tId,
+        locCode: loc,
+        inventoryDate: dStr,
+        barcode: ''
+      }
+    });
+    saveDailyQueue(filteredQueue);
 
-  startDailyAutoSyncTimer();
-  flushDailyQueue({ showBlockingLoader: false });
+    if (navigator.vibrate) navigator.vibrate(50);
+    updateTabUI();
+    updateDailyPendingUI();
+    renderDailyDashboard();
+    renderDailyItems();
+
+    startDailyAutoSyncTimer();
+    await flushDailyQueue({ showBlockingLoader: false });
+  } finally {
+    setTimeout(() => {
+      submittingDailyLocs.delete(loc);
+      const nextInput = document.getElementById(`qty-${loc}`);
+      if (nextInput) nextInput.disabled = false;
+    }, 400);
+  }
 }
 
 export async function editDailyQty(locCode, currentQty) {
