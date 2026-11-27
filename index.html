@@ -976,6 +976,63 @@
   </div>
 </div>
 
+<div id="view-drug-master-list" class="container-fluid view-section">
+  <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div>
+        <h6 class="fw-bold text-academic mb-0"><i class="bi bi-capsule-pill"></i> 全院藥品主檔與儲位分佈總覽</h6>
+        <div class="small text-muted">可輸入多組關鍵字（空白分隔）搜尋藥名、加P碼、批價代碼或儲位碼</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="loadDrugMasterCatalog()">
+          <i class="bi bi-arrow-clockwise"></i> 重新載入
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()">
+          <i class="bi bi-house-door"></i> 返回網站入口
+        </button>
+      </div>
+    </div>
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm shadow-sm">
+          <span class="input-group-text bg-white border-secondary"><i class="bi bi-search"></i></span>
+          <input type="text" id="dm-catalog-search" class="form-control border-secondary fw-bold" placeholder="輸入藥名、加P碼、批價碼或儲位碼..." oninput="renderDrugMasterCatalog()">
+          <button type="button" class="btn btn-outline-secondary" onclick="clearDrugMasterCatalogSearch()">清除</button>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select id="dm-catalog-loc-filter" class="form-select form-select-sm border-secondary fw-bold" onchange="renderDrugMasterCatalog()">
+          <option value="ALL">全部藥品</option>
+          <option value="HAS_LOC">僅顯示：已有儲位（總數 &gt; 0）</option>
+          <option value="NO_LOC">僅顯示：尚無儲位（總數 = 0）</option>
+        </select>
+      </div>
+      <div class="col-md-4 text-md-end small text-muted">
+        顯示筆數：<strong id="dm-catalog-count">0</strong> / <span id="dm-catalog-total">0</span> 筆
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-grow-1 overflow-auto px-1 pb-4">
+    <div class="table-responsive bg-white border rounded shadow-sm" style="max-height: 70vh; overflow-y: auto;">
+      <table class="table table-hover table-sm table-bordered align-middle mb-0">
+        <thead class="table-academic-head sticky-top">
+          <tr>
+            <th class="text-center text-nowrap" style="width: 12%;">加P代碼</th>
+            <th class="text-center text-nowrap" style="width: 11%;">批價代碼</th>
+            <th style="width: 28%;">藥品學名</th>
+            <th class="text-center text-nowrap" style="width: 10%;">儲位總數</th>
+            <th>目前儲位位置明細（單位 / 區域 / 盤點表 / 儲位碼）</th>
+          </tr>
+        </thead>
+        <tbody id="dm-catalog-tbody">
+          <tr><td colspan="5" class="text-center py-4 text-muted">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== 區塊 D：維護與操作 Modals ==================== -->
 <div class="modal fade" id="userEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
