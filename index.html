@@ -34,16 +34,18 @@
         <span class="navbar-brand mb-0 fw-bold text-white text-truncate flex-shrink-0" style="max-width: 220px; font-size: 1rem; cursor: pointer;" onclick="backToLobby()">
           <i class="bi bi-hospital me-1"></i>FEMH藥學部盤點APP
         </span>
-        <button id="nav-back-btn" class="btn btn-sm btn-light text-dark fw-bold flex-shrink-0 shadow-sm py-0 px-2" style="display: none; height: 26px; font-size: 0.8rem;" onclick="backToModeSelect()">
-          <i class="bi bi-arrow-left"></i> 返回
-        </button>
         <span id="nav-info" class="d-none"></span>
-        <span id="nav-sync-status" class="badge bg-warning text-dark shadow-sm ms-2" style="display: none; font-size: 0.75rem;">
+        <span id="nav-sync-status" class="badge bg-warning text-dark shadow-sm ms-1" style="display: none; font-size: 0.75rem;">
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="width: 10px; height: 10px;"></span> 同步中
         </span>
       </div>
-      <div class="ms-1 flex-shrink-0 d-flex align-items-center gap-1">
-        <button class="btn btn-sm btn-outline-light fw-bold shadow-sm" id="nav-logout-btn" onclick="handleLogout()" style="display: none; font-size: 0.8rem; padding: 2px 8px;">返回入口</button>
+      <div class="nav-action-group" id="nav-action-buttons" style="display: none;">
+        <button type="button" class="btn btn-sm btn-light text-dark fw-bold shadow-sm" id="nav-prev-btn" onclick="goPrevLayer()">
+          <i class="bi bi-arrow-left"></i> 回到上一層
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-light fw-bold shadow-sm" id="nav-lobby-btn" onclick="backToLobby()">
+          <i class="bi bi-house-door"></i> 回到網站入口
+        </button>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2 w-100" style="min-height: 24px;">
@@ -116,12 +118,12 @@
       </div>
     </div>
 
-<!-- 第二區：管理與調帳入口（手機橫向好點清單 / 桌面 1x4 卡片） -->
+<!-- 第二區：管理與調帳入口（手機隱藏 / 桌面 1x5 卡片） -->
     <div class="w-100 mb-3 d-none d-md-block" style="max-width: 1140px;">
       <div class="small fw-bold text-secondary mb-2 ps-1 d-flex align-items-center gap-1">
         <i class="bi bi-shield-check"></i> 全院藥檔與權限管理入口
       </div>
-      <div class="row g-2 g-md-3 row-cols-1 row-cols-md-4">
+      <div class="row g-2 g-md-3 row-cols-1 row-cols-md-5">
         <div class="col">
           <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('drug_mgmt')" style="--portal-accent: #6F42C1;">
             <div class="icon-wrapper"><i class="bi bi-box-seam" style="color: #6F42C1;"></i></div>
@@ -133,8 +135,8 @@
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="openDrugMasterListView()" style="--portal-accent: #0F766E;">
-            <div class="icon-wrapper"><i class="bi bi-capsule-pill" style="color: #0F766E;"></i></div>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="openDrugMasterListView()" style="--portal-accent: #495057;">
+            <div class="icon-wrapper"><i class="bi bi-capsule-pill" style="color: #495057;"></i></div>
             <div class="lobby-card-body">
               <h5 class="fw-bold text-dark mb-0 mb-md-1">藥品主檔</h5>
               <span class="text-muted lobby-desc">查詢全院藥品、儲位分佈與儲位總數</span>
@@ -143,8 +145,8 @@
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('user_mgmt')" style="--portal-accent: #2B2D42;">
-            <div class="icon-wrapper"><i class="bi bi-people-fill" style="color: #2B2D42;"></i></div>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('user_mgmt')" style="--portal-accent: #495057;">
+            <div class="icon-wrapper"><i class="bi bi-people-fill" style="color: #495057;"></i></div>
             <div class="lobby-card-body">
               <h5 class="fw-bold text-dark mb-0 mb-md-1">藥師權限管理</h5>
               <span class="text-muted lobby-desc">藥師生命週期與角色權限維護</span>
@@ -153,8 +155,8 @@
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('portal_perm')" style="--portal-accent: #3D405B;">
-            <div class="icon-wrapper"><i class="bi bi-key-fill" style="color: #3D405B;"></i></div>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('portal_perm')" style="--portal-accent: #495057;">
+            <div class="icon-wrapper"><i class="bi bi-key-fill" style="color: #495057;"></i></div>
             <div class="lobby-card-body">
               <h5 class="fw-bold text-dark mb-0 mb-md-1">網站權限管理</h5>
               <span class="text-muted lobby-desc">各入口登入權限規則設定</span>
@@ -163,8 +165,8 @@
           </div>
         </div>
         <div class="col">
-          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('monthly_adj')" style="--portal-accent: #212529;">
-            <div class="icon-wrapper"><i class="bi bi-calculator-fill" style="color: #212529;"></i></div>
+          <div class="card h-100 dept-card-academic lobby-admin-card" onclick="enterPharmacy('monthly_adj')" style="--portal-accent: #495057;">
+            <div class="icon-wrapper"><i class="bi bi-calculator-fill" style="color: #495057;"></i></div>
             <div class="lobby-card-body">
               <h5 class="fw-bold text-dark mb-0 mb-md-1">月盤點調帳專區</h5>
               <span class="text-muted lobby-desc">各單位調帳 / 紀錄 / 標記 / 版本</span>
@@ -181,10 +183,7 @@
 <!-- ==================== 區塊 B：登入與調劑單位作業 ==================== -->
 <div id="view-login" class="container view-section">
   <div class="card card-academic p-4 mt-4 bg-white shadow" style="max-width: 480px; width: 100%; margin-left: auto; margin-right: auto;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="backToLobby()">
-        <i class="bi bi-arrow-left"></i> 返回網站入口
-      </button>
+    <div class="d-flex justify-content-end align-items-center mb-3">
       <span class="badge bg-academic">身分驗證</span>
     </div>
     <h4 id="login-portal-title" class="text-center mb-4 fw-bold text-academic"><i class="bi bi-shield-lock"></i> 身分驗證</h4>
@@ -202,8 +201,8 @@
     <button type="button" class="btn btn-outline-academic btn-lg w-100 py-3 mb-3 fw-bold shadow-sm" onclick="selectMode('月盤點')">
       <i class="bi bi-calendar-month fs-3 d-block mb-1"></i> 月盤點作業
     </button>
-    <hr class="text-secondary opacity-25 my-3">
-    <button type="button" class="btn btn-outline-secondary btn-lg w-100 shadow-sm mb-3" style="border-width: 2px; border-radius: 12px; background-color: #f8f9fa;" onclick="openHierarchyWithAuth()">
+    <hr class="text-secondary opacity-25 my-3 d-none d-md-block">
+    <button type="button" id="btn-menu-hierarchy" class="btn btn-outline-secondary btn-lg w-100 shadow-sm mb-2 d-none d-md-block" style="border-width: 2px; border-radius: 12px; background-color: #f8f9fa;" onclick="openHierarchyWithAuth()">
       <div class="d-flex align-items-center justify-content-center py-2">
         <i class="bi bi-diagram-3 fs-1 me-3 text-secondary"></i>
         <div class="text-start">
@@ -212,9 +211,6 @@
         </div>
       </div>
     </button>
-    <button type="button" class="btn btn-outline-dark fw-bold w-100 py-2" onclick="backToLobby()">
-      <i class="bi bi-house-door"></i> 返回網站入口
-    </button>
   </div>
 </div>
 
@@ -222,9 +218,6 @@
   <div class="card card-academic p-2 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-outline-secondary fw-bold py-1 px-2" onclick="handleDailyBack()">
-          <i class="bi bi-chevron-left"></i> 返回
-        </button>
         <span id="daily-app-title"><i class="bi bi-calendar-check"></i> 每日盤點</span>
       </h6>
       <div class="d-flex gap-1 align-items-center">
@@ -268,9 +261,6 @@
   <div class="card card-academic p-2 shadow-sm mb-2 border-0 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-1">
       <h6 class="fw-bold text-academic mb-0 d-flex align-items-center gap-2">
-        <button id="btn-monthly-back" type="button" class="btn btn-outline-secondary fw-bold py-2 d-none" onclick="handleMonthlyBack()">
-          <i class="bi bi-chevron-left"></i> 返回
-        </button>
         <span id="monthly-app-title"><i class="bi bi-calendar-month"></i> 月盤點作業</span>
       </h6>
       <button type="button" class="btn btn-academic btn-sm shadow-sm py-2 px-3 fw-bold" onclick="refreshMonthlyData()">
@@ -402,7 +392,6 @@
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
       <h6 class="fw-bold text-academic mb-0"><i class="bi bi-bar-chart-steps"></i> 對帳與趨勢分析</h6>
-      <button type="button" class="btn btn-outline-secondary fw-bold shadow-sm py-2" onclick="switchView('view-daily-app')"><i class="bi bi-chevron-left"></i> 返回</button>
     </div>
     <label class="small fw-bold text-secondary mb-1">快速加入比較日期：</label>
     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -437,7 +426,6 @@
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold text-academic mb-0"><i class="bi bi-people-fill"></i> 藥師權限與生命週期管理</h6>
-      <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
     </div>
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
       <div class="d-flex flex-wrap gap-2 flex-grow-1">
@@ -483,7 +471,6 @@
         <h6 class="fw-bold text-academic mb-1"><i class="bi bi-key-fill"></i> 網站入口權限規則設定</h6>
         <div class="small text-muted">設定首頁與各單位調帳面板輸入員工編號後的進入資格</div>
       </div>
-      <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
     </div>
   </div>
   <div id="portal-perm-list" class="flex-grow-1 overflow-auto px-1 pb-4"></div>
@@ -493,7 +480,6 @@
   <div class="card card-academic p-3 shadow-sm mb-2 bg-white flex-shrink-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold text-academic mb-0"><i class="bi bi-box-seam"></i> 藥品管理組專區</h6>
-      <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
     </div>
     <ul class="nav nav-pills nav-fill gap-1 mt-1" id="dm-tabs">
       <li class="nav-item"><button type="button" class="nav-link active fw-bold border bg-academic text-white py-2 small" data-target="dm-tab-master" onclick="switchDrugMgmtTab('dm-tab-master')">更新藥品主檔</button></li>
@@ -529,7 +515,7 @@
     </div>
   </div>
 
-<div id="dm-tab-sap-daily" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
+  <div id="dm-tab-sap-daily" class="flex-grow-1 overflow-auto px-1 pb-4 d-none">
     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <h6 class="fw-bold text-primary mb-0"><i class="bi bi-calendar-day"></i> 上傳【每日 SAP】Excel</h6>
@@ -700,7 +686,6 @@
           <h5 class="fw-bold text-academic mb-1"><i class="bi bi-calculator-fill"></i> 月盤點調帳專區 — 請選擇藥局單位</h5>
           <div class="small text-muted">各單位採獨立權限面板，點擊對應單位面板進行權限驗證與作業</div>
         </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
       </div>
       <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-4">
         <div class="col">
@@ -748,7 +733,6 @@
             <button type="button" id="adj-btn-lock-month" class="btn btn-sm btn-outline-secondary fw-bold text-nowrap" onclick="toggleAdjMonthLock()">🔓 鎖定月份</button>
           </div>
         </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()"><i class="bi bi-house-door"></i> 返回網站入口</button>
       </div>
       <ul class="nav nav-pills nav-fill gap-1" id="adj-main-tabs">
         <li class="nav-item"><button type="button" class="nav-link fw-bold border py-2 small" data-target="adj-tab-inventory" onclick="switchAdjTab('adj-tab-inventory')">調帳專區</button></li>
@@ -919,9 +903,6 @@
         <button type="button" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="runAutoEncodeHierarchy()">
           <i class="bi bi-magic"></i> 自動編碼
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToModeSelect()">
-          <i class="bi bi-chevron-left"></i> 返回模式選單
-        </button>
       </div>
     </div>
   </div>
@@ -986,9 +967,6 @@
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="loadDrugMasterCatalog()">
           <i class="bi bi-arrow-clockwise"></i> 重新載入
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" onclick="backToLobby()">
-          <i class="bi bi-house-door"></i> 返回網站入口
         </button>
       </div>
     </div>
@@ -1104,7 +1082,8 @@
     </div>
   </div>
 </div>
-  <div class="modal fade" id="drugLocationsModal" tabindex="-1" aria-hidden="true">
+
+<div class="modal fade" id="drugLocationsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-academic text-white">
