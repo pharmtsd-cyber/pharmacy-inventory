@@ -2,6 +2,8 @@ import { activeUploads, syncOfflineData } from './api.js';
 import { session, DEPT_NAME, DEPT_COLOR, currentDept } from './config.js';
 import { switchView } from './ui.js';
 import { handleLogin, handleLogout, backToLobby } from './auth.js';
+import { onHierSearchInput } from './maint_hierarchy.js';
+import { openDrugMasterListView, loadDrugMasterCatalog, clearDrugMasterCatalogSearch, renderDrugMasterCatalog } from './maint_drug_mgmt.js';
 
 import * as dailyMod from './daily.js';
 import * as monthlyMod from './monthly.js';
@@ -232,3 +234,11 @@ function updateGlobalSearchFocus(items) {
   items[globalSearchFocus].style.backgroundColor = '#e2e3e5';
   items[globalSearchFocus].scrollIntoView({ block: 'nearest' });
 }
+
+Object.assign(window, {
+  onHierSearchInput,
+  openDrugMasterListView,
+  loadDrugMasterCatalog,
+  clearDrugMasterCatalogSearch,
+  renderDrugMasterCatalog
+});
