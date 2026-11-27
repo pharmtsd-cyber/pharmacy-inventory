@@ -8,11 +8,7 @@ import { onHierSearchInput, selectHierSearchCandidate, clearHierSearchFilter } f
 Object.assign(window, {
   onHierSearchInput,
   selectHierSearchCandidate,
-  clearHierSearchFilter
-});
-
-Object.assign(window, {
-  onHierSearchInput,
+  clearHierSearchFilter,
   openDrugMasterListView,
   loadDrugMasterCatalog,
   clearDrugMasterCatalogSearch,
