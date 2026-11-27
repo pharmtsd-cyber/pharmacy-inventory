@@ -17,7 +17,6 @@ const DEPT_NAME_MAP = {
   erd: "急診藥局",
   comp: "調配藥局",
   drug_mgmt: "藥品管理組",
-  user_mgmt: "藥師權限管理",
   portal_perm: "網站權限管理",
   monthly_adj: "月盤點調帳專區"
 };
@@ -29,7 +28,6 @@ const DEPT_COLOR_MAP = {
   erd: "#7A1717",         // 海軍紅
   comp: "#4E342E",        // 海軍棕
   drug_mgmt: "#6F42C1",   // 藥品管理組：紫色
-  user_mgmt: "#2B2D42",   // 權限深靛
   portal_perm: "#3D405B", // 系統管理藍灰
   monthly_adj: "#495057"  // 月盤點調帳專區：深灰色
 };
