@@ -1079,12 +1079,21 @@ export function handleMonthlyBack() {
 
 function executeMonthlyBack() {
   const tabs = document.getElementById('monthly-tabs');
-  if (tabs.classList.contains('d-none')) {
+  const isInsideTable = tabs && tabs.classList.contains('d-none');
+
+  if (isInsideTable) {
     tabs.classList.remove('d-none');
-    document.getElementById('btn-monthly-back').classList.add('d-none');
-    document.getElementById('monthly-app-title').innerHTML = '<i class="bi bi-calendar-month"></i> 月盤點作業'; 
+    const backBtn = document.getElementById('btn-monthly-back');
+    if (backBtn) backBtn.classList.add('d-none');
+
+    const titleEl = document.getElementById('monthly-app-title');
+    if (titleEl) {
+      titleEl.innerHTML = '<i class="bi bi-calendar-month"></i> 月盤點作業';
+    }
+
     executeSwitchMonthlyTab('tab-dashboard');
-    refreshDashboardData(); 
+    refreshDashboardDataSilently();
+    window.scrollTo(0, 0);
   } else {
     switchView('view-mode-select');
   }
