@@ -1449,20 +1449,27 @@ export function handleLocDrugFuzzySearch() {
     return;
   }
 
-  dd.innerHTML = matches.map(d => `
-    <div class="search-dropdown-item" onclick="pickDrugFromMaster('${(d.inv_code || d.price_code || '').replace(/'/g, "\\'")}', '${(d.drug_name || '').replace(/'/g, "\\'")}')">
-      <div class="fw-bold text-primary">${d.inv_code || d.price_code} <span class="badge bg-light text-dark border ms-1">批價: ${d.price_code || '-'}</span></div>
-      <div class="small text-dark">${d.drug_name}</div>
-    </div>`).join('');
+  window.__hierLocPickCandidates = matches;
+  dd.innerHTML = matches.map((d, idx) => {
+    const code = d.inv_code || d.price_code || '';
+    const safeName = String(d.drug_name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeCode = String(code).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safePrice = String(d.price_code || '-').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+      <div class="search-dropdown-item" onclick="pickDrugFromMasterByIndex(${idx})">
+        <div class="fw-bold text-primary">${safeCode} <span class="badge bg-light text-dark border ms-1">批價: ${safePrice}</span></div>
+        <div class="small text-dark">${safeName}</div>
+      </div>`;
+  }).join('');
   dd.style.display = 'block';
 }
 
-export function pickDrugFromMaster(code, name) {
-  document.getElementById('l-drug-code').value = code;
-  document.getElementById('l-drug-name').value = name;
-  document.getElementById('l-drug-search').value = `${code} - ${name}`;
-  const dd = document.getElementById('l-drug-dropdown');
-  if (dd) dd.style.display = 'none';
+export function pickDrugFromMasterByIndex(idx) {
+  const list = window.__hierLocPickCandidates || [];
+  const d = list[idx];
+  if (!d) return;
+  const code = d.inv_code || d.price_code || '';
+  pickDrugFromMaster(code, d.drug_name || '');
 }
 
 export function submitLocEdit() {
