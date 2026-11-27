@@ -532,18 +532,30 @@ export function submitMonthlyDeskOne(loc, dCode, dName, tId) {
   flushMonthlyQueue({ showBlockingLoader: false });
 }
 
-export function renderMonthlyDesk() { 
-  const tableId = document.getElementById('monthly-table-select').value;
+export function renderMonthlyDesk() {
+  const select = document.getElementById('monthly-table-select');
   const area = document.getElementById('monthly-desk-area');
-  if (!tableId) { area.innerHTML = ''; return; } 
-  const tableData = monthlyTables.find(t => t.id === tableId);
-  if (!tableData) return; 
-  
+  if (!area) return;
+
+  const tableId = select ? select.value : '';
+  if (!tableId) {
+    area.innerHTML = '<div class="text-center p-4 text-muted fw-bold">尚未選擇盤點表</div>';
+    return;
+  }
+
+  const tableData = monthlyTables.find(t => String(t.id) === String(tableId));
+  if (!tableData) {
+    area.innerHTML = '<div class="text-center p-4 text-muted fw-bold">找不到該盤點表資料</div>';
+    return;
+  }
+
   applyMonthlyQueueToLocalState();
-  const uncountedItems = tableData.items.filter(i => !i.hasCounted); 
+  const items = Array.isArray(tableData.items) ? tableData.items : [];
+  const uncountedItems = items.filter(i => !i.hasCounted);
   const uncountedBadge = document.getElementById('count-desk-uncounted');
-  if (uncountedBadge) uncountedBadge.innerText = uncountedItems.length; 
-  const pendingCount = getMonthlyQueue().filter(i => i.data.type === '盤點調劑台').length;
+  if (uncountedBadge) uncountedBadge.innerText = uncountedItems.length;
+
+  const pendingCount = getMonthlyQueue().filter(i => i.data && i.data.type === '盤點調劑台').length;
 
   let html = `
     <div id="desk-pending-bar" class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 sticky-top shadow-sm border border-warning rounded ${pendingCount > 0 ? '' : 'd-none'}" style="top: 52px; z-index: 9;">
@@ -551,7 +563,7 @@ export function renderMonthlyDesk() {
         <span class="fw-bold text-dark ms-1">待同步：<span id="desk-pending-count" class="badge bg-warning text-dark fs-6 ms-1">${pendingCount}</span> 筆</span>
         <span class="text-muted small d-block ms-1" style="font-size: 0.72rem;">送出後立即背景寫入資料庫</span>
       </div>
-      <button class="btn btn-sm btn-academic fw-bold px-3 py-1 shadow-sm" onclick="flushMonthlyQueue({ showBlockingLoader: true, onComplete: () => refreshMonthlyData(true) })">
+      <button type="button" class="btn btn-sm btn-academic fw-bold px-3 py-1 shadow-sm" onclick="flushMonthlyQueue({ showBlockingLoader: true, onComplete: () => refreshMonthlyData(true) })">
         <i class="bi bi-cloud-upload"></i> 立即上傳
       </button>
     </div>`;
@@ -561,25 +573,38 @@ export function renderMonthlyDesk() {
     area.innerHTML = html;
     return;
   }
-  
+
   const uniqueDrugs = [];
-  tableData.items.forEach(item => { if (!uniqueDrugs.includes(item.drugCode)) uniqueDrugs.push(item.drugCode); }); 
-  const getDrugColor = (code) => { const index = uniqueDrugs.indexOf(code); return index % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd'; }; 
-  
-  uncountedItems.forEach(item => { 
+  items.forEach(item => {
+    if (!uniqueDrugs.includes(item.drugCode)) uniqueDrugs.push(item.drugCode);
+  });
+  const getDrugColor = (code) => (uniqueDrugs.indexOf(code) % 2 === 0 ? 'var(--academic-primary)' : '#adb5bd');
+
+  uncountedItems.forEach(item => {
     const borderColor = getDrugColor(item.drugCode);
-    const encodedName = btoa(encodeURIComponent(item.drugName || '')); 
+    const encodedName = btoa(encodeURIComponent(item.drugName || ''));
     let hintHtml = '';
     if (item.desc && item.desc !== '') hintHtml += `<div class="text-danger small fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>盤點說明：${item.desc}</div>`;
     if (item.remark && item.remark !== '') hintHtml += `<div class="text-secondary small mb-1" style="font-size: 0.8rem;"><i class="bi bi-info-square-fill me-1"></i>藥品備註：${item.remark}</div>`;
 
-    html += `<div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;"><div class="card-body p-3"><div class="fw-bold fs-5 text-dark mb-2">${item.drugName}</div><div class="d-flex flex-wrap gap-1 mb-2"><span class="badge bg-light text-dark border border-secondary">儲位: ${item.locCode}</span><span class="badge bg-light text-dark border border-secondary">代碼: ${item.drugCode}</span></div>${hintHtml ? `<div class="bg-light rounded p-2 mb-2 border border-light-subtle">${hintHtml}</div>` : ''}
-        <div class="input-group shadow-sm">
-          <input type="number" id="m-qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="本次數量" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key === 'Enter') submitMonthlyDeskOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">
-          <button class="btn btn-outline-secondary px-3 fw-bold bg-light border-secondary" type="button" onclick="openCalculator('m-qty-${item.locCode}', decodeURIComponent(atob('${encodedName}')))"><i class="bi bi-calculator fs-5"></i></button>
-          <button class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyDeskOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">送出</button>
-        </div></div></div>`; 
-  }); 
+    html += `
+      <div class="card drug-card mb-3 shadow-sm border-0" style="border-left: 6px solid ${borderColor} !important;">
+        <div class="card-body p-3">
+          <div class="fw-bold fs-5 text-dark mb-2">${item.drugName}</div>
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <span class="badge bg-light text-dark border border-secondary">儲位: ${item.locCode}</span>
+            <span class="badge bg-light text-dark border border-secondary">代碼: ${item.drugCode}</span>
+          </div>
+          ${hintHtml ? `<div class="bg-light rounded p-2 mb-2 border border-light-subtle">${hintHtml}</div>` : ''}
+          <div class="input-group shadow-sm">
+            <input type="number" id="m-qty-${item.locCode}" class="form-control form-control-lg bg-white fw-bold text-center border-secondary" placeholder="本次數量" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key === 'Enter') submitMonthlyDeskOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">
+            <button class="btn btn-outline-secondary px-3 fw-bold bg-light border-secondary" type="button" onclick="openCalculator('m-qty-${item.locCode}', decodeURIComponent(atob('${encodedName}')))"><i class="bi bi-calculator fs-5"></i></button>
+            <button type="button" class="btn btn-academic px-4 fw-bold fs-5" onclick="submitMonthlyDeskOne('${item.locCode}', '${item.drugCode}', decodeURIComponent(atob('${encodedName}')), '${item.tableId}')">送出</button>
+          </div>
+        </div>
+      </div>`;
+  });
+
   area.innerHTML = html;
 }
 
@@ -665,20 +690,25 @@ export function switchDeskSubTab(view) {
 }
 
 function executeSwitchDeskSubTab(view) {
-  const btnIn = document.getElementById('btn-desk-sub-input'), btnList = document.getElementById('btn-desk-sub-list'); 
+  const btnIn = document.getElementById('btn-desk-sub-input');
+  const btnList = document.getElementById('btn-desk-sub-list');
+  const areaIn = document.getElementById('area-desk-input');
+  const areaList = document.getElementById('area-desk-list');
+
   if (btnIn) btnIn.className = 'nav-link fw-bold border text-academic bg-white shadow-sm py-2';
-  if (btnList) btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2'; 
+  if (btnList) btnList.className = 'nav-link fw-bold border text-success bg-white shadow-sm py-2';
+
   if (view === 'input') {
     if (btnIn) btnIn.className = 'nav-link active fw-bold border bg-academic text-white shadow-sm py-2';
-    document.getElementById('area-desk-input').classList.remove('d-none');
-    document.getElementById('area-desk-list').classList.add('d-none');
+    if (areaIn) areaIn.classList.remove('d-none');
+    if (areaList) areaList.classList.add('d-none');
     renderMonthlyDesk();
   } else {
     if (btnList) btnList.className = 'nav-link active fw-bold border bg-success text-white shadow-sm py-2';
-    document.getElementById('area-desk-input').classList.add('d-none');
-    document.getElementById('area-desk-list').classList.remove('d-none');
+    if (areaIn) areaIn.classList.add('d-none');
+    if (areaList) areaList.classList.remove('d-none');
     renderAllRecordLists();
-  } 
+  }
 }
 
 export function switchStockSubTab(view) { 
@@ -968,16 +998,47 @@ export function renderMonthlyDashboard() {
   if (!unfinishedArea || !finishedArea) return;
   let unfinishedHtml = '';
   let finishedHtml = '';
-  monthlyTables.forEach(table => {
-    const total = table.items.length;
-    const counted = table.items.filter(i => i.hasCounted).length;
+
+  monthlyTables.forEach((table, idx) => {
+    const items = Array.isArray(table.items) ? table.items : [];
+    const total = items.length;
+    const counted = items.filter(i => i.hasCounted).length;
     const percent = total > 0 ? Math.round((counted / total) * 100) : 0;
-    const isComplete = percent === 100;
-    const tableDesc = table.desc ? `<div class="mt-2 px-2 py-1 rounded text-dark fw-bold shadow-sm" style="background-color: #fff3cd; border-left: 4px solid #ffc107; font-size: 0.85rem;"><i class="bi bi-exclamation-circle-fill text-warning me-1" style="font-size: 1rem;"></i>${table.desc}</div>` : '';
-    const cardHtml = `<div class="card mb-3 shadow-sm border-0 border-start border-4 ${isComplete ? 'border-success' : 'border-warning'}" onclick="enterTableInventory('${table.id}', '${table.name}')" style="cursor: pointer;"><div class="card-body p-3"><div class="d-flex justify-content-between align-items-start mb-2"><div><div class="fw-bold text-dark fs-5">${table.name}</div>${tableDesc}</div><span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span></div><div class="progress mb-2" style="height: 12px;"><div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div></div><div class="d-flex justify-content-between align-items-center mt-3"><div class="small text-secondary">已盤: ${counted} / ${total}</div><div><button class="btn btn-sm btn-outline-secondary me-2 fw-bold" onclick="event.stopPropagation(); showTableDetailModal('${table.id}', '${table.name}')"><i class="bi bi-list-ul"></i> 明細</button><span class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></span></div></div></div></div>`;
+    const isComplete = total > 0 && percent === 100;
+    const safeName = String(table.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const safeId = String(table.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    const tableDesc = table.desc
+      ? `<div class="mt-2 px-2 py-1 rounded text-dark fw-bold shadow-sm" style="background-color: #fff3cd; border-left: 4px solid #ffc107; font-size: 0.85rem;"><i class="bi bi-exclamation-circle-fill text-warning me-1" style="font-size: 1rem;"></i>${table.desc}</div>`
+      : '';
+
+    const cardHtml = `
+      <div class="card mb-3 shadow-sm border-0 border-start border-4 ${isComplete ? 'border-success' : 'border-warning'}" data-table-idx="${idx}" onclick="enterTableInventory('${safeId}', '${safeName}')" style="cursor: pointer;">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="fw-bold text-dark fs-5">${table.name}</div>
+              ${tableDesc}
+            </div>
+            <span class="badge ${isComplete ? 'bg-success' : 'bg-academic'}">${percent}%</span>
+          </div>
+          <div class="progress mb-2" style="height: 12px;">
+            <div class="progress-bar ${isComplete ? 'bg-success' : 'bg-warning'}" style="width: ${percent}%"></div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="small text-secondary">已盤: ${counted} / ${total}</div>
+            <div>
+              <button type="button" class="btn btn-sm btn-outline-secondary me-2 fw-bold" onclick="event.stopPropagation(); showTableDetailModal('${safeId}', '${safeName}')"><i class="bi bi-list-ul"></i> 明細</button>
+              <span class="text-academic fw-bold small">點擊作業 <i class="bi bi-chevron-right"></i></span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
     if (isComplete) finishedHtml += cardHtml;
     else unfinishedHtml += cardHtml;
   });
+
   unfinishedArea.innerHTML = unfinishedHtml || '<div class="text-center text-muted py-3">所有藥架皆已盤點完成</div>';
   finishedArea.innerHTML = finishedHtml || '<div class="text-center text-muted py-3">尚無完成的藥架</div>';
 }
@@ -985,22 +1046,26 @@ export function renderMonthlyDashboard() {
 export function enterTableInventory(tableId, tableName) {
   const select = document.getElementById('monthly-table-select');
   if (select) {
+    if (select.options.length === 0 && Array.isArray(monthlyTables) && monthlyTables.length > 0) {
+      select.innerHTML = monthlyTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    }
     select.value = tableId;
   }
+
+  const targetTable = monthlyTables.find(t => String(t.id) === String(tableId));
   const titleEl = document.getElementById('monthly-app-title');
   if (titleEl) {
-    titleEl.innerText = tableName || '月盤點作業';
+    titleEl.innerText = tableName || (targetTable ? targetTable.name : '月盤點作業');
   }
+
   const tabsEl = document.getElementById('monthly-tabs');
-  if (tabsEl) {
-    tabsEl.classList.add('d-none');
-  }
+  if (tabsEl) tabsEl.classList.add('d-none');
+
   document.querySelectorAll('.monthly-content-section').forEach(s => s.classList.add('d-none'));
-  const dispenseTab = document.getElementById('tab-dispense');
-  if (dispenseTab) {
-    dispenseTab.classList.remove('d-none');
-  }
-  switchDeskSubTab('input');
+  const dispenseEl = document.getElementById('tab-dispense');
+  if (dispenseEl) dispenseEl.classList.remove('d-none');
+
+  executeSwitchDeskSubTab('input');
   window.scrollTo(0, 0);
 }
 
