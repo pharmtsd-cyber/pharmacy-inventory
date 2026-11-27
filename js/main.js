@@ -145,7 +145,7 @@ window.addEventListener('offline-sync-complete', safeSilentRefresh);
     document.title = 'FEMH藥學部盤點APP';
   } else if (currentDept === 'monthly_adj') {
     document.title = `${DEPT_NAME} — FEMH藥學部盤點APP`;
-    document.documentElement.style.setProperty('--academic-primary', '#212529');
+    document.documentElement.style.setProperty('--academic-primary', '#495057');
     const brandEl = document.querySelector('.navbar-brand');
     if (brandEl) brandEl.innerHTML = `<i class="bi bi-calculator-fill"></i> ${DEPT_NAME}`;
     monthlyAdjMod.initMonthlyAdjPortal();
@@ -255,3 +255,19 @@ function updateGlobalSearchFocus(items) {
   items[globalSearchFocus].style.backgroundColor = '#e2e3e5';
   items[globalSearchFocus].scrollIntoView({ block: 'nearest' });
 }
+
+window.goPrevLayer = function() {
+  const activeView = document.querySelector('.view-section.active');
+  const viewId = activeView ? activeView.id : '';
+  if (viewId === 'view-monthly-app') {
+    window.handleMonthlyBack();
+  } else if (viewId === 'view-daily-app' || viewId === 'view-maintenance') {
+    window.backToModeSelect();
+  } else if (viewId === 'view-history-app') {
+    switchView('view-daily-app');
+  } else if (viewId === 'view-monthly-adj' && typeof monthlyAdjMod.handleMonthlyAdjPrevLayer === 'function') {
+    monthlyAdjMod.handleMonthlyAdjPrevLayer();
+  } else {
+    window.backToLobby();
+  }
+};
