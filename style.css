@@ -314,3 +314,26 @@ body {
     display: none !important;
   }
 }
+
+/* 統一導覽列按鈕與標題在桌面/手機的間距與換行 */
+.navbar-academic .nav-action-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.navbar-academic .nav-action-group .btn {
+  white-space: nowrap;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.5rem;
+}
+@media (max-width: 767.98px) {
+  .navbar-academic .navbar-brand {
+    max-width: 155px !important;
+    font-size: 0.92rem !important;
+  }
+  .navbar-academic .nav-action-group .btn {
+    font-size: 0.72rem;
+    padding: 0.18rem 0.42rem;
+  }
+}
