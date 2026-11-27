@@ -31,7 +31,7 @@ const DEPT_COLOR_MAP = {
   drug_mgmt: "#6F42C1",   // 藥品管理組：紫色
   user_mgmt: "#2B2D42",   // 權限深靛
   portal_perm: "#3D405B", // 系統管理藍灰
-  monthly_adj: "#212529"  // 月盤點調帳專區：黑白色
+  monthly_adj: "#495057"  // 月盤點調帳專區：深灰色
 };
 
 export const DEPT_NAME = currentDept ? (DEPT_NAME_MAP[currentDept] || '亞東紀念醫院藥學部') : '亞東紀念醫院藥學部';
