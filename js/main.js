@@ -2,7 +2,15 @@ import { activeUploads, syncOfflineData } from './api.js';
 import { session, DEPT_NAME, DEPT_COLOR, currentDept } from './config.js';
 import { switchView } from './ui.js';
 import { handleLogin, handleLogout, backToLobby } from './auth.js';
-import { openDrugMasterListView, loadDrugMasterCatalog, clearDrugMasterCatalogSearch, renderDrugMasterCatalog } from './maint_drug_mgmt.js';
+import {
+  openDrugMasterListView,
+  loadDrugMasterCatalog,
+  onDrugMasterCatalogSearchInput,
+  selectDrugMasterCatalogItem,
+  clearDrugMasterCatalogSearch,
+  renderDrugMasterCatalog,
+  openDrugLocationsModal
+} from './maint_drug_mgmt.js';
 import { onHierSearchInput, selectHierSearchCandidate, clearHierSearchFilter } from './maint_hierarchy.js';
 
 Object.assign(window, {
@@ -11,8 +19,11 @@ Object.assign(window, {
   clearHierSearchFilter,
   openDrugMasterListView,
   loadDrugMasterCatalog,
+  onDrugMasterCatalogSearchInput,
+  selectDrugMasterCatalogItem,
   clearDrugMasterCatalogSearch,
-  renderDrugMasterCatalog
+  renderDrugMasterCatalog,
+  openDrugLocationsModal
 });
 
 import * as dailyMod from './daily.js';
