@@ -1464,6 +1464,18 @@ export function handleLocDrugFuzzySearch() {
   dd.style.display = 'block';
 }
 
+export function pickDrugFromMaster(code, name) {
+  const codeEl = document.getElementById('l-drug-code');
+  const nameEl = document.getElementById('l-drug-name');
+  const searchEl = document.getElementById('l-drug-search');
+  const dd = document.getElementById('l-drug-dropdown');
+
+  if (codeEl) codeEl.value = code || '';
+  if (nameEl) nameEl.value = name || '';
+  if (searchEl) searchEl.value = code ? `${code} - ${name || ''}` : (name || '');
+  if (dd) dd.style.display = 'none';
+}
+
 export function pickDrugFromMasterByIndex(idx) {
   const list = window.__hierLocPickCandidates || [];
   const d = list[idx];
