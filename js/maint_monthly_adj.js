@@ -72,7 +72,7 @@ function applyAdjUnitThemeColor(colorHex) {
 export function initMonthlyAdjPortal() {
   activeAdjUnitCode = null;
   pendingAdjUnitTarget = null;
-  applyAdjUnitThemeColor('#212529');
+  applyAdjUnitThemeColor('#495057');
   switchView('view-monthly-adj');
   document.getElementById('adj-unit-picker-panel')?.classList.remove('d-none');
   document.getElementById('adj-workspace-panel')?.classList.add('d-none');
