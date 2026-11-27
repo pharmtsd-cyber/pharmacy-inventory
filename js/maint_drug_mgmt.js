@@ -654,6 +654,8 @@ function extractSapQty(row) {
 }
 
 let drugMasterCatalogCache = [];
+let selectedCatalogDrugKey = ''; // 點選下拉選藥後鎖定的代碼（空字串代表依輸入文字模糊篩選）
+let drugLocationsModalInstance = null;
 
 function matchesFuzzyKeywords(text, rawQuery) {
   const q = String(rawQuery || '').trim().toLowerCase();
@@ -661,6 +663,11 @@ function matchesFuzzyKeywords(text, rawQuery) {
   const tokens = q.split(/\s+/).filter(Boolean);
   const target = String(text || '').toLowerCase();
   return tokens.every(tok => target.includes(tok));
+}
+
+function hideDrugMasterCatalogDropdown() {
+  const dd = document.getElementById('dm-catalog-dropdown');
+  if (dd) dd.style.display = 'none';
 }
 
 export function openDrugMasterListView() {
@@ -690,11 +697,71 @@ export function loadDrugMasterCatalog() {
     });
 }
 
+// 輸入時更新模糊下拉選藥清單，並即時篩選列表
+export function onDrugMasterCatalogSearchInput() {
+  const input = document.getElementById('dm-catalog-search');
+  const dd = document.getElementById('dm-catalog-dropdown');
+  const rawVal = String(input?.value || '');
+  const kw = rawVal.trim().toLowerCase();
+
+  // 若使用者修改文字，解除先前點選鎖定
+  if (selectedCatalogDrugKey) {
+    selectedCatalogDrugKey = '';
+  }
+
+  renderDrugMasterCatalog();
+
+  if (!dd) return;
+  if (!kw) {
+    dd.style.display = 'none';
+    return;
+  }
+
+  const matches = drugMasterCatalogCache
+    .filter(item => matchesFuzzyKeywords(`${item.inv_code || ''} ${item.price_code || ''} ${item.drug_name || ''}`, kw))
+    .slice(0, 25);
+
+  if (!matches.length) {
+    dd.innerHTML = '<div class="p-2 small text-muted">查無相符藥品</div>';
+    dd.style.display = 'block';
+    return;
+  }
+
+  window.__dmCatalogDropdownItems = matches;
+  dd.innerHTML = matches.map((item, idx) => `
+    <div class="search-dropdown-item p-2 border-bottom" style="cursor:pointer;" onclick="selectDrugMasterCatalogItem(${idx})">
+      <div class="fw-bold text-primary small">${item.drug_name || '-'}</div>
+      <div class="small text-muted">
+        加P：<strong>${item.inv_code || '-'}</strong>｜批價：${item.price_code || '-'}｜
+        <span class="badge ${(Number(item.loc_count) || 0) > 0 ? 'bg-success' : 'bg-secondary'}">儲位 ${Number(item.loc_count) || 0}</span>
+      </div>
+    </div>
+  `).join('');
+  dd.style.display = 'block';
+}
+
+export function selectDrugMasterCatalogItem(idx) {
+  const list = window.__dmCatalogDropdownItems || [];
+  const item = list[idx];
+  if (!item) return;
+
+  const key = String(item.inv_code || item.price_code || '').trim().toUpperCase();
+  selectedCatalogDrugKey = key;
+
+  const input = document.getElementById('dm-catalog-search');
+  if (input) input.value = `${item.drug_name || ''} (${key})`;
+
+  hideDrugMasterCatalogDropdown();
+  renderDrugMasterCatalog();
+}
+
 export function clearDrugMasterCatalogSearch() {
+  selectedCatalogDrugKey = '';
   const input = document.getElementById('dm-catalog-search');
   const sel = document.getElementById('dm-catalog-loc-filter');
   if (input) input.value = '';
   if (sel) sel.value = 'ALL';
+  hideDrugMasterCatalogDropdown();
   renderDrugMasterCatalog();
 }
 
@@ -706,22 +773,19 @@ export function renderDrugMasterCatalog() {
   const totalEl = document.getElementById('dm-catalog-total');
   if (!tbody) return;
 
-  const UNIT_BADGE_STYLE = {
-    BA: 'background-color:#1A365D; color:#fff;',
-    BF: 'background-color:#1E4D2B; color:#fff;',
-    BE: 'background-color:#7A1717; color:#fff;',
-    BG: 'background-color:#4E342E; color:#fff;'
-  };
-
-  const filtered = drugMasterCatalogCache.filter(item => {
+  const filtered = drugMasterCatalogCache.filter((item, origIdx) => {
+    item.__catalogIdx = origIdx;
     const cnt = Number(item.loc_count) || 0;
     if (locFilter === 'HAS_LOC' && cnt === 0) return false;
     if (locFilter === 'NO_LOC' && cnt > 0) return false;
 
-    const locText = (item.locations || [])
-      .map(l => `${l.unitName} ${l.areaName} ${l.tableName} ${l.locCode}`)
-      .join(' ');
-    const combined = `${item.inv_code || ''} ${item.price_code || ''} ${item.drug_name || ''} ${locText}`;
+    if (selectedCatalogDrugKey) {
+      const inv = String(item.inv_code || '').trim().toUpperCase();
+      const price = String(item.price_code || '').trim().toUpperCase();
+      return inv === selectedCatalogDrugKey || price === selectedCatalogDrugKey;
+    }
+
+    const combined = `${item.inv_code || ''} ${item.price_code || ''} ${item.drug_name || ''}`;
     return matchesFuzzyKeywords(combined, kw);
   });
 
@@ -729,33 +793,100 @@ export function renderDrugMasterCatalog() {
   if (totalEl) totalEl.innerText = drugMasterCatalogCache.length;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">查無符合條件的藥品資料</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">查無符合條件的藥品資料</td></tr>';
     return;
   }
 
   tbody.innerHTML = filtered.map(item => {
-    const locs = item.locations || [];
-    const cnt = locs.length;
-    const locBadgesHtml = cnt === 0
-      ? '<span class="text-muted small">尚無設定儲位</span>'
-      : `<div class="d-flex flex-wrap gap-1">` + locs.map(l => {
-          const style = UNIT_BADGE_STYLE[l.unitCode] || 'background-color:#6c757d; color:#fff;';
-          const pathText = [l.areaName, l.tableName].filter(Boolean).join(' / ');
-          return `
-            <span class="badge fw-normal text-start border" style="${style} font-size:0.78rem;">
-              <strong>${l.unitName}</strong>｜${pathText ? `${pathText}｜` : ''}<span class="text-warning fw-bold">${l.locCode}</span>
-            </span>`;
-        }).join('') + `</div>`;
-
+    const cnt = Number(item.loc_count) || 0;
     return `
       <tr>
         <td class="text-center fw-bold text-academic text-nowrap">${item.inv_code || '-'}</td>
         <td class="text-center text-nowrap">${item.price_code || '-'}</td>
         <td class="fw-bold">${item.drug_name || '-'}</td>
         <td class="text-center text-nowrap">
-          <span class="badge ${cnt > 0 ? 'bg-success' : 'bg-secondary'} fs-6">${cnt}</span>
+          <button type="button" class="btn btn-sm ${cnt > 0 ? 'btn-success' : 'btn-outline-secondary'} fw-bold px-3 rounded-pill" onclick="openDrugLocationsModal(${item.__catalogIdx})">
+            ${cnt}
+          </button>
         </td>
-        <td>${locBadgesHtml}</td>
       </tr>`;
   }).join('');
+}
+
+// 點選儲位總數後，彈窗顯示依照單位分類的儲位清單
+export function openDrugLocationsModal(catalogIdx) {
+  const item = drugMasterCatalogCache[catalogIdx];
+  if (!item) return;
+
+  const titleEl = document.getElementById('dm-loc-modal-title');
+  const subEl = document.getElementById('dm-loc-modal-subtitle');
+  const bodyEl = document.getElementById('dm-loc-modal-body');
+  if (!bodyEl) return;
+
+  const locs = Array.isArray(item.locations) ? item.locations : [];
+  if (titleEl) titleEl.innerText = item.drug_name || '藥品儲位分佈明細';
+  if (subEl) {
+    subEl.innerText = `加P代碼：${item.inv_code || '-'} | 批價代碼：${item.price_code || '-'} | 全院儲位總數：${locs.length}`;
+  }
+
+  if (!locs.length) {
+    bodyEl.innerHTML = '<div class="alert alert-secondary text-center mb-0">此藥品目前在各調劑單位皆尚無設定儲位</div>';
+  } else {
+    const UNIT_ORDER = ['BA', 'BF', 'BE', 'BG'];
+    const UNIT_META = {
+      BA: { label: '門診藥局 (BA)', color: '#1A365D' },
+      BF: { label: '住院藥局 (BF)', color: '#1E4D2B' },
+      BE: { label: '急診藥局 (BE)', color: '#7A1717' },
+      BG: { label: '調配藥局 (BG)', color: '#4E342E' }
+    };
+
+    const grouped = {};
+    for (const l of locs) {
+      const u = l.unitCode || 'OTHER';
+      if (!grouped[u]) grouped[u] = [];
+      grouped[u].push(l);
+    }
+
+    const orderedUnits = [
+      ...UNIT_ORDER.filter(u => grouped[u]?.length),
+      ...Object.keys(grouped).filter(u => !UNIT_ORDER.includes(u))
+    ];
+
+    bodyEl.innerHTML = orderedUnits.map(u => {
+      const meta = UNIT_META[u] || { label: u, color: '#495057' };
+      const uLocs = grouped[u];
+      return `
+        <div class="card border mb-3 shadow-xs">
+          <div class="card-header text-white py-2 px-3 d-flex justify-content-between align-items-center" style="background-color:${meta.color};">
+            <span class="fw-bold">${meta.label}</span>
+            <span class="badge bg-light text-dark">${uLocs.length} 個儲位</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 24%;">區域</th>
+                  <th style="width: 34%;">盤點表</th>
+                  <th style="width: 42%;">儲位碼</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${uLocs.map(l => `
+                  <tr>
+                    <td>${l.areaName || '-'}</td>
+                    <td>${l.tableName ? `${l.tableName} (${l.tableId})` : (l.tableId || '-')}</td>
+                    <td class="fw-bold text-primary">${l.locCode || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  if (!drugLocationsModalInstance) {
+    drugLocationsModalInstance = new window.bootstrap.Modal(document.getElementById('drugLocationsModal'));
+  }
+  drugLocationsModalInstance.show();
 }
