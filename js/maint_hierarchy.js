@@ -521,7 +521,10 @@ export function renderAreasColumn() {
       </div>`;
   }).join('');
 
-  if (areaSortable) areaSortable.destroy();
+  if (areaSortable) {
+    try { areaSortable.destroy(); } catch (e) {}
+    areaSortable = null;
+  }
   if (window.Sortable && !match.active) {
     areaSortable = new window.Sortable(areaListEl, {
       handle: '.area-drag-handle',
