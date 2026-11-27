@@ -55,12 +55,14 @@ export function addHistoryDate(forceDate = null) {
 
     const rawData = res.data || [];
     rawData.forEach(row => {
-      const code = row[0], name = row[1]; 
+      const code = row[0], name = row[1];
+      const priceCode = row[7] || '';
       const sap = parseFloat(row[3]) || 0, act = parseFloat(row[4]) || 0, diff = parseFloat(row[5]) || 0;
       const detailJSON = row[6] || "[]";
-
-      if (!pivotData[code]) pivotData[code] = { name: name, history: {} };
-      pivotData[code].history[dStr] = { sap, act, diff, detailJSON }; 
+    
+      if (!pivotData[code]) pivotData[code] = { name: name, priceCode: priceCode, history: {} };
+      else if (priceCode && !pivotData[code].priceCode) pivotData[code].priceCode = priceCode;
+      pivotData[code].history[dStr] = { sap, act, diff, detailJSON };
     });
 
     updateAvailableDrugs();
@@ -106,10 +108,14 @@ export function renderHistoryTable() {
   const zeroFilter = document.getElementById('history-zero-filter') ? document.getElementById('history-zero-filter').value : 'hide_zero';
 
   let headHtml = `<tr>
-    <th class="text-center text-nowrap align-middle bg-academic text-white border-end" style="min-width: 90px; position: sticky; left: 0; z-index: 11;">代碼</th>
-    <th class="text-start text-nowrap align-middle bg-academic text-white border-end border-2" style="min-width: 170px; position: sticky; left: 90px; z-index: 11;">藥品名稱</th>`;
-  selectedDates.forEach(d => { headHtml += `<th class="text-center text-nowrap bg-light border-start align-middle shadow-sm"><div class="text-dark fs-6 fw-bold"><i class="bi bi-calendar-check"></i> ${d.substring(5)}</div></th>`; });
-  headHtml += `</tr>`; thead.innerHTML = headHtml;
+    <th class="text-center text-nowrap align-middle bg-academic text-white border-end" style="min-width: 95px; position: sticky; left: 0; z-index: 11;">藥品代碼</th>
+    <th class="text-center text-nowrap align-middle bg-academic text-white border-end" style="min-width: 95px; position: sticky; left: 95px; z-index: 11;">批價代碼</th>
+    <th class="text-start text-nowrap align-middle bg-academic text-white border-end border-2" style="min-width: 175px; position: sticky; left: 190px; z-index: 11;">藥品名稱</th>`;
+  selectedDates.forEach(d => {
+    headHtml += `<th class="text-center text-nowrap bg-light border-start align-middle shadow-sm"><div class="text-dark fs-6 fw-bold"><i class="bi bi-calendar-check"></i> ${d.substring(5)}</div></th>`;
+  });
+  headHtml += `</tr>`;
+  thead.innerHTML = headHtml;
 
   let drugs = Object.keys(pivotData);
   if (selectedDrugCode) drugs = drugs.filter(code => code === selectedDrugCode);
@@ -137,27 +143,18 @@ export function renderHistoryTable() {
         return; 
     }
 
-    const drugName = pivotData[code].name;
-    // 🌟 重新計算斑馬紋顏色，只算有顯示出來的列
-    const rowBg = visibleRowIndex % 2 === 0 ? '#ffffff' : '#f1f3f5';
-    visibleRowIndex++; 
-    
-    // 檢查交班註記
-    const hasActiveNote = drugNotesData.some(n => n.code === code && n.status === '成立');
-    const noteIcon = hasActiveNote 
-      ? `<i class="bi bi-chat-text-fill text-warning fs-5" style="cursor:pointer;" title="點擊查看交班註記" onclick="event.stopPropagation(); openNoteModal('${code}', '${drugName}')"></i>` 
-      : `<i class="bi bi-chat-text text-secondary opacity-50 fs-6" style="cursor:pointer;" title="新增交班註記" onclick="event.stopPropagation(); openNoteModal('${code}', '${drugName}')"></i>`;
-
-    bodyHtml += `<tr style="cursor: pointer;" onclick="const h = this.getAttribute('data-h') === '1'; const c = h ? '${rowBg}' : '#fffbeb'; this.querySelectorAll('td').forEach(td => td.style.setProperty('background-color', c, 'important')); this.setAttribute('data-h', h ? '0' : '1');">
-      
-      <td class="text-center text-secondary fw-bold align-middle border-end" style="position: sticky; left: 0; z-index: 2; background-color: ${rowBg};">${code}</td>
-      
-      <td class="text-start align-middle border-end border-2 p-2" style="position: sticky; left: 90px; z-index: 2; background-color: ${rowBg}; min-width: 170px;">
-        <div class="d-flex align-items-center gap-2">
-          <div>${noteIcon}</div>
-          <div class="fw-bold text-dark" style="white-space: normal; word-break: break-word; line-height: 1.2;">${drugName}</div>
-        </div>
-      </td>`;
+  const drugName = pivotData[code].name;
+  const priceCode = pivotData[code].priceCode || '-';
+  // ...
+  bodyHtml += `<tr style="cursor: pointer;" onclick="const h = this.getAttribute('data-h') === '1'; const c = h ? '${rowBg}' : '#fffbeb'; this.querySelectorAll('td').forEach(td => td.style.setProperty('background-color', c, 'important')); this.setAttribute('data-h', h ? '0' : '1');">
+    <td class="text-center text-secondary fw-bold align-middle border-end" style="position: sticky; left: 0; z-index: 2; background-color: ${rowBg}; min-width: 95px;">${code}</td>
+    <td class="text-center text-dark fw-semibold align-middle border-end" style="position: sticky; left: 95px; z-index: 2; background-color: ${rowBg}; min-width: 95px;">${priceCode}</td>
+    <td class="text-start align-middle border-end border-2 p-2" style="position: sticky; left: 190px; z-index: 2; background-color: ${rowBg}; min-width: 175px;">
+      <div class="d-flex align-items-center gap-2">
+        <div>${noteIcon}</div>
+        <div class="fw-bold text-dark" style="white-space: normal; word-break: break-word; line-height: 1.2;">${drugName}</div>
+      </div>
+    </td>`;
     
     selectedDates.forEach(d => {
       const record = pivotData[code].history[d];
