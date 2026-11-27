@@ -348,6 +348,119 @@ export function handleTableDrop(e, targetTableId) {
 // ==========================================
 // 第一層：區域
 // ==========================================
+function getHierSearchKeyword() {
+  const el = document.getElementById('hier-loc-search');
+  return String(el?.value || '').trim().toLowerCase();
+}
+
+// 計算搜尋關鍵字下符合的三層集合：
+// - 命中第三層儲位 -> 連帶保留所屬第二層盤點表與第一層區域
+// - 命中第二層盤點表 -> 連帶保留所屬第一層區域與該盤點表下所有儲位
+// - 命中第一層區域 -> 連帶保留該區域下所有盤點表與儲位
+function getHierarchySearchMatches(kw) {
+  if (!kw) {
+    return {
+      active: false,
+      matchedAreaIds: null,
+      matchedTableIds: null,
+      matchedLocCodes: null
+    };
+  }
+
+  const areaMap = {};
+  for (const a of hierAreas) {
+    areaMap[a.area_id] = a;
+  }
+
+  const tableMap = {};
+  for (const t of hierTables) {
+    tableMap[t.table_id] = t;
+  }
+
+  const matchedAreaIds = new Set();
+  const matchedTableIds = new Set();
+  const matchedLocCodes = new Set();
+
+  // 1. 比對第三層儲位
+  for (const l of hierLocations) {
+    const tbl = tableMap[l.table_id];
+    const area = tbl ? areaMap[tbl.area_code] : null;
+    const hay = [
+      l.loc_code,
+      l.drug_code,
+      l.drug_name,
+      l.monthly_desc,
+      l.drug_remark,
+      l.daily_notice,
+      tbl?.table_id,
+      tbl?.table_code,
+      tbl?.table_name,
+      area?.area_id,
+      area?.area_code,
+      area?.area_name
+    ].join(' ').toLowerCase();
+
+    if (hay.includes(kw)) {
+      if (l.loc_code) matchedLocCodes.add(l.loc_code);
+      if (l.table_id) matchedTableIds.add(l.table_id);
+      if (tbl?.area_code) matchedAreaIds.add(tbl.area_code);
+    }
+  }
+
+  // 2. 比對第二層盤點表
+  for (const t of hierTables) {
+    const area = areaMap[t.area_code];
+    const hay = [
+      t.table_id,
+      t.table_code,
+      t.table_name,
+      t.table_desc,
+      area?.area_id,
+      area?.area_code,
+      area?.area_name
+    ].join(' ').toLowerCase();
+
+    if (hay.includes(kw)) {
+      matchedTableIds.add(t.table_id);
+      if (t.area_code) matchedAreaIds.add(t.area_code);
+      for (const l of hierLocations) {
+        if (l.table_id === t.table_id && l.loc_code) {
+          matchedLocCodes.add(l.loc_code);
+        }
+      }
+    }
+  }
+
+  // 3. 比對第一層區域
+  for (const a of hierAreas) {
+    const hay = [a.area_id, a.area_code, a.area_name, a.area_desc].join(' ').toLowerCase();
+    if (hay.includes(kw)) {
+      matchedAreaIds.add(a.area_id);
+      for (const t of hierTables) {
+        if (t.area_code === a.area_id) {
+          matchedTableIds.add(t.table_id);
+          for (const l of hierLocations) {
+            if (l.table_id === t.table_id && l.loc_code) {
+              matchedLocCodes.add(l.loc_code);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    active: true,
+    matchedAreaIds,
+    matchedTableIds,
+    matchedLocCodes
+  };
+}
+
+export function onHierSearchInput() {
+  renderAreasColumn();
+}
+
 export function renderAreasColumn() {
   const areaListEl = document.getElementById('hier-area-list');
   if (!areaListEl) return;
@@ -358,9 +471,29 @@ export function renderAreasColumn() {
     return;
   }
 
-  areaListEl.innerHTML = hierAreas.map(a => {
+  const kw = getHierSearchKeyword();
+  const match = getHierarchySearchMatches(kw);
+  const visibleAreas = match.active
+    ? hierAreas.filter(a => match.matchedAreaIds.has(a.area_id))
+    : hierAreas;
+
+  if (!visibleAreas.length) {
+    areaListEl.innerHTML = '<div class="text-center text-muted small py-4">查無符合的區域</div>';
+    selectedAreaId = null;
+    renderTablesColumn();
+    return;
+  }
+
+  if (!selectedAreaId || !visibleAreas.some(a => a.area_id === selectedAreaId)) {
+    selectedAreaId = visibleAreas[0].area_id;
+  }
+
+  areaListEl.innerHTML = visibleAreas.map(a => {
     const active = a.area_id === selectedAreaId;
-    const tblCount = hierTables.filter(t => t.area_code === a.area_id).length;
+    const areaTbls = hierTables.filter(t => t.area_code === a.area_id);
+    const tblCount = match.active
+      ? areaTbls.filter(t => match.matchedTableIds.has(t.table_id)).length
+      : areaTbls.length;
 
     return `
       <div class="list-group-item list-group-item-action p-2 hier-area-item ${active ? 'active bg-academic border-academic' : ''}"
@@ -389,7 +522,7 @@ export function renderAreasColumn() {
   }).join('');
 
   if (areaSortable) areaSortable.destroy();
-  if (window.Sortable) {
+  if (window.Sortable && !match.active) {
     areaSortable = new window.Sortable(areaListEl, {
       handle: '.area-drag-handle',
       animation: 150,
@@ -495,7 +628,14 @@ export function renderTablesColumn() {
     return;
   }
 
-  const areaTables = hierTables.filter(t => t.area_code === selectedAreaId);
+  const kw = getHierSearchKeyword();
+  const match = getHierarchySearchMatches(kw);
+
+  const rawAreaTables = hierTables.filter(t => t.area_code === selectedAreaId);
+  const areaTables = match.active
+    ? rawAreaTables.filter(t => match.matchedTableIds.has(t.table_id))
+    : rawAreaTables;
+
   if (areaTables.length > 0 && (!selectedTableId || !areaTables.some(t => t.table_id === selectedTableId))) {
     selectedTableId = areaTables[0].table_id;
   } else if (areaTables.length === 0) {
@@ -517,7 +657,11 @@ export function renderTablesColumn() {
     if (!items.length) return '<div class="text-center text-muted small py-2">無盤點表（可拖拉至此）</div>';
     return items.map(t => {
       const active = t.table_id === selectedTableId;
-      const locCount = hierLocations.filter(l => l.table_id === t.table_id).length;
+      const tblLocs = hierLocations.filter(l => l.table_id === t.table_id);
+      const locCount = match.active
+        ? tblLocs.filter(l => match.matchedLocCodes.has(l.loc_code)).length
+        : tblLocs.length;
+
       return `
         <div class="list-group-item list-group-item-action p-2 hier-table-item ${active ? 'active bg-academic border-academic' : ''}"
              data-table-id="${t.table_id}" style="cursor:pointer;"
@@ -592,8 +736,7 @@ export function renderTablesColumn() {
 
   tblListEl.innerHTML = poolHtml + segsHtml;
 
-  if (window.Sortable) {
-    // 分段框上下拖拉調整順序
+  if (window.Sortable && !match.active) {
     const tblSegsWrapper = tblListEl.querySelector('#hier-tbl-segs-wrapper');
     if (tblSegsWrapper) {
       new window.Sortable(tblSegsWrapper, {
@@ -620,7 +763,6 @@ export function renderTablesColumn() {
             });
           });
 
-          // 同步未上鎖盤點表的分段編號與編碼前綴
           const usedTableIds = new Set(
             hierTables.filter(t => t.is_locked && t.table_id).map(t => String(t.table_id).toUpperCase())
           );
@@ -658,7 +800,6 @@ export function renderTablesColumn() {
       });
     }
 
-    // 各分段與 POOL 內盤點表拖拉
     tblListEl.querySelectorAll('.hier-tbl-seg-list').forEach(listEl => {
       new window.Sortable(listEl, {
         group: 'hier-table-group',
@@ -805,26 +946,21 @@ export function renderLocationsColumn() {
     return;
   }
 
-  const kw = (document.getElementById('hier-loc-search')?.value || '').toLowerCase().trim();
+  const kw = getHierSearchKeyword();
+  const match = getHierarchySearchMatches(kw);
   const segs = hierSegments
     .filter(s => s.table_id === selectedTableId && Number(s.segment_no) > 0)
     .sort((a, b) => Number(a.segment_no) - Number(b.segment_no));
   const validSegNos = new Set(segs.map(s => Number(s.segment_no)));
-  const tableLocs = hierLocations.filter(l => l.table_id === selectedTableId);
+  const rawTableLocs = hierLocations.filter(l => l.table_id === selectedTableId);
+  const tableLocs = match.active
+    ? rawTableLocs.filter(l => match.matchedLocCodes.has(l.loc_code))
+    : rawTableLocs;
 
-  const filterKw = (arr) => {
-    if (!kw) return arr;
-    return arr.filter(l =>
-      (l.loc_code || '').toLowerCase().includes(kw) ||
-      (l.drug_code || '').toLowerCase().includes(kw) ||
-      (l.drug_name || '').toLowerCase().includes(kw)
-    );
-  };
-
-  const poolItems = filterKw(tableLocs.filter(l => {
+  const poolItems = tableLocs.filter(l => {
     const sNo = Number(l.segment_no ?? l.row_no) || 0;
     return sNo === 0 || !validSegNos.has(sNo);
-  }));
+  });
 
   const renderLocRows = (items, displaySegLabel, segNumForBadge) => {
     return items.map(l => `
@@ -883,7 +1019,7 @@ export function renderLocationsColumn() {
         const displaySegNum = sIdx + 1;
         const isSelSeg = segNo === Number(selectedSegmentNo);
         const isCol = collapsedLocSegs.has(`${selectedTableId}_${segNo}`);
-        const itemsInSeg = filterKw(tableLocs.filter(l => (Number(l.segment_no ?? l.row_no) || 0) === segNo));
+        const itemsInSeg = tableLocs.filter(l => (Number(l.segment_no ?? l.row_no) || 0) === segNo);
 
         return `
           <div class="card border ${isSelSeg ? 'border-primary border-2' : 'border-secondary-subtle'} mb-2 shadow-xs hier-loc-seg-card" data-seg-no="${segNo}">
@@ -916,8 +1052,7 @@ export function renderLocationsColumn() {
 
   container.innerHTML = poolCardHtml + segCardsHtml;
 
-  if (window.Sortable && !kw) {
-    // 儲位分段框上下拖拉調整順序
+  if (window.Sortable && !match.active) {
     const locSegsWrapper = container.querySelector('#hier-loc-segs-wrapper');
     if (locSegsWrapper) {
       new window.Sortable(locSegsWrapper, {
@@ -943,7 +1078,6 @@ export function renderLocationsColumn() {
             });
           });
 
-          // 同步未上鎖儲位的分段編號與儲位碼分段碼
           const usedLocCodes = new Set(
             hierLocations.filter(l => l.is_locked && l.loc_code).map(l => String(l.loc_code).toUpperCase())
           );
@@ -976,7 +1110,6 @@ export function renderLocationsColumn() {
       });
     }
 
-    // 各分段與 POOL 內儲位拖拉
     container.querySelectorAll('.hier-seg-tbody').forEach(tb => {
       new window.Sortable(tb, {
         group: 'hier-loc-group',
