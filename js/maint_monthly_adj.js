@@ -733,3 +733,15 @@ export function exportAdjVersionExcel() {
   window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet([adjVerHeaders, ...adjVerFiltered]), '盤點表版本紀錄');
   window.XLSX.writeFile(wb, `盤點表版本紀錄_${document.getElementById('adj-ver-month-filter')?.value || 'ALL'}.xlsx`);
 }
+
+export function handleMonthlyAdjPrevLayer() {
+  const workspace = document.getElementById('adj-workspace-panel');
+  const isInsideUnit = workspace && !workspace.classList.contains('d-none');
+  if (isInsideUnit) {
+    // 已進入特定藥局單位調帳面板 -> 上一層為「選擇藥局單位」
+    initMonthlyAdjPortal();
+  } else {
+    // 位於單位選擇面板 -> 上一層為「回到網站入口」
+    backToLobby();
+  }
+}
