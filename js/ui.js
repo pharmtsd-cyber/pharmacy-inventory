@@ -101,8 +101,8 @@ export function switchView(viewId) {
     target.classList.add('active');
   }
 
-  // 藥品主檔、藥師權限管理、網站權限管理、月盤點調帳專區 進入後主色統一深灰色
-  if (['view-drug-master-list', 'view-user-mgmt', 'view-portal-perm', 'view-monthly-adj'].includes(viewId)) {
+  // 藥品主檔、網站權限管理、月盤點調帳專區 進入後主色統一深灰色
+  if (['view-drug-master-list', 'view-portal-perm', 'view-monthly-adj'].includes(viewId)) {
     applyDarkGrayTheme();
   }
 
@@ -144,7 +144,6 @@ export function switchView(viewId) {
     'view-daily-app': '每日盤點',
     'view-monthly-app': '月盤點',
     'view-history-app': '對帳分析',
-    'view-user-mgmt': '藥師權限管理',
     'view-drug-mgmt': '藥品管理組',
     'view-portal-perm': '網站權限管理',
     'view-monthly-adj': '月盤點調帳專區',
